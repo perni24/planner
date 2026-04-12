@@ -1,18 +1,9 @@
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse
-from starlette.routing import Route
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 from init_db import init_db, get_db_connection
 
-async def homepage(request):
-    return JSONResponse({'messaggio': 'Il backend del Planner è attivo!'})
-
-# Configurazione delle rotte
-routes = [
-    Route("/", endpoint=homepage)
-]
 
 # Configurazione del Middleware CORS
 # allow_origins=["*"] permette a qualsiasi frontend di connettersi (ottimo per lo sviluppo)
