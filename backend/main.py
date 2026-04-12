@@ -2,7 +2,8 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
-from init_db import init_db, get_db_connection
+from db.db import init_db
+from routes.api import all_routes
 
 
 # Configurazione del Middleware CORS
@@ -11,7 +12,7 @@ middleware = [
     Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 ]
 
-app = Starlette(debug=True, routes=routes, middleware=middleware)
+app = Starlette(debug=True, routes=all_routes, middleware=middleware)
 
 if __name__ == "__main__":
     # Inizializza il DB all'avvio

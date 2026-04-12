@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_FOLDER = os.path.join(BACKEND_DIR, "db")
 DB_NAME = os.path.join(DB_FOLDER, "planner.db")
 SCHEMA_PATH = os.path.join(BACKEND_DIR, "schema.sql")

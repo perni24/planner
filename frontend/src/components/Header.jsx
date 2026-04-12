@@ -12,16 +12,6 @@ function Header() {
             </Link>
           </div>
 
-          {/* Navigazione Desktop */}
-          <nav className="hidden md:flex space-x-8">
-            <Link 
-              to="/" 
-              className="text-gray-500 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Home
-            </Link>
-          </nav>
-
           {/* Dark Mode */}
           <div className="flex items-center space-x-3">
             {/* Dark Mode Toggle */}

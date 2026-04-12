@@ -1,0 +1,23 @@
+### Recupera tutti i progetti
+GET http://127.0.0.1:8000/projects/get_all_projects
+
+###
+
+### Inserisci un nuovo progetto
+POST http://127.0.0.1:8000/projects/insert_project
+Content-Type: application/json
+
+{
+    "name": "Nuovo Progetto da Test",
+    "description": "Una breve descrizione per il test"
+}
+
+###
+
+### Elimina i progetti
+POST http://127.0.0.1:8000/projects/delete_project
+Content-Type: application/json
+
+{
+    "id": "1"
+}
