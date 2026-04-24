@@ -1,3 +1,8 @@
+CREATE TABLE areas(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+
 CREATE TABLE projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -17,6 +22,13 @@ CREATE TABLE tasks (
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
+CREATE TABLE calendar(
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
 CREATE TABLE settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT
-)
+    theme TEXT NOT NULL DEFAULT 'light'
+    font_color_light TEXT NOT NULL DEFAULT '#000000'
+    font_color_dark TEXT NOT NULL DEFAULT '#ffffff'
+);

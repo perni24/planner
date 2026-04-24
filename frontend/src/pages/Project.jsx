@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllProjects } from '../api';
+import CardProgetto from '../components/CardProgetto';
 
 function Project() {
 
@@ -21,9 +22,11 @@ function Project() {
 
 
   return (
-    <div>
-        <h1>Pagina Progetti</h1>
-
+    <div className="grid w-full grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-8">
+        <CardProgetto nuovo_progetto={true} />
+        {projects.map((project) => (
+          <CardProgetto key={project.id} data={project} />
+        ))}
     </div>
   );
 }
