@@ -1,7 +1,7 @@
 
 function CardProgetto({data, nuovo_progetto = false}) {
   return (
-    <div className="aspect-square border border-gray-200 rounded-lg p-4 shadow-md bg-white transition-colors transition-shadow duration-200 hover:bg-gray-50 hover:shadow-lg">
+    <div className="aspect-square border border-main-border rounded-lg p-4 shadow-md bg-main-card transition-colors transition-shadow duration-200 hover:bg-main-hover hover:shadow-lg text-main-text">
     {nuovo_progetto ? (
         <div className="flex h-full flex-col">
         <h2 className="text-center text-xl font-semibold">Nuovo Progetto</h2>
@@ -15,6 +15,6 @@ function CardProgetto({data, nuovo_progetto = false}) {
     </div>
     
   );
-}
+  }
 
-export default CardProgetto;
+  export default CardProgetto;

@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+@theme {
+  /* Mappatura delle variabili CSS nel sistema di design di Tailwind 4 */
+  --color-main-bg: var(--background);
+  --color-main-text: var(--foreground);
+  --color-main-card: var(--card);
+  --color-main-border: var(--border);
+  --color-main-hover: var(--hover);
+}
+
+/* Modalità CHIARA (Default) */
+:root {
+  --background: #f8fafc;    
+  --foreground: #0f172a;    
+  --card: #ffffff;          
+  --border: #e2e8f0;
+  --hover: #f1f5f9; /* Grigio leggero */
+}
+
+/* Modalità SCURA */
+.dark {
+  --background: #0f172a;   
+  --foreground: #f1f5f9;    
+  --card: #1e293b;          
+  --border: #334155;
+  --hover: #2d3748; /* Blu leggermente più chiaro */
+}
+
+/* Modalità PERSONALIZZATA */
+.custom {
+  --background: var(--u-bg, #f8fafc);
+  --foreground: var(--u-text, #0f172a);
+  --card: var(--u-card, #ffffff);
+  --border: var(--u-border, #e2e8f0);
+  --hover: var(--u-hover, #f1f5f9);
+}
+
+/* Stili Globali Base */
+@layer base {
+  body {
+    @apply bg-main-bg text-main-text transition-colors duration-200;
+  }
+}

@@ -27,8 +27,11 @@ CREATE TABLE calendar(
 );
 
 CREATE TABLE settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-    theme TEXT NOT NULL DEFAULT 'light'
-    font_color_light TEXT NOT NULL DEFAULT '#000000'
-    font_color_dark TEXT NOT NULL DEFAULT '#ffffff'
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    theme TEXT NOT NULL DEFAULT 'system',
+    custom_background TEXT,
+    custom_foreground TEXT,
+    custom_card TEXT,
+    custom_border TEXT,
+    custom_hover TEXT
 );
