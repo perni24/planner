@@ -3,6 +3,13 @@ import { useState, useEffect } from 'react';
 function Setting() {
   // logica da spostare in un contesto globale che viene eseguita prima del load della pagina
   const [theme, setTheme] = useState('system');
+  const [customColors, setCustomColors] = useState({
+    background: '#0f172a',
+    foreground: '#1e3a8a',
+    card: '#f0f9ff',
+    border: '#3b82f6',
+    hover: '#2563eb'
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -65,6 +72,11 @@ function Setting() {
                 <input 
                   type="color" 
                   className="w-full h-10 p-1 bg-main-bg border border-main-border rounded cursor-pointer"
+                  value={customColors.background}
+                  onChange={(e) => {
+                    setCustomColors({...customColors, background: e.target.value})
+                    document.documentElement.style.setProperty('--u-bg', e.target.value)}
+                  }
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -72,6 +84,11 @@ function Setting() {
                 <input 
                   type="color" 
                   className="w-full h-10 p-1 bg-main-bg border border-main-border rounded cursor-pointer"
+                  value={customColors.foreground}
+                  onChange={(e) => {
+                    setCustomColors({...customColors, foreground: e.target.value}) 
+                    document.documentElement.style.setProperty('--u-text', e.target.value)}
+                  }
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -79,6 +96,11 @@ function Setting() {
                 <input 
                   type="color" 
                   className="w-full h-10 p-1 bg-main-bg border border-main-border rounded cursor-pointer"
+                  value={customColors.card}
+                  onChange={(e) => {
+                    setCustomColors({...customColors, card: e.target.value})
+                    document.documentElement.style.setProperty('--u-card', e.target.value)}
+                  }
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -86,6 +108,11 @@ function Setting() {
                 <input 
                   type="color" 
                   className="w-full h-10 p-1 bg-main-bg border border-main-border rounded cursor-pointer"
+                  value={customColors.border}
+                  onChange={(e) => {
+                    setCustomColors({...customColors, border: e.target.value})
+                    document.documentElement.style.setProperty('--u-border', e.target.value)}
+                  }
                 />
               </div>
             </div>

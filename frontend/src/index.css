@@ -29,11 +29,11 @@
 
 /* Modalità PERSONALIZZATA */
 .custom {
-  --background: var(--u-bg, #f8fafc);
-  --foreground: var(--u-text, #0f172a);
-  --card: var(--u-card, #ffffff);
-  --border: var(--u-border, #e2e8f0);
-  --hover: var(--u-hover, #f1f5f9);
+  --background: var(--u-bg, #0f172a);
+  --foreground: var(--u-text, #f0f9ff);
+  --card: var(--u-card, #1e3a8a);
+  --border: var(--u-border, #3b82f6);
+  --hover: var(--u-hover, #2563eb);
 }
 
 /* Stili Globali Base */
