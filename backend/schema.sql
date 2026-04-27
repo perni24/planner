@@ -29,9 +29,10 @@ CREATE TABLE calendar(
 CREATE TABLE settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     theme TEXT NOT NULL DEFAULT 'system',
-    custom_background TEXT,
-    custom_foreground TEXT,
-    custom_card TEXT,
-    custom_border TEXT,
-    custom_hover TEXT
+    custom_background TEXT NOT NULL DEFAULT '#0f172a',
+    custom_foreground TEXT NOT NULL DEFAULT '#f0f9ff',
+    custom_card TEXT NOT NULL DEFAULT '#1e3a8a',
+    custom_border TEXT NOT NULL DEFAULT '#3b82f6',
+    custom_hover TEXT NOT NULL DEFAULT '#2563eb',
+    custom_hover_text TEXT NOT NULL DEFAULT '#f0f9ff'
 );

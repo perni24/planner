@@ -14,7 +14,7 @@ function SideBar() {
           <li>
             <Link
               to="/"
-              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-indigo-600 transition-colors"
+              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
               Projects
             </Link>
@@ -22,7 +22,7 @@ function SideBar() {
           <li>
             <Link
               to="/calendar"
-              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-indigo-600 transition-colors"
+              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
               Calendar
             </Link>
@@ -30,7 +30,7 @@ function SideBar() {
           <li>
             <Link
               to="/settings"
-              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-indigo-600 transition-colors"
+              className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
               Settings
             </Link>
