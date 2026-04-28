@@ -7,17 +7,23 @@ async def get_all_projects(request):
     projects = projectRepo.get_all_projects()
     return JSONResponse(projects)
 
+async def get_projects_by_area(request):
+    area_id = request.query_params.get("area_id")
+    projects = projectRepo.get_projects_by_area(area_id)
+    return JSONResponse(projects)
+
 async def insert_project(request):
 
     data = await request.json()
 
+    area_id = data.get("area_id")
     name = data.get("name")
     description = data.get("description")
 
     if not name:
         return JSONResponse({"error": "campo name obbligatorio"}, status_code=400)
 
-    projectRepo.insert_project(name,description)
+    projectRepo.insert_project(area_id, name, description)
 
     return JSONResponse({"message": "Progetto inserito con successo"})
 

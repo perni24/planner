@@ -11,14 +11,28 @@ def get_all_projects():
                 """
             ).fetchall()
         return [format_data(row) for row in cursor]
+    
+def get_projects_by_area(area_id):
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM v_projects_status
+            WHERE area_id = ?
+            ORDER BY created_at DESC
+            """,
+            (area_id,),
+        ).fetchall()
 
-def insert_project(name,description):
+        return [format_data(row) for row in rows]
+
+def insert_project(area_id, name,description):
     with get_db_connection() as conn:
         cursor  = conn.execute(
             """
-            INSERT INTO projects (name, description) VALUES (?, ?)
+            INSERT INTO projects (area_id, name, description) VALUES (?, ?)
             """,
-            (name, description)
+            (area_id, name, description)
         )
         conn.commit()
         return cursor.lastrowid
