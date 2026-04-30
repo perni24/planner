@@ -94,8 +94,20 @@ function Setting() {
             </div>
           </div>
         )}
-
-        
+        <div className="flex flex-col gap-4">
+          <label 
+              htmlFor="language-select" 
+              className="text-sm font-medium"
+            >
+              Lingua
+          </label>
+          <select
+            id="language-select"
+            className="block w-full px-4 py-2 bg-main-card border border-main-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="it">Italiano</option>
+          </select>
+        </div>
 
       </div>
     </div>

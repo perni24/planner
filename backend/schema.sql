@@ -1,6 +1,6 @@
 CREATE TABLE areas(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
+    name TEXT NOT NULL DEFAULT 'utente'
 );
 
 CREATE TABLE projects (
@@ -18,7 +18,7 @@ CREATE TABLE tasks (
     project_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
-    completed INTEGER NOT NULL DEFAULT 0,
+    completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -30,6 +30,7 @@ CREATE TABLE calendar(
 
 CREATE TABLE settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    language TEXT NOT NULL DEFAULT 'it',
     theme TEXT NOT NULL DEFAULT 'system',
     custom_background TEXT NOT NULL DEFAULT '#0f172a',
     custom_foreground TEXT NOT NULL DEFAULT '#f0f9ff',
@@ -68,3 +69,9 @@ GROUP BY
     p.description,
     p.created_at,
     p.updated_at;
+
+
+
+INSERT INTO areas DEFAULT VALUES;
+
+INSERT INTO settings DEFAULT VALUES;

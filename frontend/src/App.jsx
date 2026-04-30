@@ -3,6 +3,7 @@ import Dashboard from './components/Dashboard';
 import Project from './pages/Project';
 import Setting from './pages/Setting';
 import Calendar from './pages/Calendar';
+import Tasks from './pages/Tasks';
 
 const router = createBrowserRouter([
   {
@@ -11,7 +12,8 @@ const router = createBrowserRouter([
     children:[
       {index: true, element: <Project/>},
       {path: "settings", element: <Setting/>},
-      {path: "calendar", element: <Calendar/>}
+      {path: "calendar", element: <Calendar/>},
+      {path: "tasks", element: <Tasks/>}
     ]
   },
 ]);

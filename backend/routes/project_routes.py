@@ -41,6 +41,7 @@ async def delete_project(request):
 # Configurazione delle rotte
 routes = [
     Route("/get_all_projects", endpoint=get_all_projects),
+    Route("/get_projects_by_area", endpoint=get_projects_by_area),
     Route("/insert_project", endpoint=insert_project, methods=["POST"]),
     Route("/delete_project", endpoint=delete_project, methods=["POST"])
 ]
