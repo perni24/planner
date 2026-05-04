@@ -5,12 +5,33 @@ Segui questi passaggi per avviare il progetto in modalità sviluppo.
 ## 1. Backend (Python + Starlette)
 Il backend gestisce il database SQLite e le API.
 
+### Prima configurazione (da fare solo la prima volta)
+
 ```bash
 # Entra nella cartella backend
 cd backend
 
+# Crea l'ambiente virtuale (Linux)
+python -m venv .venv
+
+# Crea l'ambiente virtuale (Windows)
+python -m venv .venv
+```
+
+### Avvio del server
+
+```bash
+# Entra nella cartella backend (se non sei già dentro)
+cd backend
+
 # Attiva l'ambiente virtuale (Linux)
 source .venv/bin/activate
+
+# Attiva l'ambiente virtuale (Windows)
+.\.venv\Scripts\activate
+
+# Installa le dipendenze
+pip install -r requirements.txt
 
 # Avvia il server
 python main.py
@@ -34,6 +55,7 @@ npm install
 npm run dev
 ```
 *Vite ti fornirà un indirizzo (solitamente `http://localhost:5173`).*
+*I comandi npm sopra sono validi sia per Linux che per Windows.*
 
 ---
 
