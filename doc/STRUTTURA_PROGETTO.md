@@ -9,6 +9,7 @@ La root contiene le cartelle principali dell'applicazione e i file generali del 
 - `backend/`: codice server Python, API, database SQLite e query.
 - `frontend/`: applicazione React/Vite.
 - `doc/`: documentazione tecnica e note di progetto.
+- `locales/`: cartella prevista per file JSON esterni delle lingue, gestibili fuori dal bundle frontend.
 - `.gitignore`: file e cartelle esclusi dal versionamento Git.
 - `GEMINI.md`: note operative o istruzioni specifiche del progetto.
 
@@ -17,6 +18,7 @@ La root contiene le cartelle principali dell'applicazione e i file generali del 
 Contiene il backend Python basato su Starlette e la gestione del database SQLite.
 
 - `main.py`: entry point del backend. Crea l'app Starlette, inizializza il database e avvia il server.
+- `config.py`: configurazione centralizzata dei path principali del backend, inclusi database, schema e cartella lingue.
 - `schema.sql`: definizione dello schema SQLite: tabelle, foreign key, indici, viste e dati iniziali.
 - `requirements.txt`: dipendenze Python del backend.
 
@@ -24,8 +26,17 @@ Contiene il backend Python basato su Starlette e la gestione del database SQLite
 
 Contiene la configurazione e l'accesso al database.
 
-- `db.py`: definisce il path del database, crea la connessione SQLite e inizializza il DB leggendo `schema.sql`.
+- `db.py`: crea la connessione SQLite e inizializza il DB leggendo `schema.sql`. I path vengono importati da `backend/config.py`.
 - `planner.db`: file SQLite locale generato dall'applicazione. Non dovrebbe essere modificato manualmente durante lo sviluppo ordinario.
+
+## locales
+
+Cartella prevista per gestire traduzioni esterne in formato JSON.
+
+- `it.json`: dizionario lingua italiana.
+- `en.json`: dizionario lingua inglese.
+
+Questa cartella deve contenere solo file dati delle lingue. La logica Python per leggerli deve stare nel backend, ad esempio in una route o in un service dedicato.
 
 ## backend/db/repositories
 
