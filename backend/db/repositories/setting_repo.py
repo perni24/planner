@@ -11,3 +11,4 @@ def get_all_settings():
                 """
             ).fetchall()
         return [format_data(row) for row in cursor]
+    

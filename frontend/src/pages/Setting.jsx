@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
 function Setting() {
-   const { theme, setTheme, customColors, updateCustomColor } = useTheme();
+  const { theme, setTheme, customColors, updateCustomColor } = useTheme();
   
   return (
     <div className="container mx-auto p-6 max-w-2xl">

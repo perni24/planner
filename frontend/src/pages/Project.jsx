@@ -10,8 +10,8 @@ function Project() {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const data = await getAllProjects();
-        setProjects(data);
+        const response = await getAllProjects();
+        setProjects(response);
       } catch (error) {
         setError(error.message);
       }

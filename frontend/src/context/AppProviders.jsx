@@ -1,10 +1,13 @@
 import { ThemeProvider } from './ThemeContext';
+import { SettingsProvider } from './SettingsContext';
 
 function AppProviders({ children }) {
   return (
-    <ThemeProvider>
-      {children}
-    </ThemeProvider>
+    <SettingsProvider>
+      <ThemeProvider>
+        {children}
+      </ThemeProvider>
+    </SettingsProvider>
   );
 }
 

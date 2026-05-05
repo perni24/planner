@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useSettings } from './SettingsContext';
+
 
 const ThemeContext = createContext();
 
@@ -12,6 +14,9 @@ const DEFAULT_CUSTOM_COLORS = {
 };
 
 export function ThemeProvider({ children }) {
+
+  const { settings } = useSettings();
+
   const [theme, setTheme] = useState('system');
   const [customColors, setCustomColors] = useState(DEFAULT_CUSTOM_COLORS);
 
