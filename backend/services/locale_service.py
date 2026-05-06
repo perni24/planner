@@ -1,8 +1,9 @@
 import json
 import os
 import re
-
+from db.repositories.setting_repo import get_current_language
 from config import LOCALES_DIR
+
 
 LANGUAGE_RE = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 
@@ -31,7 +32,8 @@ def get_locale_path(language):
     return os.path.join(LOCALES_DIR, f"{language}.json")
 
 
-def load_language(language):
+def load_language():
+    language = get_current_language()
     path = get_locale_path(language)
 
     if not os.path.exists(path):

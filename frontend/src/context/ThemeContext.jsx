@@ -4,21 +4,20 @@ import { useSettings } from './SettingsContext';
 
 const ThemeContext = createContext();
 
-const DEFAULT_CUSTOM_COLORS = {
-  background: '#0f172a',
-  foreground: '#f0f9ff',
-  card: '#1e3a8a',
-  border: '#3b82f6',
-  hover: '#2563eb',
-  hoverText: '#f0f9ff'
-};
 
 export function ThemeProvider({ children }) {
 
   const { settings } = useSettings();
 
-  const [theme, setTheme] = useState('system');
-  const [customColors, setCustomColors] = useState(DEFAULT_CUSTOM_COLORS);
+  const [theme, setTheme] = useState(settings?.theme ?? 'system');
+  const [customColors, setCustomColors] = useState({
+    background: settings?.custom_background ?? '#0f172a',
+    foreground: settings?.custom_foreground ?? '#f0f9ff',
+    card: settings?.custom_card ?? '#1e3a8a',
+    border: settings?.custom_border ?? '#3b82f6',
+    hover: settings?.custom_hover ?? '#2563eb',
+    hoverText: settings?.custom_hover_text ?? '#f0f9ff'
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;

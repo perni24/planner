@@ -7,8 +7,7 @@ async def get_available_languages(request):
     return JSONResponse(languages)
 
 async def load_language(request):
-    languageName = request.query_params.get("language")
-    language = localeService.load_language(languageName)
+    language = localeService.load_language()
     return JSONResponse(language)
 
 routes = [

@@ -6,7 +6,7 @@ import { Settings } from './types/settings';
 export const getAllProjects = () => apiCore<Project[]>('/projects/get_all_projects');
 
 // settings 
-export const getAllSettings = () => apiCore<Settings[]>('/settings/get_all_settings'); 
+export const getAllSettings = () => apiCore<Settings>('/settings/get_all_settings'); 
 
 // languages
 export const getAvailableLanguages = () => apiCore<string[]>('/locales/get_available_languages'); 
