@@ -9,3 +9,12 @@ export interface Settings {
     custom_hover: string;
     custom_hover_text: string;
 }
+
+export type CustomColors = {
+  background: string;
+  foreground: string;
+  card: string;
+  border: string;
+  hover: string;
+  hoverText: string;
+};

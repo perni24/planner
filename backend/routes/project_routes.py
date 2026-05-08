@@ -15,7 +15,7 @@ async def get_projects_by_area(request):
 async def insert_project(request):
 
     data = await request.json()
-
+    
     area_id = data.get("area_id")
     name = data.get("name")
     description = data.get("description")
@@ -25,7 +25,7 @@ async def insert_project(request):
 
     projectRepo.insert_project(area_id, name, description)
 
-    return JSONResponse({"message": "Progetto inserito con successo"})
+    return JSONResponse({"message": "Project insert successful"})
 
 async def delete_project(request):
 
@@ -35,7 +35,7 @@ async def delete_project(request):
 
     projectRepo.delete_project(id)
 
-    return JSONResponse({"message" : "Progetto eliminato con successo"})
+    return JSONResponse({"message" : "Project deleted successfully"})
 
 
 # Configurazione delle rotte

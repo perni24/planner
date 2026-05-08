@@ -28,7 +28,7 @@ cd backend
 source .venv/bin/activate
 
 # Attiva l'ambiente virtuale (Windows)
-.\.venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 
 # Installa le dipendenze
 pip install -r requirements.txt

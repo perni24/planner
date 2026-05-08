@@ -1,0 +1,16 @@
+{
+  "settings.title": "Settings",
+  "settings.theme.label": "Application theme",
+  "settings.theme.light": "Light",
+  "settings.theme.dark": "Dark",
+  "settings.theme.system": "System",
+  "settings.theme.custom": "Custom",
+  "settings.colors.title": "Custom colors",
+  "settings.colors.background": "Page background",
+  "settings.colors.foreground": "Main text",
+  "settings.colors.card": "Card background",
+  "settings.colors.border": "Borders",
+  "settings.colors.hover": "Hover background",
+  "settings.colors.hoverText": "Hover text",
+  "settings.language.label": "Language"
+}

@@ -1,12 +1,15 @@
 import { ThemeProvider } from './ThemeContext';
 import { SettingsProvider } from './SettingsContext';
+import { LanguageProvider } from './LanguageContext';
 
 function AppProviders({ children }) {
   return (
     <SettingsProvider>
-      <ThemeProvider>
-        {children}
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </LanguageProvider>
     </SettingsProvider>
   );
 }

@@ -1,6 +1,16 @@
 {
-    "settings": {
-        "title": "Impostazioni",
-        "tema": "Tema"
-    }
+  "settings.title": "Impostazioni",
+  "settings.theme.label": "Tema dell'applicazione",
+  "settings.theme.light": "Chiaro",
+  "settings.theme.dark": "Scuro",
+  "settings.theme.system": "Sistema",
+  "settings.theme.custom": "Personalizzato",
+  "settings.colors.title": "Colori personalizzati",
+  "settings.colors.background": "Sfondo pagina",
+  "settings.colors.foreground": "Testo principale",
+  "settings.colors.card": "Sfondo card",
+  "settings.colors.border": "Bordi",
+  "settings.colors.hover": "Sfondo hover",
+  "settings.colors.hoverText": "Testo hover",
+  "settings.language.label": "Lingua"
 }

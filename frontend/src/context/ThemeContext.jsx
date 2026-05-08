@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useSettings } from './SettingsContext';
+import { updateTheme } from '../api';
 
 
 const ThemeContext = createContext();
@@ -51,20 +52,38 @@ export function ThemeProvider({ children }) {
     root.style.setProperty('--u-hover-text', customColors.hoverText);
   }, [customColors]);
 
-  function updateCustomColor(colorName, value) {
-    setCustomColors((currentColors) => ({
-      ...currentColors,
+  async function updateCustomColor(colorName, value) {
+    const nextColors = {
+      ...customColors,
       [colorName]: value,
-    }));
+    };
+
+    setCustomColors(nextColors);
+
+    try {
+      await updateTheme(theme, nextColors);
+    } catch (error) {
+      console.error('Error updating theme:', error);
+    }
+  }
+
+
+  async function changeTheme(newTheme){
+    setTheme(newTheme);
+    try{
+      await updateTheme(newTheme, customColors);
+    }catch(error){
+      console.error('Error updating theme:', error);
+    }
   }
 
   return (
     <ThemeContext.Provider
       value={{
         theme,
-        setTheme,
         customColors,
-        updateCustomColor
+        updateCustomColor, 
+        changeTheme
       }}
     >
       {children}
