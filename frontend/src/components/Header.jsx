@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import AreaSwitcher from './AreaSwitcher';
 
 function Header() {
   return (
@@ -11,6 +12,8 @@ function Header() {
               Planner<span className="text-main-text">App</span>
             </Link>
           </div>
+
+          <AreaSwitcher />
         </div>
       </div>
     </header>

@@ -7,7 +7,7 @@ const LanguageContext = createContext();
 export function LanguageProvider({ children }) {
 
   const { settings } = useSettings();
-  const [language, setLanguage] = useState(settings?.language ?? 'en');
+  const [language, setLanguage] = useState(settings?.language ?? 'it');
   const [jsonLanguage, setJsonLanguage] = useState({});
   const [error, setError] = useState(null);
   
