@@ -1,23 +1,25 @@
+@baseUrl = http://127.0.0.1:8000
+
 ### Recupera tutti i progetti
-GET http://127.0.0.1:8000/projects/get_all_projects
+GET {{baseUrl}}/projects/get_all_projects
 
-###
+### Recupera i progetti filtrati per area
+GET {{baseUrl}}/projects/get_projects_by_area?area_id=1
 
-### Inserisci un nuovo progetto
-POST http://127.0.0.1:8000/projects/insert_project
+### Inserisce un nuovo progetto
+POST {{baseUrl}}/projects/insert_project
 Content-Type: application/json
 
 {
-    "name": "Nuovo Progetto da Test",
-    "description": "Una breve descrizione per il test"
+  "area_id": 1,
+  "name": "Nuovo progetto da test",
+  "description": "Descrizione progetto da test"
 }
 
-###
-
-### Elimina i progetti
-POST http://127.0.0.1:8000/projects/delete_project
+### Elimina un progetto
+POST {{baseUrl}}/projects/delete_project
 Content-Type: application/json
 
 {
-    "id": "1"
+  "id": 1
 }

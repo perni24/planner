@@ -1,10 +1,14 @@
+import { useLanguage } from "../context/LanguageContext";
 
 function CardProgetto({data, nuovo_progetto = false}) {
+
+  const { jsonLanguage } = useLanguage();
+
   return (
     <div className="aspect-square border border-main-border rounded-lg p-4 shadow-md bg-main-card transition-colors transition-shadow duration-200 hover:bg-main-hover hover:shadow-lg text-main-text">
     {nuovo_progetto ? (
         <div className="flex h-full flex-col">
-        <h2 className="text-center text-xl font-semibold">Nuovo Progetto</h2>
+        <h2 className="text-center text-xl font-semibold">{jsonLanguage['CardProject.new']}</h2>
         <p className="flex flex-1 items-center justify-center text-5xl font-bold">+</p>
         </div>
     ) : (

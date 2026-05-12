@@ -23,12 +23,22 @@ def insert_area(name):
         conn.commit()
         return cursor.lastrowid
 
-def unpdate_area(id, name):
+def update_area(id, name):
     with get_db_connection() as conn:
         cursor = conn.execute(
             """
             UPDATE areas SET name = ? WHERE id = ?
             """,
             (name, id)
+        )
+        conn.commit()
+
+def delete_area(id):
+    with get_db_connection() as conn:
+        cursor = conn.execute(
+            """
+            DELETE FROM areas WHERE id = ? 
+            """,
+            (id,)
         )
         conn.commit()

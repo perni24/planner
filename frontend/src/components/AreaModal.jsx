@@ -1,12 +1,28 @@
 import { useState } from "react";
-import { insertArea } from "../api";
+import { insertArea, updateArea, deleteArea } from "../api";
+import { useArea } from "../context/areaContext";
+import { useLanguage } from "../context/LanguageContext";
 
-function AreaModal({ onClose }) {
+function AreaModal({ onClose, area = null, isEditMode = false  }) {
+  
+const { reloadAreas } = useArea();
+const { jsonLanguage } = useLanguage(); 
+const [areaName, setAreaName] = useState(isEditMode ? area?.name ?? '' : '')
 
-const [areaName, setAreaName] = useState(null)
+async function handleUpsertArea() {
+    if(isEditMode){
+      await updateArea(area.id, areaName);
+    }else{
+      await insertArea(areaName);
+    }
+    await reloadAreas();
+    onClose();
+}
 
-async function handleInsertArea() {
-    await insertArea(areaName);
+async function handleDeleteArea() {
+  await deleteArea(area.id)
+  await reloadAreas();
+  onClose();
 }
 
 return (
@@ -14,7 +30,7 @@ return (
       <div className="w-full max-w-md rounded-lg border border-main-border bg-main-card p-6 text-main-text shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">Nuova area</h2>
+            <h2 className="text-xl font-semibold">{ isEditMode ? jsonLanguage['areaModal.title.edit'] : jsonLanguage['areaModal.title.create']}</h2>
           </div>
 
           <button
@@ -28,23 +44,34 @@ return (
 
         <div className="mt-6">
           <label htmlFor="area-name" className="text-sm font-medium">
-            Nome area
+            {jsonLanguage['areaModal.name.label']}
           </label>
           <input
             id="area-name"
             type="text"
-            placeholder="Es. Lavoro"
+            value={areaName}
+            placeholder={jsonLanguage['areaModal.name.placeholder']}
             className="mt-2 block w-full rounded-md border border-main-border bg-main-bg px-3 py-2 text-sm text-main-text shadow-sm outline-none transition-colors placeholder:text-main-text/50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             onChange={(e) => setAreaName(e.target.value)}
           />
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
+          {isEditMode && (
+            <button
+              type="button"
+              className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+              onClick={() => handleDeleteArea()}
+            >
+              {jsonLanguage['areaModal.actions.delete']}
+            </button>
+          )}
           <button
             type="button"
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            onClick={() => handleUpsertArea()}
           >
-            Crea
+            { isEditMode ? jsonLanguage['areaModal.actions.edit'] : jsonLanguage['areaModal.actions.create'] }
           </button>
         </div>
       </div>

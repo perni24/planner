@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom';
+import { useLanguage } from "../context/LanguageContext";
 
 function SideBar() {
+
+  const { jsonLanguage } = useLanguage();
+
   return (
     <aside className="w-64 h-full bg-main-card border-r border-main-border shadow-sm">
       <div className="px-6 py-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Navigazione
+          {jsonLanguage['sideBar.title']}
         </p>
       </div>
 
@@ -16,7 +20,7 @@ function SideBar() {
               to="/"
               className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
-              Projects
+              {jsonLanguage['sideBar.project']}
             </Link>
           </li>
           <li>
@@ -24,7 +28,7 @@ function SideBar() {
               to="/calendar"
               className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
-              Calendar
+              {jsonLanguage['sideBar.calendar']}
             </Link>
           </li>
           <li>
@@ -32,7 +36,7 @@ function SideBar() {
               to="/settings"
               className="block rounded-lg px-4 py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
             >
-              Settings
+              {jsonLanguage['sideBar.settings']}
             </Link>
           </li>
         </ul>

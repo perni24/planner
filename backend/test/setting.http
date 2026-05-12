@@ -1,0 +1,28 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Recupera tutte le impostazioni
+GET {{baseUrl}}/settings/get_all_settings
+
+### Aggiorna la lingua
+POST {{baseUrl}}/settings/update_language
+Content-Type: application/json
+
+{
+  "language": "it"
+}
+
+### Aggiorna tema e colori custom
+POST {{baseUrl}}/settings/update_theme
+Content-Type: application/json
+
+{
+  "theme": "custom",
+  "custom_colors": {
+    "background": "#0f172a",
+    "foreground": "#f0f9ff",
+    "card": "#1e3a8a",
+    "border": "#3b82f6",
+    "hover": "#2563eb",
+    "hoverText": "#f0f9ff"
+  }
+}

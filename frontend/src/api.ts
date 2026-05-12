@@ -10,6 +10,10 @@ export const getAllAreas = () => apiCore<Area[]>('/areas/get_all_areas');
 
 export const insertArea = (name: string) => apiCore<ApiMessage>('/areas/insert_area', {method: 'POST', body:{name}});
 
+export const updateArea = (id: number, name: string) => apiCore<ApiMessage>('/areas/update_area', {method:'PUT', body:{id,name}})
+
+export const deleteArea = (id: number) => apiCore<ApiMessage>('/areas/delete_area', {method:'DELETE', body:{id}})
+
 // projects 
 export const getAllProjects = () => apiCore<Project[]>('/projects/get_all_projects');
 

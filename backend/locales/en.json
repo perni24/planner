@@ -12,5 +12,23 @@
   "settings.colors.border": "Borders",
   "settings.colors.hover": "Hover background",
   "settings.colors.hoverText": "Hover text",
-  "settings.language.label": "Language"
+  "settings.language.label": "Language",
+
+  "areaModal.title.create": "New area",
+  "areaModal.title.edit": "Edit area",
+  "areaModal.name.label": "Area name",
+  "areaModal.name.placeholder": "E.g. Work",
+  "areaModal.actions.create": "Create",
+  "areaModal.actions.edit": "Edit",
+  "areaModal.actions.delete": "Delete",
+
+  "areaSwitcher.actions.create": "New area",
+  "areaSwitcher.actions.settings": "Area settings",
+
+  "sideBar.title": "Menu",
+  "sideBar.project": "Projects",
+  "sideBar.calendar": "Calendar",
+  "sideBar.settings": "Settings",
+
+  "CardProject.new": "New project"
 }

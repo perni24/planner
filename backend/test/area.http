@@ -1,0 +1,29 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Recupera tutte le aree
+GET {{baseUrl}}/areas/get_all_areas
+
+### Inserisce una nuova area
+POST {{baseUrl}}/areas/insert_area
+Content-Type: application/json
+
+{
+  "name": "Area test"
+}
+
+### Aggiorna un'area
+PUT {{baseUrl}}/areas/update_area
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Area aggiornata"
+}
+
+### Elimina un'area
+DELETE {{baseUrl}}/areas/delete_area
+Content-Type: application/json
+
+{
+  "id": 1
+}

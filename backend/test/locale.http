@@ -1,0 +1,7 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Recupera le lingue disponibili
+GET {{baseUrl}}/locales/get_available_languages
+
+### Carica il file lingua corrente
+GET {{baseUrl}}/locales/load_language
