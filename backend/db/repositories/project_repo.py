@@ -26,11 +26,11 @@ def get_projects_by_area(area_id):
 
         return [format_data(row) for row in rows]
 
-def insert_project(area_id, name,description):
+def insert_project(area_id, name, description):
     with get_db_connection() as conn:
         cursor  = conn.execute(
             """
-            INSERT INTO projects (area_id, name, description) VALUES (?, ?)
+            INSERT INTO projects (area_id, name, description) VALUES (?, ?, ?)
             """,
             (area_id, name, description)
         )

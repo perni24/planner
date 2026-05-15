@@ -1,11 +1,15 @@
 import { useLanguage } from "../context/LanguageContext";
+import { Link } from 'react-router-dom';
 
-function CardProgetto({data, nuovo_progetto = false}) {
+function ProjectCard({data, nuovo_progetto = false, onClick}) {
 
   const { jsonLanguage } = useLanguage();
 
   return (
-    <div className="aspect-square border border-main-border rounded-lg p-4 shadow-md bg-main-card transition-colors transition-shadow duration-200 hover:bg-main-hover hover:shadow-lg text-main-text">
+    <div
+    onClick={onClick}
+    className="aspect-square border border-main-border rounded-lg p-4 shadow-md bg-main-card transition-colors transition-shadow duration-200 hover:bg-main-hover hover:shadow-lg text-main-text"
+    >
     {nuovo_progetto ? (
         <div className="flex h-full flex-col">
         <h2 className="text-center text-xl font-semibold">{jsonLanguage['CardProject.new']}</h2>
@@ -21,4 +25,4 @@ function CardProgetto({data, nuovo_progetto = false}) {
   );
   }
 
-  export default CardProgetto;
+  export default ProjectCard;
