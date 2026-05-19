@@ -13,7 +13,7 @@ const router = createBrowserRouter([
       {index: true, element: <Project/>},
       {path: "settings", element: <Setting/>},
       {path: "calendar", element: <Calendar/>},
-      {path: "tasks", element: <Tasks/>}
+      {path: "tasks/:projectId", element: <Tasks/>}
     ]
   },
 ]);
