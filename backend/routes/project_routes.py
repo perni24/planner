@@ -12,6 +12,11 @@ async def get_projects_by_area(request):
     projects = projectRepo.get_projects_by_area(area_id)
     return JSONResponse(projects)
 
+async def get_project(request):
+    project_id = request.query_params.get("project_id")
+    project = projectRepo.get_project(project_id)
+    return JSONResponse(project)
+
 async def insert_project(request):
 
     data = await request.json()
@@ -42,6 +47,7 @@ async def delete_project(request):
 routes = [
     Route("/get_all_projects", endpoint=get_all_projects),
     Route("/get_projects_by_area", endpoint=get_projects_by_area),
+    Route("/get_project", endpoint=get_project),
     Route("/insert_project", endpoint=insert_project, methods=["POST"]),
     Route("/delete_project", endpoint=delete_project, methods=["POST"])
 ]

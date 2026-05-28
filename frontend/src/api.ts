@@ -1,5 +1,5 @@
 import { apiCore } from './apiCore';
-import { Project, ProjectCreate, ProjectUpdate } from './types/projects';
+import { Project } from './types/projects';
 import { LocaleDictionary } from './types/locales';
 import { Settings, CustomColors } from './types/settings';
 import { ApiMessage } from './types/apiResponses';
@@ -18,10 +18,18 @@ export const deleteArea = (id: number) => apiCore<ApiMessage>('/areas/delete_are
 // projects 
 export const getProjectByArea = (area_id: number) => apiCore<Project[]>(`/projects/get_projects_by_area?area_id=${area_id}`);
 
+export const getProject = (project_id: number) => apiCore<Project>(`/projects/get_project?project_id=${project_id}`);
+
 export const insertProject = (area_id: number, name: string, description: string ) => apiCore<ApiMessage>('/projects/insert_project', {method: 'POST', body:{area_id, name, description}})
 
 // tasks
-export const get_tasks_by_project = (project_id: number) => apiCore<Task[]>(`/projects/get_tasks_by_project?project_id=${project_id}`);
+export const get_tasks_by_project = (project_id: number) => apiCore<Task[]>(`/tasks/get_tasks_by_project?project_id=${project_id}`);
+
+export const insertTask = (project_id: number, title: string, description: string) => apiCore<ApiMessage>('/tasks/insert_task', {method: 'POST', body:{project_id, title, description}}); 
+
+export const updateTask = (task_id:number, title:string, description:string) => apiCore<ApiMessage>('/tasks/update_task', {method: 'POST', body:{task_id, title, description}});
+
+export const updateStatusTask = (task_id:number) => apiCore<ApiMessage>('/tasks/update_status_task', {method: 'POST', body:{task_id}});
 
 // settings 
 export const getAllSettings = () => apiCore<Settings>('/settings/get_all_settings'); 

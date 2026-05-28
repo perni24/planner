@@ -25,6 +25,19 @@ def get_projects_by_area(area_id):
         ).fetchall()
 
         return [format_data(row) for row in rows]
+    
+def get_project(project_id):
+    with get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM v_projects_status
+            WHERE id = ?
+            """,
+            (project_id,),
+        ).fetchone()
+
+        return format_data(row)
 
 def insert_project(area_id, name, description):
     with get_db_connection() as conn:

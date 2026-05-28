@@ -1,0 +1,25 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Recupera tutti i task
+GET {{baseUrl}}/tasks/get_all_tasks
+
+### Recupera i task di un progetto
+GET {{baseUrl}}/tasks/get_tasks_by_project?project_id=1
+
+### Inserisce un nuovo task
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": 1,
+  "title": "Task da test",
+  "description": "Descrizione task da test"
+}
+
+### Elimina un task
+POST {{baseUrl}}/tasks/delete_task
+Content-Type: application/json
+
+{
+  "task_id": 1
+}
