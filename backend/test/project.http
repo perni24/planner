@@ -6,6 +6,9 @@ GET {{baseUrl}}/projects/get_all_projects
 ### Recupera i progetti filtrati per area
 GET {{baseUrl}}/projects/get_projects_by_area?area_id=1
 
+### Recupera un progetto
+GET {{baseUrl}}/projects/get_project?project_id=1
+
 ### Inserisce un nuovo progetto
 POST {{baseUrl}}/projects/insert_project
 Content-Type: application/json
@@ -16,10 +19,20 @@ Content-Type: application/json
   "description": "Descrizione progetto da test"
 }
 
+### Aggiorna un progetto
+POST {{baseUrl}}/projects/update_project
+Content-Type: application/json
+
+{
+  "project_id": 1,
+  "name": "Progetto aggiornato da test",
+  "description": "Descrizione aggiornata da test"
+}
+
 ### Elimina un progetto
 POST {{baseUrl}}/projects/delete_project
 Content-Type: application/json
 
 {
-  "id": 1
+  "project_id": 1
 }

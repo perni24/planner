@@ -1,5 +1,13 @@
-function TaskCard({ task, onEdit }) {
+import { updateStatusTask} from "../api";
+
+function TaskCard({ task, onEdit, refreshFunction}) {
+  
   const isCompleted = task.completed === 1;
+
+  async function handleToggleStatus(){
+    await updateStatusTask(task.id); 
+    refreshFunction();
+  }
 
   return (
     <article className="flex items-start gap-4 rounded-xl border border-main-border bg-main-card p-4 shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text">
@@ -9,6 +17,7 @@ function TaskCard({ task, onEdit }) {
             ? 'mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'
             : 'mt-1 h-5 w-5 rounded-full border-2 border-indigo-500'
         }
+        onClick={ ()=> handleToggleStatus()}
       >
         {isCompleted ? 'x' : ''}
       </span>

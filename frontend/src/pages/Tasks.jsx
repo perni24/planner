@@ -3,6 +3,7 @@ import { get_tasks_by_project, getProject } from '../api';
 import { useEffect, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
+import ProjectModal from '../components/ProjectModal';
 
 function Tasks() {
   const { projectId } = useParams();
@@ -12,6 +13,7 @@ function Tasks() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskEditMode, setIsTaskEditMode] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   const openTasks = tasks.filter((task) => task.completed === 0);
   const completedTasks = tasks.filter((task) => task.completed === 1);
@@ -66,13 +68,23 @@ function Tasks() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={openNewTaskModal}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-          >
-            + Nuova task
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsProjectModalOpen(true)}
+              className="rounded-lg border border-main-border px-4 py-2 text-sm font-semibold text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
+            >
+              Modifica progetto
+            </button>
+
+            <button
+              type="button"
+              onClick={openNewTaskModal}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+            >
+              + Nuova task
+            </button>
+          </div>
         </div>
 
         <div className="mt-8">
@@ -103,7 +115,7 @@ function Tasks() {
           </div>
         ) : (
           openTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} />
+            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} refreshFunction={loadTasks}/>
           ))
         )}
       </section>
@@ -122,7 +134,7 @@ function Tasks() {
           </div>
         ) : (
           completedTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} />
+            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} refreshFunction={loadTasks}/>
           ))
         )}
       </section>
@@ -134,6 +146,15 @@ function Tasks() {
           task={selectedTask}
           refreshFunction={loadTasks}
           project_id={Number(projectId)}
+        />
+      )}
+
+      {isProjectModalOpen && (
+        <ProjectModal
+          onClose={() => setIsProjectModalOpen(false)}
+          refreshFunction={loadProject}
+          isEditMode={true}
+          project={project}
         />
       )}
     </div>

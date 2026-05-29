@@ -22,6 +22,10 @@ export const getProject = (project_id: number) => apiCore<Project>(`/projects/ge
 
 export const insertProject = (area_id: number, name: string, description: string ) => apiCore<ApiMessage>('/projects/insert_project', {method: 'POST', body:{area_id, name, description}})
 
+export const updateProject = (project_id: number, name: string, description: string) => apiCore<ApiMessage>('/projects/update_project', {method: 'POST', body:{project_id, name, description}})
+
+export const deleteProject = (project_id: number) => apiCore<ApiMessage>('/projects/delete_project', {method: 'POST', body:{project_id}})
+
 // tasks
 export const get_tasks_by_project = (project_id: number) => apiCore<Task[]>(`/tasks/get_tasks_by_project?project_id=${project_id}`);
 
@@ -30,6 +34,8 @@ export const insertTask = (project_id: number, title: string, description: strin
 export const updateTask = (task_id:number, title:string, description:string) => apiCore<ApiMessage>('/tasks/update_task', {method: 'POST', body:{task_id, title, description}});
 
 export const updateStatusTask = (task_id:number) => apiCore<ApiMessage>('/tasks/update_status_task', {method: 'POST', body:{task_id}});
+
+export const deleteTask = (task_id: number) => apiCore<ApiMessage>('/tasks/delete_task', {method: 'POST', body:{task_id}});
 
 // settings 
 export const getAllSettings = () => apiCore<Settings>('/settings/get_all_settings'); 

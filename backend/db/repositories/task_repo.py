@@ -66,7 +66,7 @@ def delete_task(id):
             """
             DELETE FROM tasks WHERE id = ?
             """,
-            (id)
+            (id,)
         )
         conn.commit()
         return cursor.lastrowid

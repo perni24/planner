@@ -30,5 +30,11 @@
   "sideBar.calendar": "Calendar",
   "sideBar.settings": "Settings",
 
-  "CardProject.new": "New project"
+  "cardProject.new": "New project",
+  "cardProject.createDescription": "Create a new project",
+  "cardProject.untitled": "Untitled",
+  "cardProject.noDescription": "No description",
+  "cardProject.area": "Area",
+  "cardProject.task": "task",
+  "cardProject.completed": "Completed"
 }

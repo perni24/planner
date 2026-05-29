@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { insertTask } from "../api";
+import { insertTask, updateTask, deleteTask } from "../api";
 
 function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id }) {
 
@@ -8,6 +8,18 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
 
   async function handleInsertTask(){
     await insertTask(project_id, taskName, taskDescription); 
+    refreshFunction();
+    onClose(); 
+  }
+
+  async function handleUpdateTask(){
+    await updateTask(task.id, taskName, taskDescription);
+    refreshFunction();
+    onClose(); 
+  }
+
+  async function handleDeleteTask(){
+    await deleteTask(task.id);
     refreshFunction();
     onClose(); 
   }
@@ -67,6 +79,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
             <button
               type="button"
               className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+              onClick={() => handleDeleteTask()}
             >
               Elimina
             </button>
@@ -75,7 +88,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
           <button
             type="button"
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-            onClick={() => handleInsertTask()}
+            onClick={() => isEditMode ? handleUpdateTask() : handleInsertTask()}
           >
             {isEditMode ? 'Modifica' : 'Crea'}
           </button>

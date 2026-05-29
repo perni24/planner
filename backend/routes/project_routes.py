@@ -18,28 +18,27 @@ async def get_project(request):
     return JSONResponse(project)
 
 async def insert_project(request):
-
     data = await request.json()
-    
     area_id = data.get("area_id")
     name = data.get("name")
     description = data.get("description")
-
     if not name:
         return JSONResponse({"error": "campo name obbligatorio"}, status_code=400)
-
     projectRepo.insert_project(area_id, name, description)
-
     return JSONResponse({"message": "Project insert successful"})
 
-async def delete_project(request):
-
+async def update_project(request):
     data = await request.json()
+    project_id = data.get("project_id")
+    name = data.get("name")
+    description = data.get("description")
+    projectRepo.update_project(project_id, name, description)
+    return JSONResponse({"message": "Project updated successful"})
 
-    id = data.get("id")
-
-    projectRepo.delete_project(id)
-
+async def delete_project(request):
+    data = await request.json()
+    project_id = data.get("project_id")
+    projectRepo.delete_project(project_id)
     return JSONResponse({"message" : "Project deleted successfully"})
 
 
@@ -49,6 +48,7 @@ routes = [
     Route("/get_projects_by_area", endpoint=get_projects_by_area),
     Route("/get_project", endpoint=get_project),
     Route("/insert_project", endpoint=insert_project, methods=["POST"]),
+    Route("/update_project", endpoint=update_project, methods=["POST"]),
     Route("/delete_project", endpoint=delete_project, methods=["POST"])
 ]
 

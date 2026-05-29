@@ -37,8 +37,8 @@ function Project() {
     <div className="grid w-full grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-8">
         <ProjectCard nuovo_progetto={true} onClick={() => setIsProjectModalOpen(true)} />
         {projects.map((project) => (
-          <Link to={`tasks/${project.id}`}>
-            <ProjectCard key={project.id} data={project} />
+          <Link key={project.id} to={`tasks/${project.id}`}>
+            <ProjectCard data={project} />
           </Link>
         ))}
     </div>

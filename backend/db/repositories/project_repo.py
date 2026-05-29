@@ -49,14 +49,25 @@ def insert_project(area_id, name, description):
         )
         conn.commit()
         return cursor.lastrowid
+    
+def update_project(project_id, name, description):
+    with get_db_connection() as conn:
+        cursor  = conn.execute(
+            """
+            UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? 
+            """,
+            (name, description, project_id)
+        )
+        conn.commit()
+        return cursor.lastrowid
 
-def delete_project(id):
+def delete_project(project_id):
     with get_db_connection() as conn:
         cursor  = conn.execute(
             """
             DELETE FROM projects WHERE id = ?
             """,
-            (id)
+            (project_id,)
         )
         conn.commit()
         return cursor.lastrowid
