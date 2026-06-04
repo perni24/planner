@@ -1,6 +1,8 @@
 import { updateStatusTask} from "../api";
+import { useLanguage } from "../context/LanguageContext";
 
 function TaskCard({ task, onEdit, refreshFunction}) {
+  const { jsonLanguage } = useLanguage();
   
   const isCompleted = task.completed === 1;
 
@@ -28,11 +30,11 @@ function TaskCard({ task, onEdit, refreshFunction}) {
         </h3>
 
         <p className="mt-1 text-sm text-main-text/70">
-          {task.description ?? 'Nessuna descrizione.'}
+          {task.description ?? jsonLanguage['taskCard.noDescription']}
         </p>
 
         <p className="mt-3 text-xs text-main-text/60">
-          {isCompleted ? 'Completata' : 'Da fare'} - Creata il {task.created_at}
+          {isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']} - {jsonLanguage['taskCard.createdAt']} {task.created_at}
         </p>
       </div>
 
@@ -40,7 +42,7 @@ function TaskCard({ task, onEdit, refreshFunction}) {
         type="button"
         onClick={() => onEdit?.(task)}
         className="rounded-md px-2 py-1 text-main-text transition-colors hover:bg-main-card hover:text-main-hover-text"
-        aria-label={`Impostazioni task ${task.title}`}
+        aria-label={`${jsonLanguage['taskCard.settings']} ${task.title}`}
       >
         <svg
           className="h-4 w-4"

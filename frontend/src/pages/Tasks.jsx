@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import ProjectModal from '../components/ProjectModal';
+import { useLanguage } from '../context/LanguageContext';
 
 function Tasks() {
   const { projectId } = useParams();
+  const { jsonLanguage } = useLanguage();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState(null);
@@ -61,10 +63,10 @@ function Tasks() {
       <section className="rounded-2xl border border-main-border bg-main-card p-6 shadow-md">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-main-text/70">Progetto</p>
-            <h1 className="mt-2 text-3xl font-bold">{project?.name ?? 'Caricamento progetto...'}</h1>
+            <p className="text-sm font-medium text-main-text/70">{jsonLanguage['tasksPage.project']}</p>
+            <h1 className="mt-2 text-3xl font-bold">{project?.name ?? jsonLanguage['tasksPage.loadingProject']}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-main-text/75">
-              {project?.description ?? 'Nessuna descrizione disponibile.'}
+              {project?.description ?? jsonLanguage['tasksPage.noDescription']}
             </p>
           </div>
 
@@ -74,7 +76,7 @@ function Tasks() {
               onClick={() => setIsProjectModalOpen(true)}
               className="rounded-lg border border-main-border px-4 py-2 text-sm font-semibold text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
             >
-              Modifica progetto
+              {jsonLanguage['tasksPage.actions.editProject']}
             </button>
 
             <button
@@ -82,14 +84,14 @@ function Tasks() {
               onClick={openNewTaskModal}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
             >
-              + Nuova task
+              {jsonLanguage['tasksPage.actions.newTask']}
             </button>
           </div>
         </div>
 
         <div className="mt-8">
           <div className="flex items-center justify-between text-sm">
-            <span>{completedCount}/{totalTasks} task completate</span>
+            <span>{completedCount}/{totalTasks} {jsonLanguage['tasksPage.progress.completedTasks']}</span>
             <span className="font-semibold">{completionPercentage}%</span>
           </div>
           <div className="mt-3 h-3 overflow-hidden rounded-full bg-main-bg">
@@ -103,15 +105,15 @@ function Tasks() {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Task aperte</h2>
+          <h2 className="text-xl font-semibold">{jsonLanguage['tasksPage.openTasks.title']}</h2>
           <span className="rounded-full border border-main-border px-3 py-1 text-xs text-main-text/70">
-            {openTasks.length} da fare
+            {openTasks.length} {jsonLanguage['tasksPage.openTasks.count']}
           </span>
         </div>
 
         {openTasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-main-border bg-main-card p-6 text-sm text-main-text/70">
-            Non ci sono task aperte per questo progetto.
+            {jsonLanguage['tasksPage.openTasks.empty']}
           </div>
         ) : (
           openTasks.map((task) => (
@@ -122,15 +124,15 @@ function Tasks() {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Task completate</h2>
+          <h2 className="text-xl font-semibold">{jsonLanguage['tasksPage.completedTasks.title']}</h2>
           <span className="rounded-full border border-main-border px-3 py-1 text-xs text-main-text/70">
-            {completedTasks.length} completate
+            {completedTasks.length} {jsonLanguage['tasksPage.completedTasks.count']}
           </span>
         </div>
 
         {completedTasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-main-border bg-main-card p-6 text-sm text-main-text/70">
-            Nessuna task completata.
+            {jsonLanguage['tasksPage.completedTasks.empty']}
           </div>
         ) : (
           completedTasks.map((task) => (

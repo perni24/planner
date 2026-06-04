@@ -70,7 +70,7 @@ function AreaSwitcher() {
                 type="button"
                 onClick={() => openAreaSettings(area)}
                 className="rounded-md px-3 py-2 text-main-text transition-colors hover:bg-main-card hover:text-main-hover-text"
-                aria-label={`Impostazioni area ${area.name}`}
+                aria-label={`${jsonLanguage['areaSwitcher.actions.settings']} ${area.name}`}
               >
                 <svg
                   className="h-4 w-4"
