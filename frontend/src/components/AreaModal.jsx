@@ -8,6 +8,7 @@ function AreaModal({ onClose, area = null, isEditMode = false  }) {
 const { reloadAreas } = useArea();
 const { jsonLanguage } = useLanguage(); 
 const [areaName, setAreaName] = useState(isEditMode ? area?.name ?? '' : '')
+const disabledButton = areaName.trim().length === 0
 
 async function handleUpsertArea() {
     if(isEditMode){
@@ -68,7 +69,8 @@ return (
           )}
           <button
             type="button"
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-60 disabled:hover:bg-gray-400"
+            disabled={disabledButton}
             onClick={() => handleUpsertArea()}
           >
             { isEditMode ? jsonLanguage['areaModal.actions.edit'] : jsonLanguage['areaModal.actions.create'] }

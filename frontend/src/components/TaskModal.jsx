@@ -7,6 +7,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
 
   const [taskName, setTaskName] = useState(isEditMode ? task?.title ?? '' : '');
   const [taskDescription, setTaskDescription] = useState(isEditMode ? task?.description ?? '' : ''); 
+   const disabledButton = taskName.trim().length === 0
 
   async function handleInsertTask(){
     await insertTask(project_id, taskName, taskDescription); 
@@ -89,7 +90,8 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
 
           <button
             type="button"
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-60 disabled:hover:bg-gray-400"
+            disabled={disabledButton}
             onClick={() => isEditMode ? handleUpdateTask() : handleInsertTask()}
           >
             {isEditMode ? jsonLanguage['taskModal.actions.edit'] : jsonLanguage['taskModal.actions.create']}

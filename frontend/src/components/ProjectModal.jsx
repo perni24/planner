@@ -11,6 +11,8 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
     const [projectName, setProjectName] = useState(isEditMode ? project?.name ?? '' : '');
     const [projectDescription, setProjectDescription] = useState(isEditMode ? project?.description ?? '' : ''); 
 
+    const disabledButton = projectName.trim().length === 0
+
     async function handleUpsertProject(){
         const name = projectName.trim();
 
@@ -97,7 +99,8 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
 
                     <button
                         type="button"
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-60 disabled:hover:bg-gray-400"
+                        disabled={disabledButton}
                         onClick={() => handleUpsertProject()}
                     >
                         {isEditMode ? jsonLanguage['projectModal.actions.edit'] : jsonLanguage['projectModal.actions.create']}
