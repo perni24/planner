@@ -3,10 +3,12 @@ import { insertProject, updateProject, deleteProject } from "../api";
 import { useArea } from "../context/areaContext";
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from "../context/LanguageContext";
+import { useToast } from "../context/ToastContext";
 
 function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = null }) {
     const navigate = useNavigate();
     const {jsonLanguage} = useLanguage(); 
+    const { showToast } = useToast();
     const {currentArea} = useArea(); 
     const [projectName, setProjectName] = useState(isEditMode ? project?.name ?? '' : '');
     const [projectDescription, setProjectDescription] = useState(isEditMode ? project?.description ?? '' : ''); 
@@ -16,15 +18,17 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
     async function handleUpsertProject(){
         const name = projectName.trim();
 
-        if (!name) {
+        if (!name || (!isEditMode && !currentArea?.id) || (isEditMode && !project?.id)) {
             return;
         }
 
         if (!isEditMode) {
             await insertProject(currentArea.id, name, projectDescription); 
+            showToast(jsonLanguage['projectModal.toast.created'], 'success');
             await refreshFunction?.(); 
         }else{
             await updateProject(project.id, name, projectDescription)
+            showToast(jsonLanguage['projectModal.toast.updated'], 'success');
             await refreshFunction?.(); 
         }
 
@@ -32,7 +36,12 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
     }
 
     async function handleDeleteProject(){
+        if (!project?.id) {
+            return;
+        }
+
         await deleteProject(project.id);
+        showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
         onClose();
         navigate('/');
     }

@@ -2,7 +2,7 @@
 - [ ] gestione errori (insert, update, delete) sia frontend che backend
 
 # Priorita alta
-- [ ] Aggiungere validazione frontend nei modali area, progetto e task
+- [x] Aggiungere validazione frontend nei modali area, progetto e task
 - [ ] Aggiungere validazione backend per id, name, title, area_id e project_id
 - [ ] Aggiungere conferma prima di eliminare area, progetto e task
 - [ ] Mostrare gli errori all'utente invece di salvarli solo in state o console

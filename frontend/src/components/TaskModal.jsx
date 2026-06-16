@@ -1,28 +1,49 @@
 import { useState } from "react";
 import { insertTask, updateTask, deleteTask } from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useToast } from "../context/ToastContext";
 
 function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id }) {
   const { jsonLanguage } = useLanguage();
+  const { showToast } = useToast();
 
   const [taskName, setTaskName] = useState(isEditMode ? task?.title ?? '' : '');
   const [taskDescription, setTaskDescription] = useState(isEditMode ? task?.description ?? '' : ''); 
    const disabledButton = taskName.trim().length === 0
 
   async function handleInsertTask(){
-    await insertTask(project_id, taskName, taskDescription); 
+    const title = taskName.trim();
+
+    if (!title || !project_id) {
+      return;
+    }
+
+    await insertTask(project_id, title, taskDescription); 
+    showToast(jsonLanguage['taskModal.toast.created'], 'success');
     refreshFunction();
     onClose(); 
   }
 
   async function handleUpdateTask(){
-    await updateTask(task.id, taskName, taskDescription);
+    const title = taskName.trim();
+
+    if (!title || !task?.id) {
+      return;
+    }
+
+    await updateTask(task.id, title, taskDescription);
+    showToast(jsonLanguage['taskModal.toast.updated'], 'success');
     refreshFunction();
     onClose(); 
   }
 
   async function handleDeleteTask(){
+    if (!task?.id) {
+      return;
+    }
+
     await deleteTask(task.id);
+    showToast(jsonLanguage['taskModal.toast.deleted'], 'success');
     refreshFunction();
     onClose(); 
   }

@@ -2,26 +2,41 @@ import { useState } from "react";
 import { insertArea, updateArea, deleteArea } from "../api";
 import { useArea } from "../context/areaContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useToast } from '../context/ToastContext';
 
 function AreaModal({ onClose, area = null, isEditMode = false  }) {
   
 const { reloadAreas } = useArea();
 const { jsonLanguage } = useLanguage(); 
+const { showToast } = useToast();
 const [areaName, setAreaName] = useState(isEditMode ? area?.name ?? '' : '')
 const disabledButton = areaName.trim().length === 0
 
 async function handleUpsertArea() {
+    const name = areaName.trim();
+
+    if (!name || (isEditMode && !area?.id)) {
+      return;
+    }
+
     if(isEditMode){
-      await updateArea(area.id, areaName);
+      await updateArea(area.id, name);
+      showToast(jsonLanguage['areaModal.toast.updated'], 'success');
     }else{
-      await insertArea(areaName);
+      await insertArea(name);
+      showToast(jsonLanguage['areaModal.toast.created'], 'success');
     }
     await reloadAreas();
     onClose();
 }
 
 async function handleDeleteArea() {
+  if (!area?.id) {
+    return;
+  }
+
   await deleteArea(area.id)
+  showToast(jsonLanguage['areaModal.toast.deleted'], 'success');
   await reloadAreas();
   onClose();
 }
