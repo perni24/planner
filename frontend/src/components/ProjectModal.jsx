@@ -14,6 +14,9 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
     const [projectDescription, setProjectDescription] = useState(isEditMode ? project?.description ?? '' : ''); 
 
     const disabledButton = projectName.trim().length === 0
+    const hasChanges = projectName.trim() !== (project?.name ?? '').trim() || projectDescription.trim() !== (project?.description ?? '').trim()
+    const disabledSaveButton = disabledButton || (!isEditMode && !currentArea?.id) || (isEditMode && (!project?.id || !hasChanges))
+    const disabledDeleteButton = isEditMode && !project?.id
 
     async function handleUpsertProject(){
         const name = projectName.trim();
@@ -22,17 +25,22 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
             return;
         }
 
-        if (!isEditMode) {
-            await insertProject(currentArea.id, name, projectDescription); 
-            showToast(jsonLanguage['projectModal.toast.created'], 'success');
-            await refreshFunction?.(); 
-        }else{
-            await updateProject(project.id, name, projectDescription)
-            showToast(jsonLanguage['projectModal.toast.updated'], 'success');
-            await refreshFunction?.(); 
-        }
+        try {
+            if (!isEditMode) {
+                await insertProject(currentArea.id, name, projectDescription); 
+                showToast(jsonLanguage['projectModal.toast.created'], 'success');
+                await refreshFunction?.(); 
+            }else{
+                await updateProject(project.id, name, projectDescription)
+                showToast(jsonLanguage['projectModal.toast.updated'], 'success');
+                await refreshFunction?.(); 
+            }
 
-        onClose(); 
+            onClose(); 
+        } catch (error) {
+            console.error(error);
+            showToast(jsonLanguage['projectModal.toast.errorSave'], 'error');
+        }
     }
 
     async function handleDeleteProject(){
@@ -40,10 +48,15 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
             return;
         }
 
-        await deleteProject(project.id);
-        showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
-        onClose();
-        navigate('/');
+        try {
+            await deleteProject(project.id);
+            showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
+            onClose();
+            navigate('/');
+        } catch (error) {
+            console.error(error);
+            showToast(jsonLanguage['projectModal.toast.errorDelete'], 'error');
+        }
     }
 
     return (
@@ -99,7 +112,8 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
                     {isEditMode && (
                         <button
                             type="button"
-                            className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                            className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                            disabled={disabledDeleteButton}
                             onClick={() => handleDeleteProject()}
                         >
                             {jsonLanguage['projectModal.actions.delete']}
@@ -109,7 +123,7 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
                     <button
                         type="button"
                         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-60 disabled:hover:bg-gray-400"
-                        disabled={disabledButton}
+                        disabled={disabledSaveButton}
                         onClick={() => handleUpsertProject()}
                     >
                         {isEditMode ? jsonLanguage['projectModal.actions.edit'] : jsonLanguage['projectModal.actions.create']}

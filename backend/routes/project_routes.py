@@ -1,6 +1,7 @@
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 import db.repositories.project_repo as projectRepo
+from validators.request_validator import validate_payload
 
 
 async def get_all_projects(request):
@@ -9,36 +10,42 @@ async def get_all_projects(request):
 
 async def get_projects_by_area(request):
     area_id = request.query_params.get("area_id")
-    projects = projectRepo.get_projects_by_area(area_id)
+    values, error = validate_payload({"area_id": area_id}, ["area_id"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    projects = projectRepo.get_projects_by_area(values["area_id"])
     return JSONResponse(projects)
 
 async def get_project(request):
     project_id = request.query_params.get("project_id")
-    project = projectRepo.get_project(project_id)
+    values, error = validate_payload({"project_id": project_id}, ["project_id"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    project = projectRepo.get_project(values["project_id"])
     return JSONResponse(project)
 
 async def insert_project(request):
     data = await request.json()
-    area_id = data.get("area_id")
-    name = data.get("name")
-    description = data.get("description")
-    if not name:
-        return JSONResponse({"error": "campo name obbligatorio"}, status_code=400)
-    projectRepo.insert_project(area_id, name, description)
+    values, error = validate_payload(data, ["area_id", "name", "description"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    projectRepo.insert_project(values["area_id"], values["name"], values["description"])
     return JSONResponse({"message": "Project insert successful"})
 
 async def update_project(request):
     data = await request.json()
-    project_id = data.get("project_id")
-    name = data.get("name")
-    description = data.get("description")
-    projectRepo.update_project(project_id, name, description)
+    values, error = validate_payload(data, ["project_id", "name", "description"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    projectRepo.update_project(values["project_id"], values["name"], values["description"])
     return JSONResponse({"message": "Project updated successful"})
 
 async def delete_project(request):
     data = await request.json()
-    project_id = data.get("project_id")
-    projectRepo.delete_project(project_id)
+    values, error = validate_payload(data, ["project_id"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    projectRepo.delete_project(values["project_id"])
     return JSONResponse({"message" : "Project deleted successfully"})
 
 

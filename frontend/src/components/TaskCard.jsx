@@ -7,8 +7,12 @@ function TaskCard({ task, onEdit, refreshFunction}) {
   const isCompleted = task.completed === 1;
 
   async function handleToggleStatus(){
+    if (!task?.id) {
+      return;
+    }
+
     await updateStatusTask(task.id); 
-    refreshFunction();
+    await refreshFunction?.();
   }
 
   return (

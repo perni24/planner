@@ -24,6 +24,8 @@
   "areaModal.toast.created": "Area creata con successo",
   "areaModal.toast.updated": "Area aggiornata con successo",
   "areaModal.toast.deleted": "Area eliminata con successo",
+  "areaModal.toast.errorSave": "Errore durante il salvataggio dell'area",
+  "areaModal.toast.errorDelete": "Errore durante l'eliminazione dell'area",
 
   "areaSwitcher.actions.create": "Nuova area",
   "areaSwitcher.actions.settings": "Impostazioni area",
@@ -53,6 +55,8 @@
   "projectModal.toast.created": "Progetto creato con successo",
   "projectModal.toast.updated": "Progetto aggiornato con successo",
   "projectModal.toast.deleted": "Progetto eliminato con successo",
+  "projectModal.toast.errorSave": "Errore durante il salvataggio del progetto",
+  "projectModal.toast.errorDelete": "Errore durante l'eliminazione del progetto",
 
   "taskModal.title.create": "Nuova task",
   "taskModal.title.edit": "Modifica task",
@@ -66,6 +70,8 @@
   "taskModal.toast.created": "Task creata con successo",
   "taskModal.toast.updated": "Task aggiornata con successo",
   "taskModal.toast.deleted": "Task eliminata con successo",
+  "taskModal.toast.errorSave": "Errore durante il salvataggio della task",
+  "taskModal.toast.errorDelete": "Errore durante l'eliminazione della task",
 
   "taskCard.noDescription": "Nessuna descrizione.",
   "taskCard.completed": "Completata",

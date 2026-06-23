@@ -24,6 +24,8 @@
   "areaModal.toast.created": "Area created successfully",
   "areaModal.toast.updated": "Area updated successfully",
   "areaModal.toast.deleted": "Area deleted successfully",
+  "areaModal.toast.errorSave": "Error while saving the area",
+  "areaModal.toast.errorDelete": "Error while deleting the area",
 
   "areaSwitcher.actions.create": "New area",
   "areaSwitcher.actions.settings": "Area settings",
@@ -53,6 +55,8 @@
   "projectModal.toast.created": "Project created successfully",
   "projectModal.toast.updated": "Project updated successfully",
   "projectModal.toast.deleted": "Project deleted successfully",
+  "projectModal.toast.errorSave": "Error while saving the project",
+  "projectModal.toast.errorDelete": "Error while deleting the project",
 
   "taskModal.title.create": "New task",
   "taskModal.title.edit": "Edit task",
@@ -66,6 +70,8 @@
   "taskModal.toast.created": "Task created successfully",
   "taskModal.toast.updated": "Task updated successfully",
   "taskModal.toast.deleted": "Task deleted successfully",
+  "taskModal.toast.errorSave": "Error while saving the task",
+  "taskModal.toast.errorDelete": "Error while deleting the task",
 
   "taskCard.noDescription": "No description.",
   "taskCard.completed": "Completed",

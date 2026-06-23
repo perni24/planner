@@ -1,6 +1,7 @@
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 import db.repositories.area_repo as areaRepo
+from validators.request_validator import validate_payload
 
 async def get_all_areas(request): 
     areas = areaRepo.get_all_areas()
@@ -8,29 +9,26 @@ async def get_all_areas(request):
 
 async def insert_area(request):
     data = await request.json()
-    name = data.get("name")
-    if not name:
-        return JSONResponse({"error": "campo name obbligatorio"}, status_code=400)
-    areaRepo.insert_area(name)
+    values, error = validate_payload(data, ["name"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    areaRepo.insert_area(values["name"])
     return JSONResponse({"message": "area insert successful"})
 
 async def update_area(request):
     data = await request.json()
-    id = data.get("id")
-    name = data.get("name")
-    if not id:
-        return JSONResponse({"error": "campo id obbligatorio"}, status_code=400)
-    if not name:
-        return JSONResponse({"error": "campo name obbligatorio"}, status_code=400)
-    areaRepo.update_area(id, name)
+    values, error = validate_payload(data, ["id", "name"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    areaRepo.update_area(values["id"], values["name"])
     return JSONResponse({"message": "area update successful"})
 
 async def delete_area(request):
     data = await request.json()
-    id = data.get("id")
-    if not id:
-        return JSONResponse({"error": "campo id obbligatorio"}, status_code=400)
-    areaRepo.delete_area(id)
+    values, error = validate_payload(data, ["id"])
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    areaRepo.delete_area(values["id"])
     return JSONResponse({"message": "area delete successful"})
 
 
