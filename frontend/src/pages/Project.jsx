@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getProjectByArea } from '../api';
 import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
-import { useArea } from "../context/areaContext";
+import { useArea } from "../context/useArea";
 import { Link } from 'react-router-dom';
 
 function Project() {
@@ -10,7 +10,6 @@ function Project() {
   const {currentArea} = useArea(); 
 
   const [projects, setProjects] = useState([]);
-  const [error, setError] = useState(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   
   async function loadProjects() {
@@ -22,13 +21,26 @@ function Project() {
       const response = await getProjectByArea(currentArea.id);
       setProjects(response);
     }catch (error) {
-      setError(error.message);
+      console.error('Error loading projects:', error);
     }
   }
 
   useEffect(() => {
-    loadProjects();
-  }, [currentArea]);
+    async function loadInitialProjects() {
+      if (!currentArea?.id) {
+        return;
+      }
+
+      try {
+        const response = await getProjectByArea(currentArea.id);
+        setProjects(response);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    }
+
+    loadInitialProjects();
+  }, [currentArea?.id]);
 
 
 

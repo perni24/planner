@@ -26,6 +26,7 @@
   "areaModal.toast.deleted": "Area deleted successfully",
   "areaModal.toast.errorSave": "Error while saving the area",
   "areaModal.toast.errorDelete": "Error while deleting the area",
+  "areaModal.toast.invalidData": "Missing or invalid area data",
 
   "areaSwitcher.actions.create": "New area",
   "areaSwitcher.actions.settings": "Area settings",
@@ -57,6 +58,7 @@
   "projectModal.toast.deleted": "Project deleted successfully",
   "projectModal.toast.errorSave": "Error while saving the project",
   "projectModal.toast.errorDelete": "Error while deleting the project",
+  "projectModal.toast.invalidData": "Missing or invalid project data",
 
   "taskModal.title.create": "New task",
   "taskModal.title.edit": "Edit task",
@@ -72,12 +74,15 @@
   "taskModal.toast.deleted": "Task deleted successfully",
   "taskModal.toast.errorSave": "Error while saving the task",
   "taskModal.toast.errorDelete": "Error while deleting the task",
+  "taskModal.toast.invalidData": "Missing or invalid task data",
 
   "taskCard.noDescription": "No description.",
   "taskCard.completed": "Completed",
   "taskCard.todo": "To do",
   "taskCard.createdAt": "Created on",
   "taskCard.settings": "Task settings",
+  "taskCard.toast.invalidData": "Missing or invalid task data",
+  "taskCard.toast.errorUpdateStatus": "Error while updating the task status",
 
   "tasksPage.project": "Project",
   "tasksPage.loadingProject": "Loading project...",

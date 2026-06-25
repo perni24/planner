@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useSettings } from './SettingsContext';
+import { useEffect, useState } from 'react';
+import { useSettings } from './useSettings';
 import { loadLanguage, updateLanguage } from '../api';
-
-const LanguageContext = createContext();
+import { LanguageContext } from './languageContextValue';
 
 export function LanguageProvider({ children }) {
 
@@ -25,7 +24,7 @@ export function LanguageProvider({ children }) {
 
   async function changeLanguage(newLanguage){
     try{
-      const response = await updateLanguage(newLanguage);  
+      await updateLanguage(newLanguage);  
       setLanguage(newLanguage); 
     }catch (error) {
       setError(error.message);
@@ -38,14 +37,4 @@ export function LanguageProvider({ children }) {
       </LanguageContext.Provider>
   )
 
-}
-
-export function useLanguage() {
-  const context = useContext(LanguageContext);
-
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-
-  return context;
 }

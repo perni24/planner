@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useArea } from '../context/areaContext';
+import { useArea } from '../context/useArea';
 import AreaModal from './AreaModal';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/useLanguage';
 
 function AreaSwitcher() {
   const { areas, currentArea, setCurrentArea, error } = useArea(); 

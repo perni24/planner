@@ -26,6 +26,7 @@
   "areaModal.toast.deleted": "Area eliminata con successo",
   "areaModal.toast.errorSave": "Errore durante il salvataggio dell'area",
   "areaModal.toast.errorDelete": "Errore durante l'eliminazione dell'area",
+  "areaModal.toast.invalidData": "Dati area mancanti o non validi",
 
   "areaSwitcher.actions.create": "Nuova area",
   "areaSwitcher.actions.settings": "Impostazioni area",
@@ -57,6 +58,7 @@
   "projectModal.toast.deleted": "Progetto eliminato con successo",
   "projectModal.toast.errorSave": "Errore durante il salvataggio del progetto",
   "projectModal.toast.errorDelete": "Errore durante l'eliminazione del progetto",
+  "projectModal.toast.invalidData": "Dati progetto mancanti o non validi",
 
   "taskModal.title.create": "Nuova task",
   "taskModal.title.edit": "Modifica task",
@@ -72,12 +74,15 @@
   "taskModal.toast.deleted": "Task eliminata con successo",
   "taskModal.toast.errorSave": "Errore durante il salvataggio della task",
   "taskModal.toast.errorDelete": "Errore durante l'eliminazione della task",
+  "taskModal.toast.invalidData": "Dati task mancanti o non validi",
 
   "taskCard.noDescription": "Nessuna descrizione.",
   "taskCard.completed": "Completata",
   "taskCard.todo": "Da fare",
   "taskCard.createdAt": "Creata il",
   "taskCard.settings": "Impostazioni task",
+  "taskCard.toast.invalidData": "Dati task mancanti o non validi",
+  "taskCard.toast.errorUpdateStatus": "Errore durante l'aggiornamento dello stato della task",
 
   "tasksPage.project": "Progetto",
   "tasksPage.loadingProject": "Caricamento progetto...",

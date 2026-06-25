@@ -1,23 +1,31 @@
 # Areas 
 - [ ] gestione errori (insert, update, delete) sia frontend che backend
 
+# Prima di PyInstaller/GitHub Actions
+- [x] Sistemare errori di `npm run lint`
+- [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
+- [ ] Installare e configurare Ruff per il controllo automatico del backend
+- [ ] Verificare build frontend e sintassi backend in una CI locale prima di creare GitHub Actions
+
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task
 - [x] Aggiungere validazione backend per id, name, title, area_id e project_id
 - [ ] Aggiungere conferma prima di eliminare area, progetto e task
 - [x] Mostrare gli errori all'utente invece di salvarli solo in state o console
-- [ ] Aggiungere stato loading sui pulsanti di insert, update e delete
+- [x] Aggiungere stato loading sui pulsanti di insert, update e delete
 - [x] Proteggere update/delete quando area, progetto o task sono null
-- [ ] Mostrare toast quando un'azione viene bloccata per dati mancanti o non validi
-- [ ] Riallineare currentArea dopo eliminazione dell'area corrente
+- [x] Mostrare toast quando un'azione viene bloccata per dati mancanti o non validi
+- [x] Riallineare currentArea dopo eliminazione dell'area corrente
 
 # Priorita media
+- [ ] Sistemare timer del ToastContext con clearTimeout/useRef
+- [x] Aggiungere toast di errore al cambio stato task in TaskCard
 - [ ] Aggiungere gestione sotto-task collegate alle task principali
 - [ ] Spostare le chiamate API dai modali/card verso pagine o context
 - [ ] Passare ai componenti callback come onSave, onDelete, onToggle e onEdit
 - [ ] Uniformare i nomi delle funzioni API frontend
 - [ ] Rendere sicuri i refresh opzionali con refreshFunction?.()
-- [ ] Usare button al posto di span per elementi cliccabili
+- [x] Usare button al posto di span per elementi cliccabili
 - [ ] Restituire cursor.rowcount nei repository backend per update/delete
 - [ ] Aggiornare i file .http per coprire tutte le route area, project e task
 

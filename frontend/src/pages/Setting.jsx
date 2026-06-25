@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { getAvailableLanguages } from '../api';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/useLanguage';
 
 function Setting() {
   const { theme, customColors, updateCustomColor, changeTheme } = useTheme();

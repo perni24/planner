@@ -1,32 +1,53 @@
 import { updateStatusTask} from "../api";
-import { useLanguage } from "../context/LanguageContext";
+import { useState } from "react";
+import { useLanguage } from "../context/useLanguage";
+import { useToast } from "../context/useToast";
 
 function TaskCard({ task, onEdit, refreshFunction}) {
   const { jsonLanguage } = useLanguage();
+  const { showToast } = useToast();
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   const isCompleted = task.completed === 1;
 
   async function handleToggleStatus(){
-    if (!task?.id) {
+    if (isUpdatingStatus) {
       return;
     }
 
-    await updateStatusTask(task.id); 
-    await refreshFunction?.();
+    if (!task?.id) {
+      showToast(jsonLanguage['taskCard.toast.invalidData'], 'error');
+      return;
+    }
+
+    try {
+      setIsUpdatingStatus(true);
+
+      await updateStatusTask(task.id); 
+      await refreshFunction?.();
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['taskCard.toast.errorUpdateStatus'], 'error');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   }
 
   return (
     <article className="flex items-start gap-4 rounded-xl border border-main-border bg-main-card p-4 shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text">
-      <span
+      <button
+        type="button"
         className={
           isCompleted
             ? 'mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'
             : 'mt-1 h-5 w-5 rounded-full border-2 border-indigo-500'
         }
+        disabled={isUpdatingStatus}
         onClick={ ()=> handleToggleStatus()}
+        aria-label={isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']}
       >
         {isCompleted ? 'x' : ''}
-      </span>
+      </button>
 
       <div className="flex-1">
         <h3 className={isCompleted ? 'font-semibold line-through' : 'font-semibold'}>

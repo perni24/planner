@@ -1,4 +1,4 @@
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/useLanguage";
 
 function ProjectCard({ data, nuovo_progetto = false, onClick }) {
   const { jsonLanguage } = useLanguage();

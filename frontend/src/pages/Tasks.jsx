@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import ProjectModal from '../components/ProjectModal';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/useLanguage';
 
 function Tasks() {
   const { projectId } = useParams();
   const { jsonLanguage } = useLanguage();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [error, setError] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskEditMode, setIsTaskEditMode] = useState(false);
@@ -28,7 +27,7 @@ function Tasks() {
       const response = await getProject(Number(projectId));
       setProject(response);
     } catch (error) {
-      setError(error.message);
+      console.error('Error loading project:', error);
     }
   }
 
@@ -37,7 +36,7 @@ function Tasks() {
       const response = await get_tasks_by_project(Number(projectId));
       setTasks(response);
     } catch (error) {
-      setError(error.message);
+      console.error('Error loading tasks:', error);
     }
   }
 
@@ -54,8 +53,25 @@ function Tasks() {
   }
 
   useEffect(() => {
-    loadProject();
-    loadTasks();
+    async function loadInitialData() {
+      const id = Number(projectId);
+
+      try {
+        const projectResponse = await getProject(id);
+        setProject(projectResponse);
+      } catch (error) {
+        console.error('Error loading project:', error);
+      }
+
+      try {
+        const tasksResponse = await get_tasks_by_project(id);
+        setTasks(tasksResponse);
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      }
+    }
+
+    loadInitialData();
   }, [projectId]);
 
   return (

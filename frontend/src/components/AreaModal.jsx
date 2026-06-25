@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { insertArea, updateArea, deleteArea } from "../api";
-import { useArea } from "../context/areaContext";
-import { useLanguage } from "../context/LanguageContext";
-import { useToast } from '../context/ToastContext';
+import { useArea } from "../context/useArea";
+import { useLanguage } from "../context/useLanguage";
+import { useToast } from '../context/useToast';
 
 function AreaModal({ onClose, area = null, isEditMode = false  }) {
   
@@ -10,19 +10,27 @@ const { reloadAreas } = useArea();
 const { jsonLanguage } = useLanguage(); 
 const { showToast } = useToast();
 const [areaName, setAreaName] = useState(isEditMode ? area?.name ?? '' : '')
+const [isSubmitting, setIsSubmitting] = useState(false)
 const disabledButton = areaName.trim().length === 0
 const hasChanges = areaName.trim() !== (area?.name ?? '').trim()
-const disabledSaveButton = disabledButton || (isEditMode && (!area?.id || !hasChanges))
-const disabledDeleteButton = isEditMode && !area?.id
+const disabledSaveButton = disabledButton || isSubmitting || (isEditMode && (!area?.id || !hasChanges))
+const disabledDeleteButton = isSubmitting || (isEditMode && !area?.id)
 
 async function handleUpsertArea() {
+  if (isSubmitting) {
+    return;
+  }
+
   const name = areaName.trim();
 
   if (!name || (isEditMode && !area?.id)) {
+    showToast(jsonLanguage['areaModal.toast.invalidData'], 'error');
     return;
   }
 
   try {
+    setIsSubmitting(true);
+
     if(isEditMode){
       await updateArea(area.id, name);
       showToast(jsonLanguage['areaModal.toast.updated'], 'success');
@@ -35,15 +43,24 @@ async function handleUpsertArea() {
     } catch (error) {
       console.error(error);
       showToast(jsonLanguage['areaModal.toast.errorSave'], 'error');
+    } finally {
+      setIsSubmitting(false);
     }
 }
 
 async function handleDeleteArea() {
+  if (isSubmitting) {
+    return;
+  }
+
   if (!area?.id) {
+    showToast(jsonLanguage['areaModal.toast.invalidData'], 'error');
     return;
   }
 
   try {
+    setIsSubmitting(true);
+
     await deleteArea(area.id)
     showToast(jsonLanguage['areaModal.toast.deleted'], 'success');
     await reloadAreas();
@@ -51,6 +68,8 @@ async function handleDeleteArea() {
   } catch (error) {
     console.error(error);
     showToast(jsonLanguage['areaModal.toast.errorDelete'], 'error');
+  } finally {
+    setIsSubmitting(false);
   }
 }
 

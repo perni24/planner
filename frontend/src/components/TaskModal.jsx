@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { insertTask, updateTask, deleteTask } from "../api";
-import { useLanguage } from "../context/LanguageContext";
-import { useToast } from "../context/ToastContext";
+import { useLanguage } from "../context/useLanguage";
+import { useToast } from "../context/useToast";
 
 function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id }) {
   const { jsonLanguage } = useLanguage();
@@ -9,19 +9,27 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
 
   const [taskName, setTaskName] = useState(isEditMode ? task?.title ?? '' : '');
   const [taskDescription, setTaskDescription] = useState(isEditMode ? task?.description ?? '' : ''); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const disabledButton = taskName.trim().length === 0
   const hasChanges = taskName.trim() !== (task?.title ?? '').trim() || taskDescription.trim() !== (task?.description ?? '').trim()
-  const disabledSaveButton = disabledButton || (!isEditMode && !project_id) || (isEditMode && (!task?.id || !hasChanges))
-  const disabledDeleteButton = isEditMode && !task?.id
+  const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !project_id) || (isEditMode && (!task?.id || !hasChanges))
+  const disabledDeleteButton = isSubmitting || (isEditMode && !task?.id)
 
   async function handleInsertTask(){
+    if (isSubmitting) {
+      return;
+    }
+
     const title = taskName.trim();
 
     if (!title || !project_id) {
+      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
       return;
     }
 
     try {
+      setIsSubmitting(true);
+
       await insertTask(project_id, title, taskDescription); 
       showToast(jsonLanguage['taskModal.toast.created'], 'success');
       await refreshFunction?.();
@@ -29,17 +37,26 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     } catch (error) {
       console.error(error);
       showToast(jsonLanguage['taskModal.toast.errorSave'], 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   async function handleUpdateTask(){
+    if (isSubmitting) {
+      return;
+    }
+
     const title = taskName.trim();
 
     if (!title || !task?.id) {
+      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
       return;
     }
 
     try {
+      setIsSubmitting(true);
+
       await updateTask(task.id, title, taskDescription);
       showToast(jsonLanguage['taskModal.toast.updated'], 'success');
       await refreshFunction?.();
@@ -47,15 +64,24 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     } catch (error) {
       console.error(error);
       showToast(jsonLanguage['taskModal.toast.errorSave'], 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   async function handleDeleteTask(){
+    if (isSubmitting) {
+      return;
+    }
+
     if (!task?.id) {
+      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
       return;
     }
 
     try {
+      setIsSubmitting(true);
+
       await deleteTask(task.id);
       showToast(jsonLanguage['taskModal.toast.deleted'], 'success');
       await refreshFunction?.();
@@ -63,6 +89,8 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     } catch (error) {
       console.error(error);
       showToast(jsonLanguage['taskModal.toast.errorDelete'], 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 

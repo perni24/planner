@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getAllAreas } from '../api';
-
-const AreaContext = createContext();
+import { AreaContext } from './areaContextValue';
 
 export function AreaProvider({ children }) {
 
@@ -9,19 +8,40 @@ export function AreaProvider({ children }) {
   const [currentArea, setCurrentArea] = useState(null); 
   const [error, setError] = useState(null);
 
+  function updateAreasState(response) {
+    setAreas(response);
+    setCurrentArea((current) => {
+      const currentStillExists = response.some((area) => area.id === current?.id);
+
+      if (currentStillExists) {
+        return current;
+      }
+
+      return response[0] ?? null;
+    });
+    setError(null);
+  }
+
   async function reloadAreas() {
     try {
       const response = await getAllAreas(); 
-      setAreas(response); 
-      setCurrentArea((current) => current ?? response[0]); 
-      setError(null);
+      updateAreasState(response);
     } catch(error) {
       setError(error.message);
     }
   }
   
   useEffect(() => {
-    reloadAreas(); 
+    async function loadInitialAreas() {
+      try {
+        const response = await getAllAreas();
+        updateAreasState(response);
+      } catch (error) {
+        setError(error.message);
+      }
+    }
+
+    loadInitialAreas(); 
   }, []); 
 
   return (
@@ -29,14 +49,4 @@ export function AreaProvider({ children }) {
       {children}
     </AreaContext.Provider>
   )
-}
-
-export function useArea() {
-  const context = useContext(AreaContext);
-
-  if (!context) {
-    throw new Error('useArea must be used within an AreaProvider');
-  }
-
-  return context;
 }

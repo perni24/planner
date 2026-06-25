@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { insertProject, updateProject, deleteProject } from "../api";
-import { useArea } from "../context/areaContext";
+import { useArea } from "../context/useArea";
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from "../context/LanguageContext";
-import { useToast } from "../context/ToastContext";
+import { useLanguage } from "../context/useLanguage";
+import { useToast } from "../context/useToast";
 
 function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = null }) {
     const navigate = useNavigate();
@@ -12,20 +12,28 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
     const {currentArea} = useArea(); 
     const [projectName, setProjectName] = useState(isEditMode ? project?.name ?? '' : '');
     const [projectDescription, setProjectDescription] = useState(isEditMode ? project?.description ?? '' : ''); 
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const disabledButton = projectName.trim().length === 0
     const hasChanges = projectName.trim() !== (project?.name ?? '').trim() || projectDescription.trim() !== (project?.description ?? '').trim()
-    const disabledSaveButton = disabledButton || (!isEditMode && !currentArea?.id) || (isEditMode && (!project?.id || !hasChanges))
-    const disabledDeleteButton = isEditMode && !project?.id
+    const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !currentArea?.id) || (isEditMode && (!project?.id || !hasChanges))
+    const disabledDeleteButton = isSubmitting || (isEditMode && !project?.id)
 
     async function handleUpsertProject(){
+        if (isSubmitting) {
+            return;
+        }
+
         const name = projectName.trim();
 
         if (!name || (!isEditMode && !currentArea?.id) || (isEditMode && !project?.id)) {
+            showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
             return;
         }
 
         try {
+            setIsSubmitting(true);
+
             if (!isEditMode) {
                 await insertProject(currentArea.id, name, projectDescription); 
                 showToast(jsonLanguage['projectModal.toast.created'], 'success');
@@ -40,15 +48,24 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
         } catch (error) {
             console.error(error);
             showToast(jsonLanguage['projectModal.toast.errorSave'], 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
     async function handleDeleteProject(){
+        if (isSubmitting) {
+            return;
+        }
+
         if (!project?.id) {
+            showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
             return;
         }
 
         try {
+            setIsSubmitting(true);
+
             await deleteProject(project.id);
             showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
             onClose();
@@ -56,6 +73,8 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
         } catch (error) {
             console.error(error);
             showToast(jsonLanguage['projectModal.toast.errorDelete'], 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
