@@ -12,7 +12,7 @@ async def update_language(request):
     if not language:
         return JSONResponse({"error": "language obbligatoria"}, status_code=400)
     settingRepo.update_language(language)
-    return JSONResponse({"message": "Language update successful"});
+    return JSONResponse({"message": "Language update successful"})
 
 async def update_theme(request):
     data = await request.json()
@@ -23,7 +23,7 @@ async def update_theme(request):
     if not custom_colors:
         return JSONResponse({"error": "custom_colors obbligatorio"}, status_code=400)
     settingRepo.update_theme(theme, custom_colors)
-    return JSONResponse({"message": "theme update successful"});
+    return JSONResponse({"message": "theme update successful"})
 
 routes = [
     Route("/get_all_settings", endpoint=get_all_settings),

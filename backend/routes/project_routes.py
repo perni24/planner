@@ -37,7 +37,9 @@ async def update_project(request):
     values, error = validate_payload(data, ["project_id", "name", "description"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    projectRepo.update_project(values["project_id"], values["name"], values["description"])
+    updated_rows = projectRepo.update_project(values["project_id"], values["name"], values["description"])
+    if updated_rows == 0:
+        return JSONResponse({"error": "Project not found"}, status_code=404)
     return JSONResponse({"message": "Project updated successful"})
 
 async def delete_project(request):
@@ -45,7 +47,9 @@ async def delete_project(request):
     values, error = validate_payload(data, ["project_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    projectRepo.delete_project(values["project_id"])
+    deleted_rows = projectRepo.delete_project(values["project_id"])
+    if deleted_rows == 0:
+        return JSONResponse({"error": "Project not found"}, status_code=404)
     return JSONResponse({"message" : "Project deleted successfully"})
 
 

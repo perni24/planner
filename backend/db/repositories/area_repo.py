@@ -32,6 +32,7 @@ def update_area(id, name):
             (name, id)
         )
         conn.commit()
+        return cursor.rowcount
 
 def delete_area(id):
     with get_db_connection() as conn:
@@ -42,3 +43,4 @@ def delete_area(id):
             (id,)
         )
         conn.commit()
+        return cursor.rowcount

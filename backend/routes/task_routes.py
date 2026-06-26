@@ -28,7 +28,9 @@ async def update_task(request):
     values, error = validate_payload(data, ["task_id", "title", "description"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    taskRepo.update_task(values["task_id"], values["title"], values["description"])
+    updated_rows = taskRepo.update_task(values["task_id"], values["title"], values["description"])
+    if updated_rows == 0:
+        return JSONResponse({"error": "Task not found"}, status_code=404)
     return JSONResponse({"message": "Task update successful"})
 
 async def update_status_task(request):
@@ -36,7 +38,9 @@ async def update_status_task(request):
     values, error = validate_payload(data, ["task_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    taskRepo.update_status_task(values["task_id"])
+    updated_rows = taskRepo.update_status_task(values["task_id"])
+    if updated_rows == 0:
+        return JSONResponse({"error": "Task not found"}, status_code=404)
     return JSONResponse({"message": "Task update successful"})
 
 async def delete_task(request): 
@@ -44,7 +48,9 @@ async def delete_task(request):
     values, error = validate_payload(data, ["task_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    taskRepo.delete_task(values["task_id"])
+    deleted_rows = taskRepo.delete_task(values["task_id"])
+    if deleted_rows == 0:
+        return JSONResponse({"error": "Task not found"}, status_code=404)
     return JSONResponse({"message": "Task delete successful"}) 
 
 

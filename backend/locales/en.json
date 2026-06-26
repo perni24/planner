@@ -14,6 +14,15 @@
   "settings.colors.hoverText": "Hover text",
   "settings.language.label": "Language",
 
+  "confirmModal.actions.cancel": "Cancel",
+  "confirmModal.actions.delete": "Delete",
+  "confirmModal.area.title": "Delete area?",
+  "confirmModal.area.message": "This action will delete the area and all linked projects. It cannot be undone.",
+  "confirmModal.project.title": "Delete project?",
+  "confirmModal.project.message": "This action will delete the project and all linked tasks. It cannot be undone.",
+  "confirmModal.task.title": "Delete task?",
+  "confirmModal.task.message": "This action will delete the selected task. It cannot be undone.",
+
   "areaModal.title.create": "New area",
   "areaModal.title.edit": "Edit area",
   "areaModal.name.label": "Area name",

@@ -59,7 +59,7 @@ def update_project(project_id, name, description):
             (name, description, project_id)
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.rowcount
 
 def delete_project(project_id):
     with get_db_connection() as conn:
@@ -70,4 +70,4 @@ def delete_project(project_id):
             (project_id,)
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.rowcount

@@ -14,6 +14,15 @@
   "settings.colors.hoverText": "Testo hover",
   "settings.language.label": "Lingua",
 
+  "confirmModal.actions.cancel": "Annulla",
+  "confirmModal.actions.delete": "Elimina",
+  "confirmModal.area.title": "Eliminare area?",
+  "confirmModal.area.message": "Questa azione eliminerà l'area e tutti i progetti collegati. Non può essere annullata.",
+  "confirmModal.project.title": "Eliminare progetto?",
+  "confirmModal.project.message": "Questa azione eliminerà il progetto e tutte le task collegate. Non può essere annullata.",
+  "confirmModal.task.title": "Eliminare task?",
+  "confirmModal.task.message": "Questa azione eliminerà la task selezionata. Non può essere annullata.",
+
   "areaModal.title.create": "Nuova area",
   "areaModal.title.edit": "Modifica area",
   "areaModal.name.label": "Nome area",

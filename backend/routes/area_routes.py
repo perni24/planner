@@ -20,7 +20,9 @@ async def update_area(request):
     values, error = validate_payload(data, ["id", "name"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    areaRepo.update_area(values["id"], values["name"])
+    updated_rows = areaRepo.update_area(values["id"], values["name"])
+    if updated_rows == 0:
+        return JSONResponse({"error": "area not found"}, status_code=404)
     return JSONResponse({"message": "area update successful"})
 
 async def delete_area(request):
@@ -28,7 +30,9 @@ async def delete_area(request):
     values, error = validate_payload(data, ["id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    areaRepo.delete_area(values["id"])
+    deleted_rows = areaRepo.delete_area(values["id"])
+    if deleted_rows == 0:
+        return JSONResponse({"error": "area not found"}, status_code=404)
     return JSONResponse({"message": "area delete successful"})
 
 

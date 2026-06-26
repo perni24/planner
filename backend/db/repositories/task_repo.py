@@ -44,7 +44,7 @@ def update_task(id, title, description):
             (title, description, id)
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.rowcount
 
 def update_status_task(id): 
     with get_db_connection() as conn:
@@ -58,7 +58,7 @@ def update_status_task(id):
             (id,)
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.rowcount
 
 def delete_task(id):
     with get_db_connection() as conn:
@@ -69,4 +69,4 @@ def delete_task(id):
             (id,)
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.rowcount

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { insertTask, updateTask, deleteTask } from "../api";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
+import ConfirmModal from "./ConfirmModal";
 
 function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id }) {
   const { jsonLanguage } = useLanguage();
@@ -10,6 +11,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
   const [taskName, setTaskName] = useState(isEditMode ? task?.title ?? '' : '');
   const [taskDescription, setTaskDescription] = useState(isEditMode ? task?.description ?? '' : ''); 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const disabledButton = taskName.trim().length === 0
   const hasChanges = taskName.trim() !== (task?.title ?? '').trim() || taskDescription.trim() !== (task?.description ?? '').trim()
   const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !project_id) || (isEditMode && (!task?.id || !hasChanges))
@@ -150,7 +152,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
               type="button"
               className="rounded-md border border-red-500 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-transparent disabled:hover:text-gray-400"
               disabled={disabledDeleteButton}
-              onClick={() => handleDeleteTask()}
+              onClick={() => setIsConfirmOpen(true)}
             >
               {jsonLanguage['taskModal.actions.delete']}
             </button>
@@ -166,6 +168,18 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
           </button>
         </div>
       </div>
+
+      {isConfirmOpen && (
+        <ConfirmModal
+          title={jsonLanguage['confirmModal.task.title']}
+          message={jsonLanguage['confirmModal.task.message']}
+          confirmLabel={jsonLanguage['confirmModal.actions.delete']}
+          cancelLabel={jsonLanguage['confirmModal.actions.cancel']}
+          isSubmitting={isSubmitting}
+          onCancel={() => setIsConfirmOpen(false)}
+          onConfirm={handleDeleteTask}
+        />
+      )}
     </div>
   );
 }
