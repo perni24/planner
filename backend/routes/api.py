@@ -1,23 +1,39 @@
-from starlette.routing import Mount, Route
 from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
+
 # Importiamo le rotte dei progetti
+from .area_routes import routes as area_routes
+from .locale_routes import routes as locale_routes
 from .project_routes import routes as project_routes
 from .setting_routes import routes as setting_routes
-from .locale_routes import routes as locale_routes
-from .area_routes import routes as area_routes
 from .task_routes import routes as task_routes
+
 
 # Endpoint generico per lo stato del server
 async def health_check(request):
     return JSONResponse({'status': 'online'})
 
+
+def create_api_routes():
+    return [
+        # Monta le rotte dei progetti sotto il prefisso /projects
+        Mount("/projects", routes=project_routes),
+        Mount("/settings", routes=setting_routes),
+        Mount("/locales", routes=locale_routes),
+        Mount("/areas", routes=area_routes),
+        Mount("/tasks", routes=task_routes),
+    ]
+
+
 # Raggruppiamo tutte le rotte dell'applicazione
 all_routes = [
-    Route("/", endpoint=health_check),
-    # Monta le rotte dei progetti sotto il prefisso /projects
-    Mount("/projects", routes=project_routes),
-    Mount("/settings", routes=setting_routes),
-    Mount("/locales", routes=locale_routes),
-    Mount("/areas", routes=area_routes),
-    Mount("/tasks", routes=task_routes)
+    Route("/health", endpoint=health_check),
+    *create_api_routes(),
+    Mount(
+        "/api",
+        routes=[
+            Route("/health", endpoint=health_check),
+            *create_api_routes(),
+        ],
+    ),
 ]

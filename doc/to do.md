@@ -4,13 +4,26 @@
 # Prima di PyInstaller/GitHub Actions
 - [x] Sistemare errori di `npm run lint`
 - [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
-- [ ] Installare e configurare Ruff per il controllo automatico del backend
+- [x] Installare e configurare Ruff per il controllo automatico del backend
 - [ ] Verificare build frontend e sintassi backend in una CI locale prima di creare GitHub Actions
+
+# PyInstaller / App portable
+- [x] Distinguere percorsi di sviluppo e produzione in `config.py`
+- [x] Creare automaticamente le cartelle runtime `data/` e `locales/`
+- [x] Copiare i file lingua di default fuori dall'eseguibile al primo avvio
+- [x] Esporre le API backend anche sotto `/api`
+- [x] Servire `frontend/dist` dal backend in produzione
+- [x] Gestire il fallback a `index.html` per le route React
+- [ ] Creare lo script `build_portable.ps1`
+- [ ] Configurare PyInstaller in modalita `--onedir`
+- [ ] Testare avvio dell'eseguibile senza Vite
+- [ ] Verificare creazione di `data/planner.db` vicino all'eseguibile
+- [ ] Verificare lettura/modifica dei file in `locales/` vicino all'eseguibile
 
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task
 - [x] Aggiungere validazione backend per id, name, title, area_id e project_id
-- [ ] Aggiungere conferma prima di eliminare area, progetto e task
+- [x] Aggiungere conferma prima di eliminare area, progetto e task
 - [x] Mostrare gli errori all'utente invece di salvarli solo in state o console
 - [x] Aggiungere stato loading sui pulsanti di insert, update e delete
 - [x] Proteggere update/delete quando area, progetto o task sono null
@@ -26,7 +39,7 @@
 - [ ] Uniformare i nomi delle funzioni API frontend
 - [ ] Rendere sicuri i refresh opzionali con refreshFunction?.()
 - [x] Usare button al posto di span per elementi cliccabili
-- [ ] Restituire cursor.rowcount nei repository backend per update/delete
+- [x] Restituire cursor.rowcount nei repository backend per update/delete
 - [ ] Aggiornare i file .http per coprire tutte le route area, project e task
 
 # Priorita bassa
