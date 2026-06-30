@@ -3,6 +3,7 @@ from starlette.routing import Mount, Route
 
 # Importiamo le rotte dei progetti
 from .area_routes import routes as area_routes
+from .app_routes import routes as app_routes
 from .locale_routes import routes as locale_routes
 from .project_routes import routes as project_routes
 from .setting_routes import routes as setting_routes
@@ -22,6 +23,7 @@ def create_api_routes():
         Mount("/locales", routes=locale_routes),
         Mount("/areas", routes=area_routes),
         Mount("/tasks", routes=task_routes),
+        Mount("/app", routes=app_routes),
     ]
 
 

@@ -49,4 +49,6 @@ export const getAvailableLanguages = () => apiCore<string[]>('/locales/get_avail
 
 export const loadLanguage = () => apiCore<LocaleDictionary>('/locales/load_language');
 
+// app lifecycle
+export const sendAppHeartbeat = () => apiCore<ApiMessage>('/app/heartbeat', {method: 'POST'});
 

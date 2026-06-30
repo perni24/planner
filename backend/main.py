@@ -20,6 +20,7 @@ from config import (
 )
 from db.db import init_db
 from routes.api import all_routes
+from services.app_lifecycle import set_shutdown_callback, start_heartbeat_monitor
 
 
 # Configurazione del Middleware CORS
@@ -75,4 +76,10 @@ if __name__ == "__main__":
     if RELOAD:
         uvicorn.run("main:app", host=HOST, port=PORT, reload=RELOAD)
     else:
-        uvicorn.run(app, host=HOST, port=PORT, reload=RELOAD)
+        config = uvicorn.Config(app, host=HOST, port=PORT, reload=RELOAD)
+        server = uvicorn.Server(config)
+
+        set_shutdown_callback(lambda: setattr(server, "should_exit", True))
+        start_heartbeat_monitor(IS_PRODUCTION)
+
+        server.run()

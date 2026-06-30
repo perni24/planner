@@ -14,11 +14,12 @@
 - [x] Esporre le API backend anche sotto `/api`
 - [x] Servire `frontend/dist` dal backend in produzione
 - [x] Gestire il fallback a `index.html` per le route React
-- [ ] Creare lo script `build_portable.ps1`
-- [ ] Configurare PyInstaller in modalita `--onedir`
-- [ ] Testare avvio dell'eseguibile senza Vite
-- [ ] Verificare creazione di `data/planner.db` vicino all'eseguibile
-- [ ] Verificare lettura/modifica dei file in `locales/` vicino all'eseguibile
+- [x] Creare lo script `build_portable.py`
+- [x] Configurare PyInstaller in modalita `--onedir`
+- [x] Testare avvio dell'eseguibile senza Vite
+- [x] Verificare creazione di `data/planner.db` vicino all'eseguibile
+- [x] Verificare lettura/modifica dei file in `locales/` vicino all'eseguibile
+- [x] Spegnere il backend in produzione quando la UI non invia piu heartbeat
 
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task
