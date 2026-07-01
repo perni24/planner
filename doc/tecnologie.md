@@ -1,27 +1,30 @@
-# Tecnologie Utilizzate nel Progetto Planner
+# Tecnologie Utilizzate
 
-Questo documento elenca le principali tecnologie, framework e strumenti utilizzati nello sviluppo del progetto.
+## Frontend
 
-## 🎨 Frontend
-- **React 19**: Libreria principale per la costruzione dell'interfaccia utente.
-- **Vite 8**: Strumento di build e server di sviluppo per un'esperienza di sviluppo rapida.
-- **Tailwind CSS 4**: Framework CSS utility-first per uno styling rapido, moderno e reattivo.
-- **React Router 7**: Libreria standard per la gestione della navigazione e delle rotte dinamiche.
-- **TypeScript**: Linguaggio per la gestione dei tipi di dati e maggiore sicurezza del codice.
-- **ESLint**: Strumento per l'analisi statica del codice e il mantenimento di standard qualitativi.
+- React 19: libreria UI.
+- Vite 8: dev server e build frontend.
+- Tailwind CSS 4: styling utility-first.
+- React Router 7: routing lato frontend.
+- TypeScript: tipi per API e dati condivisi.
+- ESLint: controllo statico del codice frontend.
 
-## ⚙️ Backend
-- **Python 3.14**: Linguaggio di programmazione per la logica lato server.
-- **Starlette**: Framework ASGI leggero e performante per la gestione delle rotte e delle richieste HTTP.
-- **Uvicorn**: Server ASGI per l'esecuzione dell'applicazione backend.
-- **CORS Middleware**: Gestione della sicurezza Cross-Origin Resource Sharing.
+## Backend
 
-## 🗄️ Database
-- **SQLite 3**: Database relazionale locale, leggero e "serverless" per la memorizzazione dei dati.
-- **Libreria `sqlite3`**: Modulo standard di Python per l'interazione con il database.
+- Python: linguaggio backend.
+- Starlette: framework ASGI per API e serving frontend buildato.
+- Uvicorn: server ASGI.
+- SQLite: database locale.
+- Ruff: lint/check backend.
 
-## 🛠️ Strumenti di Sviluppo & Documentazione
-- **Git**: Sistema di controllo di versione.
-- **Obsidian**: Utilizzato per la documentazione visiva (Canvas) e la gestione delle note.
-- **Node.js / npm**: Ambiente di esecuzione e gestore di pacchetti per il frontend.
-- **Python venv**: Ambiente virtuale per la gestione isolata delle dipendenze backend.
+## Build e distribuzione
+
+- PyInstaller: creazione app portable.
+- GitHub Actions: build release Windows, Linux e macOS su tag `v*`.
+- Node.js/npm: gestione dipendenze frontend.
+- Python venv: ambiente virtuale backend.
+
+## Documentazione
+
+- Markdown: documentazione tecnica.
+- Obsidian Canvas: diagramma visuale in `doc/diagramma_flusso.canvas`.

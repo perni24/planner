@@ -5,7 +5,10 @@
 - [x] Sistemare errori di `npm run lint`
 - [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
 - [x] Installare e configurare Ruff per il controllo automatico del backend
-- [ ] Verificare build frontend e sintassi backend in una CI locale prima di creare GitHub Actions
+- [x] Creare workflow GitHub Actions per build release Windows, Linux e macOS su tag `v*`
+- [ ] Comprimere gli artifact release in zip/tar.gz per ogni sistema operativo
+- [ ] Creare automaticamente una GitHub Release quando viene pubblicato un tag `v*`
+- [ ] Allegare gli artifact compressi alla GitHub Release
 
 # PyInstaller / App portable
 - [x] Distinguere percorsi di sviluppo e produzione in `config.py`

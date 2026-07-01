@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useArea } from '../context/useArea';
 import AreaModal from './AreaModal';
 import { useLanguage } from '../context/useLanguage';
@@ -10,8 +10,27 @@ function AreaSwitcher() {
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedArea, setSelectedArea] = useState(null);
+  const switcherRef = useRef(null);
 
   const currentInitial = currentArea?.name?.charAt(0).toUpperCase() ?? '?';
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    function closeOnOutsideClick(event) {
+      if (!switcherRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    };
+  }, [isOpen]);
 
   function selectArea(area) {
     setCurrentArea(area);
@@ -34,7 +53,7 @@ function AreaSwitcher() {
   }
 
   return (
-    <div className="relative">
+    <div ref={switcherRef} className="relative">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}

@@ -1,130 +1,134 @@
-# Struttura del progetto
+# Struttura del Progetto
 
 Questo documento riassume le cartelle principali del progetto e il loro contenuto.
 
 ## Root
 
-La root contiene le cartelle principali dell'applicazione e i file generali del repository.
-
-- `backend/`: codice server Python, API, database SQLite e query.
+- `backend/`: backend Python, API, database SQLite, build portable.
 - `frontend/`: applicazione React/Vite.
 - `doc/`: documentazione tecnica e note di progetto.
-- `locales/`: cartella prevista per file JSON esterni delle lingue, gestibili fuori dal bundle frontend.
-- `.gitignore`: file e cartelle esclusi dal versionamento Git.
-- `GEMINI.md`: note operative o istruzioni specifiche del progetto.
+- `.github/workflows/`: workflow GitHub Actions.
+- `.gitignore`: file e cartelle esclusi da Git.
 
-## backend
+## Documentazione
 
-Contiene il backend Python basato su Starlette e la gestione del database SQLite.
+- `GUIDA_SVILUPPO.md`: avvio sviluppo, build portable e release da tag.
+- `STRUTTURA_PROGETTO.md`: panoramica delle cartelle.
+- `tecnologie.md`: tecnologie principali.
+- `ARCHITETTURA_PORTABLE.md`: comportamento dell'app PyInstaller.
+- `DATABASE.md`: schema SQLite, relazioni e repository.
+- `API_BACKEND.md`: endpoint backend principali.
+- `I18N.md`: gestione lingue JSON.
+- `TROUBLESHOOTING.md`: problemi comuni e soluzioni.
+- `to do.md`: attivita aperte.
+- `diagramma_flusso.canvas`: diagramma visuale.
 
-- `main.py`: entry point del backend. Crea l'app Starlette, inizializza il database e avvia il server.
-- `config.py`: configurazione centralizzata dei path principali del backend, inclusi database, schema e cartella lingue.
-- `schema.sql`: definizione dello schema SQLite: tabelle, foreign key, indici, viste e dati iniziali.
-- `requirements.txt`: dipendenze Python del backend.
+## GitHub Actions
 
-## backend/db
+- `.github/workflows/release-build.yml`: build release Windows, Linux e macOS quando viene pubblicato un tag `v*`.
 
-Contiene la configurazione e l'accesso al database.
+## Backend
 
-- `db.py`: crea la connessione SQLite e inizializza il DB leggendo `schema.sql`. I path vengono importati da `backend/config.py`.
-- `planner.db`: file SQLite locale generato dall'applicazione. Non dovrebbe essere modificato manualmente durante lo sviluppo ordinario.
+- `main.py`: entry point backend, avvio Starlette/Uvicorn, serving frontend buildato e apertura browser in produzione.
+- `config.py`: configurazione centralizzata di ambiente, path, DB, locales e frontend dist.
+- `schema.sql`: schema SQLite, viste e dati iniziali.
+- `build_portable.py`: script cross-platform per creare la cartella portable con PyInstaller.
+- `requirements.txt`: dipendenze Python.
 
-## locales
+## Backend - database
 
-Cartella prevista per gestire traduzioni esterne in formato JSON.
+- `db/db.py`: connessione SQLite e inizializzazione del DB.
+- `db/repositories/area_repo.py`: query aree.
+- `db/repositories/project_repo.py`: query progetti.
+- `db/repositories/task_repo.py`: query task.
+- `db/repositories/setting_repo.py`: query impostazioni.
 
-- `it.json`: dizionario lingua italiana.
-- `en.json`: dizionario lingua inglese.
+I repository contengono SQL e conversione dati. Non dovrebbero contenere logica HTTP o UI.
 
-Questa cartella deve contenere solo file dati delle lingue. La logica Python per leggerli deve stare nel backend, ad esempio in una route o in un service dedicato.
+## Backend - routes
 
-## backend/db/repositories
+- `routes/api.py`: monta tutte le route anche sotto `/api`.
+- `routes/area_routes.py`: endpoint aree.
+- `routes/project_routes.py`: endpoint progetti.
+- `routes/task_routes.py`: endpoint task.
+- `routes/setting_routes.py`: endpoint impostazioni.
+- `routes/locale_routes.py`: endpoint lingue.
+- `routes/app_routes.py`: heartbeat e shutdown applicazione.
 
-Contiene le funzioni che interrogano o modificano il database.
+Le route leggono request/query/body, validano i dati, chiamano repository o service e restituiscono `JSONResponse`.
 
-- `project_repo.py`: query relative ai progetti e alle viste sui progetti.
-- `task_repo.py`: query relative alle task.
-- `setting_repo.py`: query relative alle impostazioni dell'app.
+## Backend - services e validators
 
-I repository dovrebbero contenere SQL e conversione dei risultati, evitando logica HTTP o logica UI.
+- `services/locale_service.py`: lettura lingue JSON.
+- `services/app_lifecycle.py`: heartbeat e shutdown automatico in produzione.
+- `validators/request_validator.py`: validazione payload riutilizzabile.
 
-## backend/routes
+## Backend - test manuali
 
-Contiene gli endpoint HTTP del backend.
+- `test/*.http`: richieste HTTP manuali per provare le API.
 
-- `api.py`: raccoglie e monta le route principali dell'applicazione.
-- `project_routes.py`: endpoint per progetti.
-- `task_routes.py`: endpoint per task.
-- `setting_routes.py`: endpoint per impostazioni.
+## Frontend
 
-Le route ricevono la richiesta HTTP, leggono parametri/body, chiamano i repository e restituiscono `JSONResponse`.
+- `package.json`: script npm e dipendenze.
+- `package-lock.json`: lockfile npm.
+- `vite.config.js`: configurazione Vite e proxy `/api`.
+- `eslint.config.js`: configurazione ESLint.
+- `index.html`: entry HTML.
 
-## backend/test
+## Frontend - src
 
-Contiene file di supporto per test manuali delle API.
+- `main.jsx`: monta React e `AppProviders`.
+- `App.jsx`: router React.
+- `index.css`: CSS globale, Tailwind e variabili tema.
+- `apiCore.ts`: funzione base per le chiamate HTTP.
+- `api.ts`: funzioni API frontend.
 
-- `project.http`: richieste HTTP di esempio per provare gli endpoint dei progetti.
+## Frontend - components
 
-## frontend
+- `Dashboard.jsx`: layout principale con header, sidebar e outlet.
+- `Header.jsx`: barra superiore.
+- `SideBar.jsx`: menu laterale comprimibile.
+- `AreaSwitcher.jsx`: selezione area corrente.
+- `AreaModal.jsx`: creazione/modifica/eliminazione area.
+- `ProjectCard.jsx`: card progetto.
+- `ProjectModal.jsx`: creazione/modifica/eliminazione progetto.
+- `TaskCard.jsx`: card task.
+- `TaskModal.jsx`: creazione/modifica/eliminazione task.
+- `ConfirmModal.jsx`: conferma eliminazioni.
+- `Toast.jsx`: notifica visuale.
 
-Contiene l'applicazione React gestita da Vite.
+## Frontend - context
 
-- `package.json`: script npm e dipendenze frontend.
-- `package-lock.json`: lockfile delle dipendenze.
-- `vite.config.js`: configurazione Vite.
-- `index.html`: HTML di ingresso dell'app React.
-- `eslint.config.js`: configurazione linting.
-- `README.md`: documentazione generata o specifica del frontend.
+- `AppProviders.jsx`: compone tutti i provider globali.
+- `SettingsContext.jsx`: caricamento settings iniziali.
+- `LanguageContext.jsx`: lingua e dizionario JSON.
+- `ThemeContext.jsx`: tema e colori custom.
+- `areaContext.jsx`: aree e area corrente.
+- `ToastContext.jsx`: notifiche toast.
 
-## frontend/src
+I file `use*.js` espongono gli hook dedicati ai context.
 
-Contiene il codice sorgente dell'app React.
+## Frontend - pages
 
-- `main.jsx`: entry point React. Monta `App` nel DOM e applica i provider globali.
-- `App.jsx`: configurazione del router React.
-- `index.css`: CSS globale, import Tailwind e variabili tema.
-- `api.ts`: funzioni API specifiche usate dal frontend.
-- `apiCore.ts`: funzioni o configurazione base per le chiamate API.
-
-## frontend/src/components
-
-Contiene componenti riutilizzabili o componenti di layout.
-
-- `Dashboard.jsx`: layout principale con `Header`, `SideBar` e `Outlet`.
-- `Header.jsx`: intestazione superiore dell'app.
-- `SideBar.jsx`: menu laterale di navigazione.
-- `CardProgetto.jsx`: card visuale per progetto o creazione nuovo progetto.
-
-## frontend/src/context
-
-Contiene i React Context globali.
-
-- `AppProviders.jsx`: compone i provider globali e avvolge l'app.
-- `ThemeContext.jsx`: gestisce tema, colori custom e variabili CSS globali.
-
-I context sono indicati per stato globale stabile, come tema, lingua o impostazioni condivise.
-
-## frontend/src/pages
-
-Contiene le pagine renderizzate dalle route React.
-
-- `Project.jsx`: pagina principale dei progetti.
-- `Tasks.jsx`: pagina delle task.
-- `Calendar.jsx`: pagina calendario.
+- `Project.jsx`: pagina progetti.
+- `Tasks.jsx`: pagina task di un progetto.
 - `Setting.jsx`: pagina impostazioni.
+- `Calendar.jsx`: pagina calendario.
 
-Le pagine dovrebbero orchestrare dati e layout della vista, delegando blocchi ripetuti ai componenti.
+## Frontend - types
 
-## frontend/src/types
+- `areas.ts`: tipi area.
+- `projects.ts`: tipi progetto.
+- `tasks.ts`: tipi task.
+- `settings.ts`: tipi settings.
+- `locales.ts`: tipi dizionario lingua.
+- `apiResponses.ts`: tipi risposte API generiche.
 
-Contiene definizioni TypeScript o tipi condivisi.
+## Cartelle generate
 
-- `projects.ts`: tipi relativi ai progetti.
-- `test.ts`: file di test o sperimentazione sui tipi.
-
-## Cartelle generate o da non modificare manualmente
-
-- `frontend/node_modules/`: dipendenze npm installate.
+- `frontend/node_modules/`: dipendenze npm.
 - `backend/venv/`: ambiente virtuale Python.
-- `__pycache__/`: cache Python generata automaticamente.
-- `backend/db/planner.db`: database SQLite locale generato dall'app.
+- `backend/db/planner.db`: DB di sviluppo generato.
+- `backend/dist/`: output PyInstaller.
+- `backend/build/`: cartella temporanea PyInstaller.
+- `backend/__pycache__/`: cache Python.
