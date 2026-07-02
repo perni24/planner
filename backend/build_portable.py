@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -10,11 +11,16 @@ def run(command, cwd):
     subprocess.run(command, cwd=cwd, check=True)
 
 
-def get_pyinstaller_path(backend_dir):
+def get_pyinstaller_command(backend_dir):
     if os.name == "nt":
-        return backend_dir / "venv" / "Scripts" / "pyinstaller.exe"
+        pyinstaller = backend_dir / "venv" / "Scripts" / "pyinstaller.exe"
+    else:
+        pyinstaller = backend_dir / "venv" / "bin" / "pyinstaller"
 
-    return backend_dir / "venv" / "bin" / "pyinstaller"
+    if pyinstaller.exists():
+        return [str(pyinstaller)]
+
+    return [sys.executable, "-m", "PyInstaller"]
 
 
 def get_npm_command():
@@ -25,19 +31,14 @@ def main():
     backend_dir = Path(__file__).resolve().parent
     project_dir = backend_dir.parent
     frontend_dir = project_dir / "frontend"
-    pyinstaller = get_pyinstaller_path(backend_dir)
+    pyinstaller_command = get_pyinstaller_command(backend_dir)
     add_data_separator = ";" if os.name == "nt" else ":"
-
-    if not pyinstaller.exists():
-        raise RuntimeError(
-            "PyInstaller non trovato. Installa PyInstaller nel venv del backend."
-        )
 
     run([get_npm_command(), "run", "build"], cwd=frontend_dir)
 
     run(
         [
-            str(pyinstaller),
+            *pyinstaller_command,
             "--noconfirm",
             "--onedir",
             "--name",
