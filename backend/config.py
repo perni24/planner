@@ -17,6 +17,11 @@ IS_FROZEN = getattr(sys, "frozen", False)
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BACKEND_DIR)
 
+APP_VERSION = "0.1.0"
+GITHUB_REPO = os.getenv("GITHUB_REPO", "perni24/planner")
+GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
+GITHUB_LATEST_RELEASE_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+
 APP_ENV = os.getenv("APP_ENV", "production" if IS_FROZEN else "development")
 IS_DEVELOPMENT = APP_ENV == "development"
 IS_PRODUCTION = APP_ENV == "production"

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useArea } from '../context/useArea';
 import AreaModal from './AreaModal';
 import { useLanguage } from '../context/useLanguage';
@@ -6,6 +7,7 @@ import { useLanguage } from '../context/useLanguage';
 function AreaSwitcher() {
   const { areas, currentArea, setCurrentArea, error } = useArea(); 
   const { jsonLanguage } = useLanguage(); 
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -35,6 +37,7 @@ function AreaSwitcher() {
   function selectArea(area) {
     setCurrentArea(area);
     setIsOpen(false);
+    navigate('/');
   }
 
   function openAreaSettings(area) {

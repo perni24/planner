@@ -13,6 +13,9 @@
   "settings.colors.hover": "Sfondo hover",
   "settings.colors.hoverText": "Testo hover",
   "settings.language.label": "Lingua",
+  "settings.backup.title": "Backup",
+  "settings.backup.download": "Scarica backup",
+  "settings.backup.import": "Importa backup",
 
   "confirmModal.actions.cancel": "Annulla",
   "confirmModal.actions.delete": "Elimina",

@@ -115,7 +115,7 @@ function Setting() {
           <label 
               htmlFor="language-select" 
               className="text-sm font-medium"
-            >
+          >
               {jsonLanguage['settings.language.label']}
           </label>
           <select
@@ -128,6 +128,32 @@ function Setting() {
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <label className="text-sm font-medium">
+            {jsonLanguage['settings.backup.title']}
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/api/backup/download';
+              }}
+              className="block w-full px-4 py-2 bg-main-card border border-main-border rounded-md shadow-sm text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors"
+            >
+              {jsonLanguage['settings.backup.download']}
+            </button>
+
+            <button
+              type="button"
+              disabled
+              title="Coming soon"
+              className="block w-full px-4 py-2 bg-main-card border border-main-border rounded-md shadow-sm text-sm font-medium text-main-text opacity-50 cursor-not-allowed"
+            >
+              {jsonLanguage['settings.backup.import']}
+            </button>
+          </div>
         </div>
 
       </div>

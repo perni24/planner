@@ -1,12 +1,8 @@
-# Areas 
-- [ ] gestione errori (insert, update, delete) sia frontend che backend
-
 # Prima di PyInstaller/GitHub Actions
 - [x] Sistemare errori di `npm run lint`
 - [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
 - [x] Installare e configurare Ruff per il controllo automatico del backend
 - [x] Creare workflow GitHub Actions per build release Windows, Linux e macOS su tag `v*`
-- [ ] Comprimere gli artifact release in zip/tar.gz per ogni sistema operativo
 - [ ] Creare automaticamente una GitHub Release quando viene pubblicato un tag `v*`
 - [ ] Allegare gli artifact compressi alla GitHub Release
 
@@ -23,6 +19,17 @@
 - [x] Verificare creazione di `data/planner.db` vicino all'eseguibile
 - [x] Verificare lettura/modifica dei file in `locales/` vicino all'eseguibile
 - [x] Spegnere il backend in produzione quando la UI non invia piu heartbeat
+
+# Versione e aggiornamenti
+- [x] Aggiungere `APP_VERSION` e configurazione repository GitHub in `config.py`
+- [ ] Creare un service backend per controllare l'ultima release GitHub
+- [ ] Aggiungere endpoint `/api/app/version` e `/api/app/check_update`
+- [ ] Aggiungere tipi frontend per versione e stato aggiornamento
+- [ ] Aggiungere funzioni API frontend per versione e controllo aggiornamenti
+- [ ] Aggiungere sezione versione nella pagina Settings
+- [ ] Aprire la pagina GitHub Release quando e disponibile una nuova versione
+- [ ] Aggiornare la guida sviluppo con regola `APP_VERSION` uguale al tag release
+- [ ] Valutare creazione automatica GitHub Release con artifact allegati
 
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task
