@@ -131,6 +131,19 @@ Il workflow si trova in:
 ### Creare una nuova versione
 Prima di creare una versione, assicurati di aver salvato e pubblicato tutte le modifiche su `main`.
 
+Aggiorna anche la versione in `backend/config.py`:
+
+```python
+APP_VERSION = "0.1.0"
+```
+
+Il valore di `APP_VERSION` deve corrispondere al tag release senza la `v` iniziale:
+
+```text
+APP_VERSION = "0.1.0"
+tag GitHub = v0.1.0
+```
+
 ```bash
 git status
 git add .

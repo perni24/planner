@@ -22,14 +22,16 @@
 
 # Versione e aggiornamenti
 - [x] Aggiungere `APP_VERSION` e configurazione repository GitHub in `config.py`
-- [ ] Creare un service backend per controllare l'ultima release GitHub
-- [ ] Aggiungere endpoint `/api/app/version` e `/api/app/check_update`
-- [ ] Aggiungere tipi frontend per versione e stato aggiornamento
-- [ ] Aggiungere funzioni API frontend per versione e controllo aggiornamenti
-- [ ] Aggiungere sezione versione nella pagina Settings
-- [ ] Aprire la pagina GitHub Release quando e disponibile una nuova versione
-- [ ] Aggiornare la guida sviluppo con regola `APP_VERSION` uguale al tag release
-- [ ] Valutare creazione automatica GitHub Release con artifact allegati
+- [x] Creare un service backend per controllare l'ultima release GitHub
+- [x] Aggiungere endpoint `/api/app/version` e `/api/app/check_update`
+- [x] Aggiungere tipi frontend per versione e stato aggiornamento
+- [x] Aggiungere funzioni API frontend per versione e controllo aggiornamenti
+- [x] Aggiungere sezione versione nella pagina Settings
+- [x] Controllare automaticamente gli aggiornamenti all'avvio e mostrare un toast se disponibili
+- [x] Aprire la pagina GitHub Release quando e disponibile una nuova versione
+- [x] Aggiornare la guida sviluppo con regola `APP_VERSION` uguale al tag release
+- [ ] Creare almeno una GitHub Release pubblicata per abilitare il controllo aggiornamenti
+- [x] Creare automaticamente GitHub Release con artifact allegati
 
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task

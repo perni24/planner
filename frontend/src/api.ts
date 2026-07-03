@@ -5,6 +5,7 @@ import { Settings, CustomColors } from './types/settings';
 import { ApiMessage } from './types/apiResponses';
 import { Area } from './types/areas';
 import { Task } from './types/tasks';
+import { AppUpdateStatus, AppVersion } from './types/app';
 
 // areas
 export const getAllAreas = () => apiCore<Area[]>('/areas/get_all_areas');
@@ -51,4 +52,8 @@ export const loadLanguage = () => apiCore<LocaleDictionary>('/locales/load_langu
 
 // app lifecycle
 export const sendAppHeartbeat = () => apiCore<ApiMessage>('/app/heartbeat', {method: 'POST'});
+
+export const getAppVersion = () => apiCore<AppVersion>('/app/version');
+
+export const checkAppUpdate = () => apiCore<AppUpdateStatus>('/app/check_update');
 
