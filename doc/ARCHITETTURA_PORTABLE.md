@@ -10,6 +10,12 @@ Dopo la build locale o GitHub Actions, l'output principale e:
 backend/dist/PlannerApp/
   PlannerApp.exe
   _internal/
+```
+
+Al primo avvio vengono aggiunte le cartelle modificabili:
+
+```text
+PlannerApp/
   data/
     planner.db
   locales/
@@ -22,8 +28,8 @@ Su Linux e macOS il file eseguibile non avra estensione `.exe`, ma la logica res
 ## Cartelle tecniche
 
 - `_internal/`: contiene runtime Python, librerie, `schema.sql`, frontend buildato e file inclusi da PyInstaller. Non va modificata manualmente.
-- `data/`: contiene il database SQLite creato vicino all'eseguibile.
-- `locales/`: contiene i file lingua esterni modificabili dall'utente.
+- `data/`: contiene il database SQLite creato vicino all'eseguibile al primo avvio.
+- `locales/`: contiene i file lingua esterni copiati al primo avvio e modificabili dall'utente.
 
 ## Percorsi principali
 

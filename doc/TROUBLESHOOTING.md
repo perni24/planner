@@ -83,3 +83,9 @@ PlannerApp/locales/
 ```
 
 E che il JSON sia valido. I file JSON non supportano commenti.
+
+## macOS blocca l'app
+
+Le build PyInstaller non firmate possono essere bloccate da Gatekeeper. Per i test
+locali apri l'app dal menu contestuale con `Apri`. Per una distribuzione pubblica
+senza avvisi servono firma e notarizzazione Apple.

@@ -98,8 +98,23 @@ Le lingue vengono lette dalla cartella configurata in `LOCALES_DIR`.
 ```text
 POST /api/app/heartbeat
 POST /api/app/shutdown
+GET  /api/app/version
+GET  /api/app/check_update
 ```
 
 `heartbeat` mantiene vivo il backend quando la UI e aperta.
 
 `shutdown` permette uno spegnimento esplicito del backend.
+
+`version` restituisce la versione configurata in `backend/config.py`.
+
+`check_update` confronta la versione corrente con l'ultima GitHub Release pubblicata.
+
+## Backup
+
+```text
+GET /api/backup/download
+```
+
+Scarica una copia del database con data e ora nel nome del file. L'importazione di
+un backup non e ancora disponibile.

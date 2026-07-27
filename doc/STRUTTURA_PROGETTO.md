@@ -14,18 +14,25 @@ Questo documento riassume le cartelle principali del progetto e il loro contenut
 
 - `GUIDA_SVILUPPO.md`: avvio sviluppo, build portable e release da tag.
 - `STRUTTURA_PROGETTO.md`: panoramica delle cartelle.
-- `tecnologie.md`: tecnologie principali.
 - `ARCHITETTURA_PORTABLE.md`: comportamento dell'app PyInstaller.
 - `DATABASE.md`: schema SQLite, relazioni e repository.
 - `API_BACKEND.md`: endpoint backend principali.
 - `I18N.md`: gestione lingue JSON.
 - `TROUBLESHOOTING.md`: problemi comuni e soluzioni.
+- `SVILUPPI_FUTURI.md`: idee e possibili evoluzioni non ancora pianificate.
 - `to do.md`: attivita aperte.
 - `diagramma_flusso.canvas`: diagramma visuale.
 
+## Tecnologie principali
+
+- Frontend: React 19, Vite 8, Tailwind CSS 4 e React Router 7.
+- Backend: Python, Starlette, Uvicorn e SQLite.
+- Qualita: ESLint per il frontend e Ruff per il backend.
+- Distribuzione: PyInstaller e GitHub Actions.
+
 ## GitHub Actions
 
-- `.github/workflows/release-build.yml`: build release Windows, Linux e macOS quando viene pubblicato un tag `v*`.
+- `.github/workflows/release-build.yml`: build Windows, Linux e macOS e creazione della GitHub Release quando viene pubblicato un tag `v*`.
 
 ## Backend
 
@@ -54,6 +61,7 @@ I repository contengono SQL e conversione dati. Non dovrebbero contenere logica 
 - `routes/setting_routes.py`: endpoint impostazioni.
 - `routes/locale_routes.py`: endpoint lingue.
 - `routes/app_routes.py`: heartbeat e shutdown applicazione.
+- `routes/backup_routes.py`: download del backup SQLite.
 
 Le route leggono request/query/body, validano i dati, chiamano repository o service e restituiscono `JSONResponse`.
 
@@ -61,6 +69,7 @@ Le route leggono request/query/body, validano i dati, chiamano repository o serv
 
 - `services/locale_service.py`: lettura lingue JSON.
 - `services/app_lifecycle.py`: heartbeat e shutdown automatico in produzione.
+- `services/update_service.py`: controllo dell'ultima release pubblicata su GitHub.
 - `validators/request_validator.py`: validazione payload riutilizzabile.
 
 ## Backend - test manuali
@@ -95,6 +104,7 @@ Le route leggono request/query/body, validano i dati, chiamano repository o serv
 - `TaskCard.jsx`: card task.
 - `TaskModal.jsx`: creazione/modifica/eliminazione task.
 - `ConfirmModal.jsx`: conferma eliminazioni.
+- `LoadingOverlay.jsx`: blocco visuale durante operazioni asincrone.
 - `Toast.jsx`: notifica visuale.
 
 ## Frontend - context
@@ -123,6 +133,7 @@ I file `use*.js` espongono gli hook dedicati ai context.
 - `settings.ts`: tipi settings.
 - `locales.ts`: tipi dizionario lingua.
 - `apiResponses.ts`: tipi risposte API generiche.
+- `app.ts`: tipi versione e controllo aggiornamenti.
 
 ## Cartelle generate
 

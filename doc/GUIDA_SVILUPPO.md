@@ -166,7 +166,9 @@ PlannerApp-linux
 PlannerApp-macos
 ```
 
-Gli artifact generati saranno disponibili nella pagina del workflow su GitHub.
+Al termine, il workflow crea automaticamente la GitHub Release e allega i tre
+archivi ZIP. Gli stessi artifact restano disponibili anche nella pagina del
+workflow.
 
 ### Regole per i tag versione
 Usa tag che iniziano con `v`, per esempio:

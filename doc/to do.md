@@ -1,10 +1,11 @@
-# Prima di PyInstaller/GitHub Actions
+# Qualita e release
+
 - [x] Sistemare errori di `npm run lint`
 - [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
 - [x] Installare e configurare Ruff per il controllo automatico del backend
 - [x] Creare workflow GitHub Actions per build release Windows, Linux e macOS su tag `v*`
-- [ ] Creare automaticamente una GitHub Release quando viene pubblicato un tag `v*`
-- [ ] Allegare gli artifact compressi alla GitHub Release
+- [x] Creare automaticamente una GitHub Release quando viene pubblicato un tag `v*`
+- [x] Allegare gli artifact compressi alla GitHub Release
 
 # PyInstaller / App portable
 - [x] Distinguere percorsi di sviluppo e produzione in `config.py`
@@ -30,8 +31,7 @@
 - [x] Controllare automaticamente gli aggiornamenti all'avvio e mostrare un toast se disponibili
 - [x] Aprire la pagina GitHub Release quando e disponibile una nuova versione
 - [x] Aggiornare la guida sviluppo con regola `APP_VERSION` uguale al tag release
-- [ ] Creare almeno una GitHub Release pubblicata per abilitare il controllo aggiornamenti
-- [x] Creare automaticamente GitHub Release con artifact allegati
+- [x] Creare almeno una GitHub Release pubblicata per abilitare il controllo aggiornamenti
 
 # Priorita alta
 - [x] Aggiungere validazione frontend nei modali area, progetto e task
@@ -60,5 +60,6 @@
 - [ ] Standardizzare testi brevi e simboli come X, x e OK
 - [ ] Migliorare stati vuoti per progetti, aree e task
 - [ ] Implementare o nascondere temporaneamente la pagina calendario
-- [ ] Valutare backup, export e import del database
+- [x] Implementare il download del backup SQLite
+- [ ] Progettare e implementare l'importazione sicura di un backup
 - [ ] Migliorare accessibilita dei modali e gestione focus
