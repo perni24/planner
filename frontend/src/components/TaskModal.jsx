@@ -4,12 +4,13 @@ import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 import ConfirmModal from "./ConfirmModal";
 
-function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id }) {
+function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id, parentOptions = [], initialParentId = null }) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
 
   const [taskName, setTaskName] = useState(isEditMode ? task?.title ?? '' : '');
   const [taskDescription, setTaskDescription] = useState(isEditMode ? task?.description ?? '' : ''); 
+  const [parentId, setParentId] = useState(isEditMode ? null : initialParentId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const disabledButton = taskName.trim().length === 0
@@ -32,7 +33,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     try {
       setIsSubmitting(true);
 
-      await insertTask(project_id, title, taskDescription); 
+      await insertTask(project_id, title, taskDescription, parentId ?? null); 
       showToast(jsonLanguage['taskModal.toast.created'], 'success');
       await refreshFunction?.();
       onClose(); 
@@ -143,6 +144,27 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
               onChange={(e) => setTaskDescription(e.target.value)}
             />
           </div>
+
+          {!isEditMode && (
+            <div>
+              <label htmlFor="task-parent" className="text-sm font-medium">
+                {jsonLanguage['taskModal.parent.label']}
+              </label>
+              <select
+                id="task-parent"
+                value={parentId ?? ''}
+                onChange={(e) => setParentId(e.target.value === '' ? null : Number(e.target.value))}
+                className="mt-2 block w-full rounded-md border border-main-border bg-main-bg px-3 py-2 text-sm text-main-text shadow-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">{jsonLanguage['taskModal.parent.none']}</option>
+                {parentOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
         </div>
 

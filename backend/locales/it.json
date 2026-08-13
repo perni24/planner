@@ -88,6 +88,8 @@
   "taskModal.title.placeholder": "Es. Preparare schema database",
   "taskModal.description.label": "Descrizione",
   "taskModal.description.placeholder": "Descrivi brevemente cosa bisogna fare",
+  "taskModal.parent.label": "Task padre",
+  "taskModal.parent.none": "Nessuna",
   "taskModal.actions.create": "Crea",
   "taskModal.actions.edit": "Modifica",
   "taskModal.actions.delete": "Elimina",
@@ -103,6 +105,8 @@
   "taskCard.todo": "Da fare",
   "taskCard.createdAt": "Creata il",
   "taskCard.settings": "Impostazioni task",
+  "taskCard.subtasks.count": "sottotask",
+  "taskCard.subtasks.add": "+ Sottotask",
   "taskCard.toast.invalidData": "Dati task mancanti o non validi",
   "taskCard.toast.errorUpdateStatus": "Errore durante l'aggiornamento dello stato della task",
 

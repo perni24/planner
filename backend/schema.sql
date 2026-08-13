@@ -16,12 +16,14 @@ CREATE TABLE projects (
 CREATE TABLE tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
+    parent_id INTEGER,
     title TEXT NOT NULL,
     description TEXT,
     completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE calendar(
@@ -39,6 +41,59 @@ CREATE TABLE settings (
     custom_hover TEXT NOT NULL DEFAULT '#2563eb',
     custom_hover_text TEXT NOT NULL DEFAULT '#f0f9ff'
 );
+
+CREATE TRIGGER trg_subtask_after_insert
+AFTER INSERT ON tasks
+WHEN NEW.parent_id IS NOT NULL
+BEGIN
+    UPDATE tasks
+    SET completed = CASE
+        WHEN (SELECT COUNT(*) FROM tasks WHERE parent_id = NEW.parent_id AND completed = 0) = 0 THEN 1
+        ELSE 0
+    END,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.parent_id;
+END;
+
+CREATE TRIGGER trg_subtask_after_update
+AFTER UPDATE OF completed ON tasks
+WHEN NEW.parent_id IS NOT NULL
+BEGIN
+    UPDATE tasks
+    SET completed = CASE
+        WHEN (SELECT COUNT(*) FROM tasks WHERE parent_id = NEW.parent_id AND completed = 0) = 0 THEN 1
+        ELSE 0
+    END,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.parent_id;
+END;
+
+CREATE TRIGGER trg_subtask_after_delete
+AFTER DELETE ON tasks
+WHEN OLD.parent_id IS NOT NULL
+BEGIN
+    UPDATE tasks
+    SET completed = CASE
+        WHEN (SELECT COUNT(*) FROM tasks WHERE parent_id = OLD.parent_id AND completed = 0) = 0 THEN 1
+        ELSE 0
+    END,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = OLD.parent_id;
+END;
+
+CREATE TRIGGER trg_parent_derived
+AFTER UPDATE OF completed ON tasks
+WHEN NEW.parent_id IS NULL
+AND EXISTS (SELECT 1 FROM tasks WHERE parent_id = NEW.id)
+BEGIN
+    UPDATE tasks
+    SET completed = CASE
+        WHEN (SELECT COUNT(*) FROM tasks WHERE parent_id = NEW.id AND completed = 0) = 0 THEN 1
+        ELSE 0
+    END,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.id;
+END;
 
 CREATE VIEW v_projects_status AS
 SELECT

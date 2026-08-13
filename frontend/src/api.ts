@@ -30,7 +30,7 @@ export const deleteProject = (project_id: number) => apiCore<ApiMessage>('/proje
 // tasks
 export const get_tasks_by_project = (project_id: number) => apiCore<Task[]>(`/tasks/get_tasks_by_project?project_id=${project_id}`);
 
-export const insertTask = (project_id: number, title: string, description: string) => apiCore<ApiMessage>('/tasks/insert_task', {method: 'POST', body:{project_id, title, description}}); 
+export const insertTask = (project_id: number, title: string, description: string, parent_id: number | null = null) => apiCore<ApiMessage>('/tasks/insert_task', {method: 'POST', body:{project_id, title, description, parent_id}}); 
 
 export const updateTask = (task_id:number, title:string, description:string) => apiCore<ApiMessage>('/tasks/update_task', {method: 'POST', body:{task_id, title, description}});
 

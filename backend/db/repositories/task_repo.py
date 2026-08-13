@@ -22,13 +22,13 @@ def get_tasks_by_project(project_id):
             ).fetchall()
         return [format_data(row) for row in cursor]
     
-def insert_task(project_id, title, description):
+def insert_task(project_id, title, description, parent_id=None):
     with get_db_connection() as conn:
         cursor  = conn.execute(
             """
-            INSERT INTO tasks (project_id, title, description) VALUES (?, ?, ?)
+            INSERT INTO tasks (project_id, parent_id, title, description) VALUES (?, ?, ?, ?)
             """,
-            (project_id, title, description)
+            (project_id, parent_id, title, description)
         )
         conn.commit()
         return cursor.lastrowid 

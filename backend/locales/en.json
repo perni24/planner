@@ -88,6 +88,8 @@
   "taskModal.title.placeholder": "E.g. Prepare database schema",
   "taskModal.description.label": "Description",
   "taskModal.description.placeholder": "Briefly describe what needs to be done",
+  "taskModal.parent.label": "Parent task",
+  "taskModal.parent.none": "None",
   "taskModal.actions.create": "Create",
   "taskModal.actions.edit": "Edit",
   "taskModal.actions.delete": "Delete",
@@ -103,6 +105,8 @@
   "taskCard.todo": "To do",
   "taskCard.createdAt": "Created on",
   "taskCard.settings": "Task settings",
+  "taskCard.subtasks.count": "subtasks",
+  "taskCard.subtasks.add": "+ Subtask",
   "taskCard.toast.invalidData": "Missing or invalid task data",
   "taskCard.toast.errorUpdateStatus": "Error while updating the task status",
 

@@ -41,6 +41,15 @@ def validate_payload(data, fields):
             case "description":
                 value, error = validate_text(data.get(field), field, required=False)
 
+            case "parent_id":
+                value = data.get(field)
+                if value is not None:
+                    value, error = validate_int(value, field)
+                    if error:
+                        return None, error
+                validated[field] = value
+                continue
+
             case _:
                 return None, f"Unknown field: {field}"
 

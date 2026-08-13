@@ -3,15 +3,17 @@ import { useState } from "react";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 
-function TaskCard({ task, onEdit, refreshFunction}) {
+function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction}) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  
+
   const isCompleted = task.completed === 1;
+  const children = subtasks ?? [];
+  const hasSubtasks = children.length > 0;
 
   async function handleToggleStatus(){
-    if (isUpdatingStatus) {
+    if (isUpdatingStatus || hasSubtasks) {
       return;
     }
 
@@ -34,56 +36,93 @@ function TaskCard({ task, onEdit, refreshFunction}) {
   }
 
   return (
-    <article className="flex items-start gap-4 rounded-xl border border-main-border bg-main-card p-4 shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text">
-      <button
-        type="button"
-        className={
-          isCompleted
-            ? 'mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'
-            : 'mt-1 h-5 w-5 rounded-full border-2 border-indigo-500'
-        }
-        disabled={isUpdatingStatus}
-        onClick={ ()=> handleToggleStatus()}
-        aria-label={isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']}
-      >
-        {isCompleted ? 'x' : ''}
-      </button>
-
-      <div className="flex-1">
-        <h3 className={isCompleted ? 'font-semibold line-through' : 'font-semibold'}>
-          {task.title}
-        </h3>
-
-        <p className="mt-1 text-sm text-main-text/70">
-          {task.description ?? jsonLanguage['taskCard.noDescription']}
-        </p>
-
-        <p className="mt-3 text-xs text-main-text/60">
-          {isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']} - {jsonLanguage['taskCard.createdAt']} {task.created_at}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onEdit?.(task)}
-        className="rounded-md px-2 py-1 text-main-text transition-colors hover:bg-main-card hover:text-main-hover-text"
-        aria-label={`${jsonLanguage['taskCard.settings']} ${task.title}`}
-      >
-        <svg
-          className="h-4 w-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+    <div>
+      <article className="flex items-start gap-4 rounded-xl border border-main-border bg-main-card p-4 shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text">
+        <button
+          type="button"
+          className={
+            isCompleted
+              ? 'mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'
+              : 'mt-1 h-5 w-5 rounded-full border-2 border-indigo-500'
+          }
+          disabled={isUpdatingStatus || hasSubtasks}
+          onClick={ ()=> handleToggleStatus()}
+          aria-label={isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']}
         >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1A1.7 1.7 0 0 0 21 10h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
-        </svg>
-      </button>
-    </article>
+          {isCompleted ? 'x' : ''}
+        </button>
+
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className={isCompleted ? 'font-semibold line-through' : 'font-semibold'}>
+              {task.title}
+            </h3>
+            {hasSubtasks && (
+              <span className="rounded-full border border-main-border px-2 py-0.5 text-xs text-main-text/70">
+                {children.length} {jsonLanguage['taskCard.subtasks.count']}
+              </span>
+            )}
+          </div>
+
+          <p className="mt-1 text-sm text-main-text/70">
+            {task.description ?? jsonLanguage['taskCard.noDescription']}
+          </p>
+
+          <p className="mt-3 text-xs text-main-text/60">
+            {isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']} - {jsonLanguage['taskCard.createdAt']} {task.created_at}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {!isCompleted && onAddSubtask && (
+            <button
+              type="button"
+              onClick={() => onAddSubtask?.(task)}
+              className="rounded-md px-2 py-1 text-sm text-indigo-400 transition-colors hover:bg-main-card hover:text-indigo-300"
+              aria-label={jsonLanguage['taskCard.subtasks.add']}
+            >
+              {jsonLanguage['taskCard.subtasks.add']}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onEdit?.(task)}
+            className="rounded-md px-2 py-1 text-main-text transition-colors hover:bg-main-card hover:text-main-hover-text"
+            aria-label={`${jsonLanguage['taskCard.settings']} ${task.title}`}
+          >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1A1.7 1.7 0 0 0 21 10h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      {hasSubtasks && (
+        <div className="ml-8 mt-3 space-y-3 border-l-2 border-main-border pl-4">
+          {children.map((subtask) => (
+            <TaskCard
+              key={subtask.id}
+              task={subtask}
+              subtasks={[]}
+              onEdit={onEdit}
+              onAddSubtask={null}
+              refreshFunction={refreshFunction}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

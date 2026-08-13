@@ -14,10 +14,20 @@ function Tasks() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskEditMode, setIsTaskEditMode] = useState(false);
+  const [initialParentId, setInitialParentId] = useState(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
-  const openTasks = tasks.filter((task) => task.completed === 0);
-  const completedTasks = tasks.filter((task) => task.completed === 1);
+  const topLevelTasks = tasks.filter((task) => task.parent_id == null);
+  const openTasks = topLevelTasks.filter((task) => task.completed === 0);
+  const completedTasks = topLevelTasks.filter((task) => task.completed === 1);
+  const subtasksByParent = {};
+  tasks.forEach((task) => {
+    if (task.parent_id != null) {
+      if (!subtasksByParent[task.parent_id]) subtasksByParent[task.parent_id] = [];
+      subtasksByParent[task.parent_id].push(task);
+    }
+  });
+  const getSubtasks = (taskId) => subtasksByParent[taskId] ?? [];
   const totalTasks = tasks.length;
   const completedCount = completedTasks.length;
   const completionPercentage = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
@@ -43,6 +53,14 @@ function Tasks() {
   function openNewTaskModal() {
     setSelectedTask(null);
     setIsTaskEditMode(false);
+    setInitialParentId(null);
+    setIsTaskModalOpen(true);
+  }
+
+  function openAddSubtaskModal(task) {
+    setSelectedTask(null);
+    setIsTaskEditMode(false);
+    setInitialParentId(task.id);
     setIsTaskModalOpen(true);
   }
 
@@ -133,7 +151,7 @@ function Tasks() {
           </div>
         ) : (
           openTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} refreshFunction={loadTasks}/>
+            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
           ))
         )}
       </section>
@@ -152,7 +170,7 @@ function Tasks() {
           </div>
         ) : (
           completedTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={openEditTaskModal} refreshFunction={loadTasks}/>
+            <TaskCard key={task.id} task={task} subtasks={null} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
           ))
         )}
       </section>
@@ -164,6 +182,8 @@ function Tasks() {
           task={selectedTask}
           refreshFunction={loadTasks}
           project_id={Number(projectId)}
+          parentOptions={topLevelTasks}
+          initialParentId={initialParentId}
         />
       )}
 

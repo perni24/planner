@@ -1,6 +1,7 @@
 export interface Task {
     id: number,
     project_id: number,
+    parent_id: number | null,
     title: string,
     description: string | null,
     completed: 0 | 1,

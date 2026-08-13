@@ -17,10 +17,10 @@ async def get_tasks_by_project(request):
 
 async def insert_task(request):
     data = await request.json()
-    values, error = validate_payload(data, ["project_id", "title", "description"])
+    values, error = validate_payload(data, ["project_id", "title", "description", "parent_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    taskRepo.insert_task(values["project_id"], values["title"], values["description"])
+    taskRepo.insert_task(values["project_id"], values["title"], values["description"], values.get("parent_id"))
     return JSONResponse({"message": "Task insert successful"})
 
 async def update_task(request):
