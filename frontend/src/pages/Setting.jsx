@@ -205,14 +205,6 @@ function Setting() {
             {jsonLanguage['settings.version.current']}: {appVersion || '-'}
           </div>
 
-          {updateStatus && !updateStatus.error && (
-            <div className="text-sm text-main-text">
-              {updateStatus.update_available
-                  ? `${jsonLanguage['settings.version.available']}: ${updateStatus.latest_version}`
-                  : jsonLanguage['settings.version.upToDate']}
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button
               type="button"

@@ -11,6 +11,8 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction})
   const isCompleted = task.completed === 1;
   const children = subtasks ?? [];
   const hasSubtasks = children.length > 0;
+  const subtaskCompletedCount = children.filter((s) => s.completed === 1).length;
+  const subtaskPercentage = children.length === 0 ? 0 : Math.round((subtaskCompletedCount / children.length) * 100);
 
   async function handleToggleStatus(){
     if (isUpdatingStatus || hasSubtasks) {
@@ -71,6 +73,18 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction})
           <p className="mt-3 text-xs text-main-text/60">
             {isCompleted ? jsonLanguage['taskCard.completed'] : jsonLanguage['taskCard.todo']} - {jsonLanguage['taskCard.createdAt']} {task.created_at}
           </p>
+
+          {hasSubtasks && (
+            <div className="mt-3 flex items-center gap-2">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-main-bg">
+                <div
+                  className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+                  style={{ width: `${subtaskPercentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-main-text/70">{subtaskPercentage}%</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">

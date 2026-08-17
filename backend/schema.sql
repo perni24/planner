@@ -115,7 +115,7 @@ SELECT
     END AS completion_percentage
 FROM projects p
 LEFT JOIN areas a ON a.id = p.area_id
-LEFT JOIN tasks t ON t.project_id = p.id
+LEFT JOIN tasks t ON t.project_id = p.id AND t.parent_id IS NULL
 GROUP BY
     p.id,
     p.area_id,

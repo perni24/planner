@@ -28,8 +28,8 @@ function Tasks() {
     }
   });
   const getSubtasks = (taskId) => subtasksByParent[taskId] ?? [];
-  const totalTasks = tasks.length;
-  const completedCount = completedTasks.length;
+  const totalTasks = topLevelTasks.length;
+  const completedCount = topLevelTasks.filter((task) => task.completed === 1).length;
   const completionPercentage = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
 
   async function loadProject() {
@@ -170,7 +170,7 @@ function Tasks() {
           </div>
         ) : (
           completedTasks.map((task) => (
-            <TaskCard key={task.id} task={task} subtasks={null} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
+            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
           ))
         )}
       </section>
