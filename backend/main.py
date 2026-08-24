@@ -21,7 +21,10 @@ from config import (
 from db.db import init_db
 from routes.api import all_routes
 from services.app_lifecycle import set_shutdown_callback, start_heartbeat_monitor
+from contextlib import asynccontextmanager
+from starlette.routing import Mount
 
+from integration.mcp.server import mcp_app, planner_mcp
 
 # Configurazione del Middleware CORS
 # allow_origins=["*"] permette a qualsiasi frontend di connettersi (ottimo per lo sviluppo)
@@ -29,6 +32,10 @@ middleware = [
     Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 ]
 
+@asynccontextmanager
+async def lifespan(app):
+    async with planner_mcp.session_manager.run():
+        yield
 
 async def serve_frontend(request):
     path = request.path_params.get("path", "")
@@ -47,7 +54,7 @@ async def serve_frontend(request):
 
 
 def create_routes():
-    routes = [*all_routes]
+    routes = [*all_routes, Mount("/mcp", app=mcp_app),]
     index_path = os.path.join(FRONTEND_DIST_DIR, "index.html")
 
     if os.path.isfile(index_path):
@@ -61,7 +68,7 @@ def open_browser():
     webbrowser.open(f"http://{browser_host}:{PORT}")
 
 
-app = Starlette(debug=DEBUG, routes=create_routes(), middleware=middleware)
+app = Starlette(debug=DEBUG, routes=create_routes(), middleware=middleware, lifespan=lifespan,)
 
 if __name__ == "__main__":
     ensure_runtime_directories()
