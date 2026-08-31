@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useArea } from '../context/useArea';
 import AreaModal from './AreaModal';
 import { useLanguage } from '../context/useLanguage';
+import settingsIcon from '../assets/icons/settings.svg?no-inline';
 
 function AreaSwitcher() {
   const { areas, currentArea, setCurrentArea, error } = useArea(); 
@@ -94,19 +95,20 @@ function AreaSwitcher() {
                 className="rounded-md px-3 py-2 text-main-text transition-colors hover:bg-main-card hover:text-main-hover-text"
                 aria-label={`${jsonLanguage['areaSwitcher.actions.settings']} ${area.name}`}
               >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <span
+                  className="block h-4 w-4 shrink-0 bg-current"
+                  style={{
+                    maskImage: `url(${settingsIcon})`,
+                    WebkitMaskImage: `url(${settingsIcon})`,
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskPosition: 'center',
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                  }}
                   aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1A1.7 1.7 0 0 0 21 10h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
-                </svg>
+                />
               </button>
             </div>
           ))}

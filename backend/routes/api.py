@@ -5,6 +5,7 @@ from starlette.routing import Mount, Route
 from .area_routes import routes as area_routes
 from .app_routes import routes as app_routes
 from .backup_routes import routes as backup_routes
+from .event_routes import routes as event_routes
 from .locale_routes import routes as locale_routes
 from .project_routes import routes as project_routes
 from .setting_routes import routes as setting_routes
@@ -18,6 +19,7 @@ async def health_check(request):
 
 def create_api_routes():
     return [
+        *event_routes,
         # Monta le rotte dei progetti sotto il prefisso /projects
         Mount("/projects", routes=project_routes),
         Mount("/settings", routes=setting_routes),

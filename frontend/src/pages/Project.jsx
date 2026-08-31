@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { getProjectByArea } from '../api';
 import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
 import { useArea } from "../context/useArea";
 import { Link } from 'react-router-dom';
+import { useDataSync } from '../context/useDataSync';
 
 function Project() {
 
   const {currentArea} = useArea(); 
+  const { lastEvent } = useDataSync();
 
   const [projects, setProjects] = useState([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -25,6 +27,10 @@ function Project() {
     }
   }
 
+  const reloadProjectsFromEvent = useEffectEvent(() => {
+    loadProjects();
+  });
+
   useEffect(() => {
     async function loadInitialProjects() {
       if (!currentArea?.id) {
@@ -41,6 +47,15 @@ function Project() {
 
     loadInitialProjects();
   }, [currentArea?.id]);
+
+  useEffect(() => {
+    if (
+      lastEvent?.entity === 'project' ||
+      lastEvent?.entity === 'task'
+    ) {
+      reloadProjectsFromEvent();
+    }
+  }, [lastEvent]);
 
 
 

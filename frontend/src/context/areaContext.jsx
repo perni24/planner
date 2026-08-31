@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { getAllAreas } from '../api';
 import { AreaContext } from './areaContextValue';
+import { useDataSync } from './useDataSync';
 
 export function AreaProvider({ children }) {
 
+  const { lastEvent } = useDataSync();
   const [areas, setAreas] = useState(null);
   const [currentArea, setCurrentArea] = useState(null); 
   const [error, setError] = useState(null);
@@ -30,6 +32,10 @@ export function AreaProvider({ children }) {
       setError(error.message);
     }
   }
+
+  const reloadAreasFromEvent = useEffectEvent(() => {
+    reloadAreas();
+  });
   
   useEffect(() => {
     async function loadInitialAreas() {
@@ -43,6 +49,12 @@ export function AreaProvider({ children }) {
 
     loadInitialAreas(); 
   }, []); 
+
+  useEffect(() => {
+    if (lastEvent?.entity === 'area') {
+      reloadAreasFromEvent();
+    }
+  }, [lastEvent]);
 
   return (
     <AreaContext.Provider value = {{ areas, currentArea, setCurrentArea, reloadAreas, error }}>

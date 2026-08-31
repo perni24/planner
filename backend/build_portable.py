@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -52,6 +53,28 @@ def main():
             "main.py",
         ],
         cwd=backend_dir,
+    )
+
+    portable_dir = backend_dir / "dist" / APP_NAME
+    license_path = project_dir / "LICENSE"
+    third_party_notices_path = project_dir / "THIRD_PARTY_NOTICES.md"
+
+    if not license_path.is_file():
+        raise FileNotFoundError(f"File LICENSE non trovato: {license_path}")
+
+    if not third_party_notices_path.is_file():
+        raise FileNotFoundError(
+            f"File THIRD_PARTY_NOTICES.md non trovato: {third_party_notices_path}"
+        )
+
+    shutil.copy2(
+        license_path,
+        portable_dir / "LICENSE",
+    )
+
+    shutil.copy2(
+        third_party_notices_path,
+        portable_dir / "THIRD_PARTY_NOTICES.md",
     )
 
 

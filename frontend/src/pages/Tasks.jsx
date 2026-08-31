@@ -1,14 +1,16 @@
 import { useParams } from 'react-router-dom';
 import { get_tasks_by_project, getProject } from '../api';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import ProjectModal from '../components/ProjectModal';
 import { useLanguage } from '../context/useLanguage';
+import { useDataSync } from '../context/useDataSync';
 
 function Tasks() {
   const { projectId } = useParams();
   const { jsonLanguage } = useLanguage();
+  const { lastEvent } = useDataSync();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -49,6 +51,16 @@ function Tasks() {
       console.error('Error loading tasks:', error);
     }
   }
+
+  const reloadTaskPageFromEvent = useEffectEvent((entity) => {
+    if (entity === 'task') {
+      loadTasks();
+    }
+
+    if (entity === 'project') {
+      loadProject();
+    }
+  });
 
   function openNewTaskModal() {
     setSelectedTask(null);
@@ -91,6 +103,12 @@ function Tasks() {
 
     loadInitialData();
   }, [projectId]);
+
+  useEffect(() => {
+    if (lastEvent) {
+      reloadTaskPageFromEvent(lastEvent.entity);
+    }
+  }, [lastEvent]);
 
   return (
     <div className="w-full space-y-8 text-main-text">

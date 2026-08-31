@@ -1,15 +1,21 @@
 import { Link } from 'react-router-dom';
 import { useLanguage } from "../context/useLanguage";
+import arrowLeftIcon from '../assets/icons/arrow-left.svg?no-inline';
+import arrowRightIcon from '../assets/icons/arrow-right.svg?no-inline';
+import calendarIcon from '../assets/icons/calendar.svg?no-inline';
+import homeIcon from '../assets/icons/home.svg?no-inline';
+import settingsIcon from '../assets/icons/settings.svg?no-inline';
 
 const navItems = [
-  { to: '/', labelKey: 'sideBar.project', icon: '□' },
-  { to: '/calendar', labelKey: 'sideBar.calendar', icon: '▦' },
-  { to: '/settings', labelKey: 'sideBar.settings', icon: '⚙' },
+  { to: '/', labelKey: 'sideBar.project', icon: homeIcon },
+  { to: '/calendar', labelKey: 'sideBar.calendar', icon: calendarIcon },
+  { to: '/settings', labelKey: 'sideBar.settings', icon: settingsIcon },
 ];
 
 function SideBar({ isOpen, onToggle }) {
 
   const { jsonLanguage } = useLanguage();
+  const toggleIcon = isOpen ? arrowLeftIcon : arrowRightIcon;
 
   return (
     <aside
@@ -27,11 +33,24 @@ function SideBar({ isOpen, onToggle }) {
         <button
           type="button"
           onClick={onToggle}
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-main-border bg-main-card text-main-text shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text"
+          className="flex h-7 w-7 items-center justify-center text-main-text transition duration-200 hover:scale-105 hover:text-main-hover-text"
           aria-label={isOpen ? 'Nascondi sidebar' : 'Mostra sidebar'}
           title={isOpen ? 'Nascondi sidebar' : 'Mostra sidebar'}
         >
-          {isOpen ? '‹' : '›'}
+          <span
+            className="h-full w-full bg-current"
+            style={{
+              maskImage: `url(${toggleIcon})`,
+              WebkitMaskImage: `url(${toggleIcon})`,
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskPosition: 'center',
+              maskSize: 'contain',
+              WebkitMaskSize: 'contain',
+            }}
+            aria-hidden="true"
+          />
         </button>
       </div>
 
@@ -41,14 +60,25 @@ function SideBar({ isOpen, onToggle }) {
             <li key={item.to}>
               <Link
                 to={item.to}
-                className={`flex items-center rounded-lg py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors ${
+                className={`group flex items-center rounded-lg py-3 text-sm font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text transition-colors ${
                   isOpen ? 'gap-3 px-4' : 'justify-center px-0'
                 }`}
                 title={jsonLanguage[item.labelKey]}
               >
-                <span className="text-xl leading-none" aria-hidden="true">
-                  {item.icon}
-                </span>
+                <span
+                  className="h-7 w-7 shrink-0 bg-current opacity-80 transition duration-200 group-hover:scale-110 group-hover:opacity-100"
+                  style={{
+                    maskImage: `url(${item.icon})`,
+                    WebkitMaskImage: `url(${item.icon})`,
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskPosition: 'center',
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                  }}
+                  aria-hidden="true"
+                />
                 {isOpen && <span>{jsonLanguage[item.labelKey]}</span>}
               </Link>
             </li>

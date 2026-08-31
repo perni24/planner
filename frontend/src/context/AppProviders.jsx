@@ -7,6 +7,7 @@ import { ThemeProvider } from './ThemeContext';
 import { SettingsProvider } from './SettingsContext';
 import { LanguageProvider } from './LanguageContext';
 import { AreaProvider } from './areaContext';
+import { DataSyncProvider } from './DataSyncContext';
 import { ToastProvider } from './ToastContext';
 
 const HEARTBEAT_INTERVAL_MS = 10000;
@@ -63,13 +64,15 @@ function AppProviders({ children }) {
     <SettingsProvider>
       <LanguageProvider>
         <ThemeProvider>
-          <AreaProvider>
-            <ToastProvider>
-              <AppLifecycle>
-                {children}
-              </AppLifecycle>
-            </ToastProvider>
-          </AreaProvider>
+          <DataSyncProvider>
+            <AreaProvider>
+              <ToastProvider>
+                <AppLifecycle>
+                  {children}
+                </AppLifecycle>
+              </ToastProvider>
+            </AreaProvider>
+          </DataSyncProvider>
         </ThemeProvider>
       </LanguageProvider>
     </SettingsProvider>

@@ -1,4 +1,5 @@
 from db.repositories import mcp_repo
+from services import event_service
 from validators.request_validator import validate_int, validate_text
 
 
@@ -62,6 +63,12 @@ def bulk_insert_area(names: list[str]) -> dict:
 
     inserted_ids = mcp_repo.bulk_insert_area(validated_names)
 
+    event_service.publish({
+        "entity": "area",
+        "action": "created",
+        "ids": inserted_ids,
+    })
+
     return {
         "requested": len(validated_names),
         "created": len(inserted_ids),
@@ -115,6 +122,12 @@ def bulk_insert_project(projects: list[dict]) -> dict:
         names,
         descriptions,
     )
+
+    event_service.publish({
+        "entity": "project",
+        "action": "created",
+        "ids": inserted_ids,
+    })
 
     return {
         "requested": len(projects),
@@ -212,6 +225,12 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
         parent_ids,
     )
 
+    event_service.publish({
+        "entity": "task",
+        "action": "created",
+        "ids": inserted_ids,
+    })
+
     return {
         "requested": len(tasks),
         "created": len(inserted_ids),
@@ -271,6 +290,12 @@ def bulk_update_project(projects: list[dict]) -> dict:
         descriptions,
     )
 
+    event_service.publish({
+        "entity": "project",
+        "action": "updated",
+        "ids": updated_ids,
+    })
+
     return {
         "requested": len(projects),
         "updated": len(updated_ids),
@@ -328,6 +353,12 @@ def bulk_update_task(tasks: list[dict]) -> dict:
         descriptions,
     )
 
+    event_service.publish({
+        "entity": "task",
+        "action": "updated",
+        "ids": updated_ids,
+    })
+
     return {
         "requested": len(tasks),
         "updated": len(updated_ids),
@@ -373,6 +404,12 @@ def bulk_set_task_completed(tasks: list[dict]) -> dict:
         task_ids,
         completeds,
     )
+
+    event_service.publish({
+        "entity": "task",
+        "action": "updated",
+        "ids": updated_ids,
+    })
 
     return {
         "requested": len(tasks),
