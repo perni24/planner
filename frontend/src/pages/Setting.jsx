@@ -3,6 +3,7 @@ import { useTheme } from '../context/useTheme';
 import { checkAppUpdate, getAppVersion, getAvailableLanguages } from '../api';
 import { useLanguage } from '../context/useLanguage';
 import { useToast } from '../context/useToast';
+import McpSettings from '../components/McpSettings';
 
 function Setting() {
   const { theme, customColors, updateCustomColor, changeTheme } = useTheme();
@@ -195,6 +196,8 @@ function Setting() {
             </button>
           </div>
         </div>
+
+        <McpSettings />
 
         <div className="flex flex-col gap-4">
           <label className="text-sm font-medium">

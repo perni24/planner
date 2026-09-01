@@ -5,7 +5,8 @@ from integration.mcp.mcp_tools import register_mcp_tools
 planner_mcp = MCPServer(
     "Planner",
     instructions=(
-        "Permette di consultare e gestire aree, progetti e task per organizzare le attività dell'utente."
+        "Use Planner to view and manage areas, projects, tasks, and subtasks "
+        "that organize the user's activities."
     ),
 )
 

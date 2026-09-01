@@ -14,51 +14,51 @@ def register_mcp_tools(mcp):
 
     @mcp.tool()
     def get_all_areas() -> dict:
-        """Restituisce tutte le aree, incluse quelle senza progetti."""
+        """Return all areas, including areas without projects."""
         return mcpService.get_all_areas()
 
     @mcp.tool()
     def get_all_projects() -> list[dict]:
-        """ Restituisce tutti progetti. """
+        """Return all projects with their current status."""
         return mcp_repo.get_all_projects()
 
     @mcp.tool()
     def get_project_tasks(project_id: int) -> dict:
-        """Restituisce tutte le task e sotto-task di un progetto."""
+        """Return all tasks and subtasks belonging to a project."""
         return mcpService.get_project_tasks(project_id)
 
     @mcp.tool()
     def bulk_insert_area(areas: list[CreateArea]) -> dict:
-        """Crea più aree in una singola operazione."""
+        """Create multiple areas in a single operation."""
         names = [area.name for area in areas]
         return mcpService.bulk_insert_area(names)
 
     @mcp.tool()
     def bulk_insert_project(projects: list[CreateProject]) -> dict:
-        """Crea più progetti in una singola operazione."""
+        """Create multiple projects in a single operation."""
         project_data = [project.model_dump() for project in projects]
         return mcpService.bulk_insert_project(project_data)
 
     @mcp.tool()
     def bulk_insert_task(tasks: list[CreateTask]) -> dict:
-        """Crea più task in una singola operazione."""
+        """Create multiple tasks and subtasks in a single operation."""
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_insert_task(task_data)
 
     @mcp.tool()
     def bulk_update_project(projects: list[UpdateProject]) -> dict:
-        """Aggiorna più progetti in una singola operazione."""
+        """Update multiple projects in a single operation."""
         project_data = [project.model_dump() for project in projects]
         return mcpService.bulk_update_project(project_data)
 
     @mcp.tool()
     def bulk_update_task(tasks: list[UpdateTask]) -> dict:
-        """Aggiorna più task in una singola operazione."""
+        """Update multiple tasks in a single operation."""
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_update_task(task_data)
 
     @mcp.tool()
     def bulk_set_task_completed(tasks: list[SetTaskCompleted]) -> dict:
-        """Imposta lo stato completato di più task in una singola operazione."""
+        """Set the completion status of multiple tasks in one operation."""
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_set_task_completed(task_data)
