@@ -1,65 +1,70 @@
-# Qualita e release
+# TODO
 
-- [x] Sistemare errori di `npm run lint`
-- [x] Rendere configurabili `debug` e `reload` del backend per sviluppo/produzione
-- [x] Installare e configurare Ruff per il controllo automatico del backend
-- [x] Creare workflow GitHub Actions per build release Windows, Linux e macOS su tag `v*`
-- [x] Creare automaticamente una GitHub Release quando viene pubblicato un tag `v*`
-- [x] Allegare gli artifact compressi alla GitHub Release
+Attivita aperte, ordinate per priorita. Le attivita completate vengono rimosse: lo
+storico resta nella cronologia Git. Le idee non ancora pianificate stanno in
+`SVILUPPI_FUTURI.md`.
 
-# PyInstaller / App portable
-- [x] Distinguere percorsi di sviluppo e produzione in `config.py`
-- [x] Creare automaticamente le cartelle runtime `data/` e `locales/`
-- [x] Copiare i file lingua di default fuori dall'eseguibile al primo avvio
-- [x] Esporre le API backend anche sotto `/api`
-- [x] Servire `frontend/dist` dal backend in produzione
-- [x] Gestire il fallback a `index.html` per le route React
-- [x] Creare lo script `build_portable.py`
-- [x] Configurare PyInstaller in modalita `--onedir`
-- [x] Testare avvio dell'eseguibile senza Vite
-- [x] Verificare creazione di `data/planner.db` vicino all'eseguibile
-- [x] Verificare lettura/modifica dei file in `locales/` vicino all'eseguibile
-- [x] Spegnere il backend in produzione quando la UI non invia piu heartbeat
+## 1. Critico
 
-# Versione e aggiornamenti
-- [x] Aggiungere `APP_VERSION` e configurazione repository GitHub in `config.py`
-- [x] Creare un service backend per controllare l'ultima release GitHub
-- [x] Aggiungere endpoint `/api/app/version` e `/api/app/check_update`
-- [x] Aggiungere tipi frontend per versione e stato aggiornamento
-- [x] Aggiungere funzioni API frontend per versione e controllo aggiornamenti
-- [x] Aggiungere sezione versione nella pagina Settings
-- [x] Controllare automaticamente gli aggiornamenti all'avvio e mostrare un toast se disponibili
-- [x] Aprire la pagina GitHub Release quando e disponibile una nuova versione
-- [x] Aggiornare la guida sviluppo con regola `APP_VERSION` uguale al tag release
-- [x] Creare almeno una GitHub Release pubblicata per abilitare il controllo aggiornamenti
+Da risolvere prima della prossima release.
 
-# Priorita alta
-- [x] Aggiungere validazione frontend nei modali area, progetto e task
-- [x] Aggiungere validazione backend per id, name, title, area_id e project_id
-- [x] Aggiungere conferma prima di eliminare area, progetto e task
-- [x] Mostrare gli errori all'utente invece di salvarli solo in state o console
-- [x] Aggiungere stato loading sui pulsanti di insert, update e delete
-- [x] Proteggere update/delete quando area, progetto o task sono null
-- [x] Mostrare toast quando un'azione viene bloccata per dati mancanti o non validi
-- [x] Riallineare currentArea dopo eliminazione dell'area corrente
+### Sicurezza
+- [ ] Bloccare le richieste inviate da altri siti (CSRF): `request.json()` accetta anche body con `Content-Type: text/plain`, che il browser invia senza preflight, quindi una pagina web puo ancora modificare o cancellare i dati e chiamare `/app/shutdown`. Controllare l'header `Origin` (o `Sec-Fetch-Site`), compreso `/mcp`
+- [ ] Aggiungere il controllo dell'header `Host` (`TrustedHostMiddleware`) contro il DNS rebinding, verificando anche l'endpoint `/mcp`
 
-# Priorita media
-- [ ] Sistemare timer del ToastContext con clearTimeout/useRef
-- [x] Aggiungere toast di errore al cambio stato task in TaskCard
-- [ ] Aggiungere gestione sotto-task collegate alle task principali
-- [ ] Spostare le chiamate API dai modali/card verso pagine o context
-- [ ] Passare ai componenti callback come onSave, onDelete, onToggle e onEdit
-- [ ] Uniformare i nomi delle funzioni API frontend
-- [ ] Rendere sicuri i refresh opzionali con refreshFunction?.()
-- [x] Usare button al posto di span per elementi cliccabili
-- [x] Restituire cursor.rowcount nei repository backend per update/delete
-- [ ] Aggiornare i file .http per coprire tutte le route area, project e task
+### Database
+- [ ] Introdurre un sistema di migrazioni dello schema (`PRAGMA user_version` e script numerati): oggi `init_db()` non modifica un DB esistente
+- [ ] Trigger: eliminando l'ultima subtask aperta il parent risulta completato
+- [ ] Trigger: lo stato di un parent con subtask non e modificabile, ma `bulk_set_task_completed` lo riporta come aggiornato
+- [ ] REST `insert_task`: impedire subtask di subtask e `parent_id` di un altro progetto (come gia fa MCP)
 
-# Priorita bassa
+### Funzionamento
+- [ ] Rivedere lo spegnimento automatico: il server MCP non funziona senza UI aperta e le schede in background possono saltare gli heartbeat
+- [ ] Verificare che lo spegnimento non resti bloccato con connessioni SSE aperte
+- [ ] Impedire l'eliminazione dell'ultima area, oppure permettere di crearne una quando non ce ne sono (oggi l'interfaccia resta senza `AreaSwitcher`)
+
+## 2. Alta
+
+### Dipendenze e build
+- [ ] Convertire `requirements.txt` da UTF-16 a UTF-8
+- [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer`)
+- [ ] Separare `pyinstaller` e `ruff` dalle dipendenze di runtime
+- [ ] CI: verificare che gli zip Linux/macOS creati con `Compress-Archive` mantengano il permesso di esecuzione
+- [ ] CI: eseguire `npm run lint` e `ruff check` nel workflow
+- [ ] CI: verificare che `APP_VERSION` corrisponda al tag della release
+
+### Gestione errori
+- [ ] Aggiungere un gestore globale degli errori nel backend (JSON non valido, `IntegrityError`, chiavi mancanti in `custom_colors`)
+- [ ] Allineare `apiCore.ts`, che legge `detail`/`message`, al campo `error` restituito dal backend
+- [ ] `get_project`: restituire `404` se il progetto non esiste (oggi `200` con `null`) e gestirlo in `Tasks.jsx`
+- [ ] Validare la lingua in `update_language` e usare una lingua di fallback se il file manca
+
+### Backup
+- [ ] Generare il backup con l'API `sqlite3.backup()` invece di copiare il file in uso
+
+## 3. Media
+
+### Backend
+- [ ] Chiudere esplicitamente le connessioni SQLite (`with conn` fa commit ma non chiude)
+- [ ] Progettare e implementare l'importazione sicura di un backup
+- [ ] Aggiornare i file `.http` per coprire tutte le route (mancano `update_task`, `update_status_task`, `app/*` e `backup/download`)
+
+### Frontend
+- [ ] Spostare le chiamate API dai modali e dalle card verso pagine o context, passando ai componenti callback come `onSave`, `onDelete`, `onToggle` e `onEdit`
+- [ ] Uniformare i nomi delle funzioni API frontend (es. `get_tasks_by_project` e `getProjectByArea`)
+- [ ] Sistemare il timer del `ToastContext` con `clearTimeout`/`useRef`
+
+## 4. Bassa
+
+### Interfaccia
 - [ ] Formattare le date mostrate in UI
 - [ ] Standardizzare testi brevi e simboli come X, x e OK
-- [ ] Migliorare stati vuoti per progetti, aree e task
-- [ ] Implementare o nascondere temporaneamente la pagina calendario
-- [x] Implementare il download del backup SQLite
-- [ ] Progettare e implementare l'importazione sicura di un backup
-- [ ] Migliorare accessibilita dei modali e gestione focus
+- [ ] Migliorare gli stati vuoti per progetti, aree e task
+- [ ] Mostrare il fallback `noDescription`: la descrizione vuota e salvata come `""`, quindi `??` non scatta mai
+- [ ] Far seguire al tema `system` i cambi del tema del sistema operativo
+- [ ] Migliorare l'accessibilita dei modali e la gestione del focus
+- [ ] Calendario: implementare la pagina (e usare la tabella `calendar`) oppure nascondere la pagina e rimuovere la tabella
+
+### Codice
+- [ ] Aggiungere `tsconfig` e `typescript` per verificare i tipi, oppure convertire i file `.ts` in `.js`
+- [ ] Rimuovere `types/test.ts`

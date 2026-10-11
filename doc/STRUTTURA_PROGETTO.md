@@ -1,145 +1,73 @@
 # Struttura del Progetto
 
-Questo documento riassume le cartelle principali del progetto e il loro contenuto.
+Questo documento riassume le cartelle principali del progetto e il loro ruolo.
+Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 
 ## Root
 
-- `backend/`: backend Python, API, database SQLite, build portable.
+- `backend/`: backend Python, API, server MCP, database SQLite, build portable.
 - `frontend/`: applicazione React/Vite.
 - `doc/`: documentazione tecnica e note di progetto.
-- `.github/workflows/`: workflow GitHub Actions.
-- `.gitignore`: file e cartelle esclusi da Git.
+- `.github/workflows/release-build.yml`: build Windows, Linux e macOS e creazione della GitHub Release quando viene pubblicato un tag `v*`.
+- `AGENTS.md`: istruzioni per gli agenti AI che lavorano sul progetto.
+- `THIRD_PARTY_NOTICES.md`: licenze di terze parti (icone). Viene copiato nella build portable.
+- `LICENSE`: licenza GNU GPL v3.
 
 ## Documentazione
 
 - `GUIDA_SVILUPPO.md`: avvio sviluppo, build portable e release da tag.
-- `STRUTTURA_PROGETTO.md`: panoramica delle cartelle.
+- `STRUTTURA_PROGETTO.md`: questo documento.
 - `ARCHITETTURA_PORTABLE.md`: comportamento dell'app PyInstaller.
-- `DATABASE.md`: schema SQLite, relazioni e repository.
-- `API_BACKEND.md`: endpoint backend principali.
+- `DATABASE.md`: schema SQLite, relazioni, trigger e repository.
+- `API_BACKEND.md`: endpoint REST, eventi SSE e tool MCP.
 - `I18N.md`: gestione lingue JSON.
 - `TROUBLESHOOTING.md`: problemi comuni e soluzioni.
-- `SVILUPPI_FUTURI.md`: idee e possibili evoluzioni non ancora pianificate.
-- `to do.md`: attivita aperte.
-- `diagramma_flusso.canvas`: diagramma visuale.
+- `SVILUPPI_FUTURI.md`: idee non ancora pianificate.
+- `TODO.md`: attivita aperte e problemi noti.
 
 ## Tecnologie principali
 
 - Frontend: React 19, Vite 8, Tailwind CSS 4 e React Router 7.
-- Backend: Python, Starlette, Uvicorn e SQLite.
+- Backend: Python, Starlette, Uvicorn, SQLite e SDK Python `mcp`.
 - Qualita: ESLint per il frontend e Ruff per il backend.
 - Distribuzione: PyInstaller e GitHub Actions.
 
-## GitHub Actions
-
-- `.github/workflows/release-build.yml`: build Windows, Linux e macOS e creazione della GitHub Release quando viene pubblicato un tag `v*`.
-
 ## Backend
 
-- `main.py`: entry point backend, avvio Starlette/Uvicorn, serving frontend buildato e apertura browser in produzione.
-- `config.py`: configurazione centralizzata di ambiente, path, DB, locales e frontend dist.
-- `schema.sql`: schema SQLite, viste e dati iniziali.
-- `build_portable.py`: script cross-platform per creare la cartella portable con PyInstaller.
+- `main.py`: entry point. Crea l'app Starlette, monta API e server MCP, serve il frontend buildato, apre il browser e avvia Uvicorn.
+- `config.py`: ambiente (sviluppo/produzione), percorsi, host, porta, versione app.
+- `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
+- `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
 - `requirements.txt`: dipendenze Python.
+- `db/db.py`: connessione SQLite e creazione del DB al primo avvio.
+- `db/repositories/`: un modulo per entita (`area_repo`, `project_repo`, `task_repo`, `setting_repo`) piu `mcp_repo` con le query usate dai tool MCP (letture e operazioni bulk). Contengono solo SQL e conversione dati.
+- `routes/`: un modulo per gruppo di endpoint. `api.py` li monta sia alla radice sia sotto `/api`.
+- `services/`:
+  - `mcp_service.py`: validazione e logica delle operazioni MCP, pubblicazione degli eventi;
+  - `event_service.py`: code in memoria per gli eventi SSE;
+  - `app_lifecycle.py`: heartbeat e spegnimento automatico in produzione;
+  - `locale_service.py`: lettura dei file lingua;
+  - `update_service.py`: controllo dell'ultima release su GitHub.
+- `integration/mcp/`: server MCP (`server.py`), registrazione dei tool (`mcp_tools.py`) e modelli Pydantic dei parametri (`models.py`).
+- `validators/request_validator.py`: validazione di id e testi, usata da route e service.
+- `locales/`: file lingua JSON di default.
+- `test/*.http`: richieste HTTP manuali per provare le API. Non esistono test automatici.
 
-## Backend - database
+## Frontend (`frontend/src/`)
 
-- `db/db.py`: connessione SQLite e inizializzazione del DB.
-- `db/repositories/area_repo.py`: query aree.
-- `db/repositories/project_repo.py`: query progetti.
-- `db/repositories/task_repo.py`: query task.
-- `db/repositories/setting_repo.py`: query impostazioni.
+- `main.jsx`: monta React dentro `AppProviders`.
+- `App.jsx`: router (`/`, `/tasks/:projectId`, `/settings`, `/calendar`).
+- `api.ts` e `apiCore.ts`: tutte le chiamate HTTP al backend.
+- `index.css`: Tailwind e variabili CSS dei temi.
+- `pages/`: `Project.jsx` (progetti dell'area corrente), `Tasks.jsx` (task e subtask di un progetto), `Setting.jsx` (tema, lingua, backup, MCP, versione), `Calendar.jsx` (segnaposto, non implementato).
+- `components/`: layout (`Dashboard`, `Header`, `SideBar`, `AreaSwitcher`), card, modali di creazione/modifica/eliminazione, `ConfirmModal`, `Toast`, `McpSettings`.
+- `context/`: provider globali composti in `AppProviders.jsx`, che gestisce anche heartbeat e controllo aggiornamenti. `DataSyncContext.jsx` riceve gli eventi SSE da `/api/events`. Per ogni context esistono un file `*ContextValue.js` e un hook `use*.js`.
+- `types/`: tipi delle risposte API (non verificati: manca la configurazione TypeScript).
+- `assets/icons/`: icone SVG (licenza in `THIRD_PARTY_NOTICES.md`).
 
-I repository contengono SQL e conversione dati. Non dovrebbero contenere logica HTTP o UI.
+## Cartelle generate (non tracciate da Git)
 
-## Backend - routes
-
-- `routes/api.py`: monta tutte le route anche sotto `/api`.
-- `routes/area_routes.py`: endpoint aree.
-- `routes/project_routes.py`: endpoint progetti.
-- `routes/task_routes.py`: endpoint task.
-- `routes/setting_routes.py`: endpoint impostazioni.
-- `routes/locale_routes.py`: endpoint lingue.
-- `routes/app_routes.py`: heartbeat e shutdown applicazione.
-- `routes/backup_routes.py`: download del backup SQLite.
-
-Le route leggono request/query/body, validano i dati, chiamano repository o service e restituiscono `JSONResponse`.
-
-## Backend - services e validators
-
-- `services/locale_service.py`: lettura lingue JSON.
-- `services/app_lifecycle.py`: heartbeat e shutdown automatico in produzione.
-- `services/update_service.py`: controllo dell'ultima release pubblicata su GitHub.
-- `validators/request_validator.py`: validazione payload riutilizzabile.
-
-## Backend - test manuali
-
-- `test/*.http`: richieste HTTP manuali per provare le API.
-
-## Frontend
-
-- `package.json`: script npm e dipendenze.
-- `package-lock.json`: lockfile npm.
-- `vite.config.js`: configurazione Vite e proxy `/api`.
-- `eslint.config.js`: configurazione ESLint.
-- `index.html`: entry HTML.
-
-## Frontend - src
-
-- `main.jsx`: monta React e `AppProviders`.
-- `App.jsx`: router React.
-- `index.css`: CSS globale, Tailwind e variabili tema.
-- `apiCore.ts`: funzione base per le chiamate HTTP.
-- `api.ts`: funzioni API frontend.
-
-## Frontend - components
-
-- `Dashboard.jsx`: layout principale con header, sidebar e outlet.
-- `Header.jsx`: barra superiore.
-- `SideBar.jsx`: menu laterale comprimibile.
-- `AreaSwitcher.jsx`: selezione area corrente.
-- `AreaModal.jsx`: creazione/modifica/eliminazione area.
-- `ProjectCard.jsx`: card progetto.
-- `ProjectModal.jsx`: creazione/modifica/eliminazione progetto.
-- `TaskCard.jsx`: card task.
-- `TaskModal.jsx`: creazione/modifica/eliminazione task.
-- `ConfirmModal.jsx`: conferma eliminazioni.
-- `LoadingOverlay.jsx`: blocco visuale durante operazioni asincrone.
-- `Toast.jsx`: notifica visuale.
-
-## Frontend - context
-
-- `AppProviders.jsx`: compone tutti i provider globali.
-- `SettingsContext.jsx`: caricamento settings iniziali.
-- `LanguageContext.jsx`: lingua e dizionario JSON.
-- `ThemeContext.jsx`: tema e colori custom.
-- `areaContext.jsx`: aree e area corrente.
-- `ToastContext.jsx`: notifiche toast.
-
-I file `use*.js` espongono gli hook dedicati ai context.
-
-## Frontend - pages
-
-- `Project.jsx`: pagina progetti.
-- `Tasks.jsx`: pagina task di un progetto.
-- `Setting.jsx`: pagina impostazioni.
-- `Calendar.jsx`: pagina calendario.
-
-## Frontend - types
-
-- `areas.ts`: tipi area.
-- `projects.ts`: tipi progetto.
-- `tasks.ts`: tipi task.
-- `settings.ts`: tipi settings.
-- `locales.ts`: tipi dizionario lingua.
-- `apiResponses.ts`: tipi risposte API generiche.
-- `app.ts`: tipi versione e controllo aggiornamenti.
-
-## Cartelle generate
-
-- `frontend/node_modules/`: dipendenze npm.
-- `backend/venv/`: ambiente virtuale Python.
-- `backend/db/planner.db`: DB di sviluppo generato.
-- `backend/dist/`: output PyInstaller.
-- `backend/build/`: cartella temporanea PyInstaller.
-- `backend/__pycache__/`: cache Python.
+- `frontend/node_modules/` e `frontend/dist/`: dipendenze npm e build frontend.
+- `backend/.venv/`: ambiente virtuale Python.
+- `backend/db/planner.db`: DB di sviluppo.
+- `backend/build/` e `backend/dist/`: output PyInstaller.

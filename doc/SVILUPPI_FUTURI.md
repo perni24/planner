@@ -38,59 +38,18 @@ PlannerApp
 Prima di adottarlo conviene creare una prova separata dalla build principale e
 confrontare dimensioni, stabilita e comportamento sui tre sistemi operativi.
 
-## Sincronizzazione frontend tramite Server-Sent Events
+## Sincronizzazione completa tramite eventi SSE
 
-Valutare Server-Sent Events (SSE) per aggiornare il frontend quando i dati
-vengono modificati dal server MCP o da altri client esterni.
+La sincronizzazione tramite Server-Sent Events e gia attiva per le modifiche fatte
+dai tool MCP (`GET /api/events`, vedi `API_BACKEND.md`). Restano da valutare:
 
-Il frontend mantiene una connessione aperta verso un endpoint dedicato:
-
-```text
-GET /api/events
-```
-
-Dopo una modifica, il backend invia un evento con il tipo di operazione e gli
-identificatori necessari:
-
-```json
-{
-  "type": "task.updated",
-  "project_id": 3,
-  "task_id": 12
-}
-```
-
-Il frontend riceve il segnale e ricarica soltanto i dati interessati, senza
-eseguire un refresh completo della pagina.
-
-Flusso ipotizzato:
-
-```text
-Tool MCP
-  -> service condiviso
-  -> repository
-  -> SQLite
-  -> pubblicazione evento SSE
-  -> frontend React
-  -> nuova chiamata API
-  -> aggiornamento dello state
-```
-
-Le route REST e i tool MCP dovrebbero utilizzare gli stessi service, in modo
-che ogni modifica produca la stessa notifica indipendentemente dal client che
-l'ha richiesta.
-
-Eventi iniziali da valutare:
-
-- `area.created`, `area.updated` e `area.deleted`;
-- `project.created`, `project.updated` e `project.deleted`;
-- `task.created`, `task.updated` e `task.deleted`;
-- `task.status_changed`.
-
-Nel frontend la connessione puo essere gestita con `EventSource`. In base al
-tipo di evento vengono richiamate funzioni come `reloadAreas()`,
-`loadProjects()` o `loadTasks()`.
-
-SSE e preferibile al polling perche invia richieste solo quando ci sono
-modifiche, ed e piu semplice di WebSocket per una comunicazione principalmente
-dal backend verso il frontend.
+- far passare anche le route REST da service condivisi con MCP, cosi ogni modifica
+  pubblica lo stesso evento indipendentemente dal client e piu schede aperte restano
+  allineate;
+- aggiungere eventi di eliminazione (`deleted`) e di cambio stato;
+- includere negli eventi gli identificatori utili a ricaricare solo i dati
+  interessati (per esempio `project_id` per le task);
+- ricaricare i dati dopo una riconnessione SSE, perche gli eventi persi mentre la
+  connessione era chiusa non vengono recuperati;
+- gestire piu eventi ravvicinati nel frontend: `DataSyncContext` conserva solo
+  l'ultimo evento ricevuto.

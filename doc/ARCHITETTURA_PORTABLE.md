@@ -58,9 +58,9 @@ Quando l'eseguibile parte:
 1. crea le cartelle runtime `data/` e `locales/` se non esistono;
 2. copia i file lingua default in `locales/` solo se mancano;
 3. crea il database SQLite se non esiste;
-4. avvia il backend locale su `127.0.0.1:8000`;
-5. apre automaticamente il browser in produzione;
-6. serve il frontend React buildato dal backend.
+4. avvia il backend locale su `127.0.0.1:8000` (modificabile con le variabili d'ambiente `HOST` e `PORT`);
+5. apre automaticamente il browser dopo circa un secondo;
+6. serve il frontend React buildato, le API sotto `/api` e il server MCP sotto `/mcp`.
 
 ## Shutdown automatico
 
@@ -73,6 +73,32 @@ Endpoint coinvolto:
 ```text
 POST /api/app/heartbeat
 ```
+
+Conseguenze da conoscere:
+
+- il server MCP funziona solo finche la UI resta aperta nel browser: un client AI
+  usato senza la scheda di Planner aperta perde la connessione dopo circa un minuto;
+- i browser rallentano i timer delle schede in background, quindi una scheda nascosta
+  a lungo potrebbe non inviare heartbeat abbastanza spesso (vedi `TODO.md`).
+
+In sviluppo il controllo dell'heartbeat e disattivato.
+
+## Aggiornare l'app
+
+Non esiste un aggiornamento automatico: l'app segnala solo che e disponibile una
+nuova release su GitHub.
+
+Per aggiornare, sostituisci l'eseguibile e `_internal/` con quelli della nuova
+versione e conserva `data/` (contiene il database). Conviene scaricare prima un
+backup dalle Impostazioni.
+
+Anche `locales/` puo essere conservata, ma in quel caso eventuali nuove chiavi di
+traduzione della nuova versione non vengono aggiunte ai file esistenti: per
+riceverle elimina i file lingua non modificati, cosi vengono ricopiati al
+prossimo avvio.
+
+Il database esistente non viene aggiornato se la nuova versione modifica lo schema
+(vedi `DATABASE.md`).
 
 ## Regola importante
 

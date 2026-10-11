@@ -9,7 +9,17 @@ Esempio:
 /api/projects/get_all_projects
 ```
 
-In sviluppo Vite usa il proxy `/api`. Nell'eseguibile il backend risponde direttamente a `/api`.
+In sviluppo Vite inoltra le richieste `/api` al backend togliendo il prefisso. Nell'eseguibile il backend risponde direttamente a `/api`.
+
+Le richieste con body usano JSON. In caso di errore di validazione la risposta ha
+stato `400` e la forma:
+
+```json
+{"error": "project_id must be a valid integer"}
+```
+
+Gli update e i delete restituiscono `404` se l'elemento non esiste. Gli errori non
+gestiti (JSON non valido, foreign key inesistente) restituiscono `500`.
 
 ## Health check
 
@@ -28,15 +38,12 @@ Risposta:
 
 ```text
 GET    /api/areas/get_all_areas
-POST   /api/areas/insert_area
-PUT    /api/areas/update_area
-DELETE /api/areas/delete_area
+POST   /api/areas/insert_area      {name}
+PUT    /api/areas/update_area      {id, name}
+DELETE /api/areas/delete_area      {id}
 ```
 
-Campi principali:
-
-- `id`
-- `name`
+Eliminando un'area vengono eliminati anche i suoi progetti e le loro task.
 
 ## Projects
 
@@ -44,45 +51,43 @@ Campi principali:
 GET  /api/projects/get_all_projects
 GET  /api/projects/get_projects_by_area?area_id=1
 GET  /api/projects/get_project?project_id=1
-POST /api/projects/insert_project
-POST /api/projects/update_project
-POST /api/projects/delete_project
+POST /api/projects/insert_project   {area_id, name, description}
+POST /api/projects/update_project   {project_id, name, description}
+POST /api/projects/delete_project   {project_id}
 ```
 
-Campi principali:
+`get_projects_by_area` e `get_project` leggono dalla vista `v_projects_status`, quindi
+includono `area_name`, `total_tasks`, `completed_tasks` e `completion_percentage`.
+`get_all_projects` legge invece dalla tabella `projects`.
 
-- `project_id`
-- `area_id`
-- `name`
-- `description`
+`get_project` restituisce `null` (con stato `200`) se il progetto non esiste.
 
 ## Tasks
 
 ```text
 GET  /api/tasks/get_all_tasks
 GET  /api/tasks/get_tasks_by_project?project_id=1
-POST /api/tasks/insert_task
-POST /api/tasks/update_task
-POST /api/tasks/update_status_task
-POST /api/tasks/delete_task
+POST /api/tasks/insert_task          {project_id, title, description, parent_id}
+POST /api/tasks/update_task          {task_id, title, description}
+POST /api/tasks/update_status_task   {task_id}
+POST /api/tasks/delete_task          {task_id}
 ```
 
-Campi principali:
+`parent_id` e facoltativo: se presente, la task e una subtask della task indicata.
 
-- `task_id`
-- `project_id`
-- `title`
-- `description`
+`update_status_task` inverte lo stato `completed` della task. Lo stato delle task con
+subtask viene ricalcolato dai trigger del database (vedi `DATABASE.md`).
 
 ## Settings
 
 ```text
 GET  /api/settings/get_all_settings
-POST /api/settings/update_language
-POST /api/settings/update_theme
+POST /api/settings/update_language   {language}
+POST /api/settings/update_theme      {theme, custom_colors}
 ```
 
-Le settings gestiscono lingua, tema e colori custom.
+`custom_colors` deve contenere le chiavi `background`, `foreground`, `card`,
+`border`, `hover` e `hoverText`.
 
 ## Locales
 
@@ -91,7 +96,8 @@ GET /api/locales/get_available_languages
 GET /api/locales/load_language
 ```
 
-Le lingue vengono lette dalla cartella configurata in `LOCALES_DIR`.
+`load_language` restituisce il dizionario della lingua salvata nelle settings. Le
+lingue vengono lette dalla cartella configurata in `LOCALES_DIR` (vedi `I18N.md`).
 
 ## App lifecycle
 
@@ -104,9 +110,10 @@ GET  /api/app/check_update
 
 `heartbeat` mantiene vivo il backend quando la UI e aperta.
 
-`shutdown` permette uno spegnimento esplicito del backend.
+`shutdown` permette uno spegnimento esplicito del backend. Attualmente il frontend
+non lo usa.
 
-`version` restituisce la versione configurata in `backend/config.py`.
+`version` restituisce `APP_VERSION` definita in `backend/config.py`.
 
 `check_update` confronta la versione corrente con l'ultima GitHub Release pubblicata.
 
@@ -118,3 +125,55 @@ GET /api/backup/download
 
 Scarica una copia del database con data e ora nel nome del file. L'importazione di
 un backup non e ancora disponibile.
+
+## Eventi (SSE)
+
+```text
+GET /api/events
+```
+
+Connessione Server-Sent Events usata dal frontend (`DataSyncContext.jsx`) per
+ricaricare i dati quando cambiano. Ogni evento ha la forma:
+
+```json
+{"entity": "task", "action": "created", "ids": [12, 13]}
+```
+
+- `entity`: `area`, `project` o `task`;
+- `action`: `created` o `updated`.
+
+Se non ci sono eventi, il server invia un commento `: heartbeat` ogni 30 secondi.
+
+Attualmente gli eventi vengono pubblicati solo dalle operazioni MCP: le modifiche
+fatte tramite le API REST non generano eventi.
+
+## Server MCP
+
+```text
+/mcp/
+```
+
+Server MCP con trasporto Streamable HTTP (stateless, risposte JSON). Si collega a un
+client AI indicando l'URL `http://127.0.0.1:8000/mcp/`, mostrato anche nella pagina
+Impostazioni.
+
+Tool disponibili:
+
+| Tool | Descrizione |
+|---|---|
+| `get_all_areas` | Tutte le aree, anche senza progetti. |
+| `get_all_projects` | Tutti i progetti con stato di avanzamento. |
+| `get_project_tasks` | Task e subtask di un progetto. |
+| `bulk_insert_area` | Crea piu aree (nomi non duplicati nella richiesta). |
+| `bulk_insert_project` | Crea piu progetti in aree esistenti. |
+| `bulk_insert_task` | Crea piu task o subtask. Il parent deve appartenere allo stesso progetto e non essere a sua volta una subtask. |
+| `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. |
+| `bulk_update_task` | Aggiorna titolo e descrizione di piu task. |
+| `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. |
+
+Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per
+intero se un elemento non e valido o se un id non esiste. Non esistono tool di
+eliminazione.
+
+La logica dei tool sta in `services/mcp_service.py`, le query in
+`db/repositories/mcp_repo.py`.

@@ -7,10 +7,14 @@ Il backend gestisce il database SQLite e le API.
 
 ### Prima configurazione
 
+Serve Python 3.12 o superiore. GitHub Actions compila le release con la 3.12, quindi il codice deve restare compatibile con quella versione.
+
 ```bash
 cd backend
-python -m venv venv
+python -m venv .venv
 ```
+
+Usa il nome `.venv`: `build_portable.py` cerca PyInstaller in `backend/.venv/`.
 
 ### Avvio del server
 
@@ -21,13 +25,13 @@ cd backend
 Attiva l'ambiente virtuale su Windows:
 
 ```powershell
-.\venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
 Attiva l'ambiente virtuale su Linux/macOS:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 Installa le dipendenze:
@@ -78,19 +82,54 @@ Per verificare che il frontend possa parlare con il backend:
 4. Esegui questo test:
 
 ```javascript
-fetch('http://127.0.0.1:8000/health')
+fetch('/api/health')
   .then((res) => res.json())
   .then((data) => console.log('Risposta Backend:', data))
   .catch((err) => console.error('Errore connessione:', err));
 ```
 
-Se vedi questo risultato, il backend risponde correttamente:
+La richiesta passa dal proxy di Vite, come quelle dell'app. Se vedi questo
+risultato, il backend risponde correttamente:
 
 ```text
 Risposta Backend: {status: "online"}
 ```
 
-## 4. Build portable locale
+Per provare le singole API senza frontend puoi usare i file `backend/test/*.http`
+(estensione REST Client di VS Code o simili).
+
+### Provare il server MCP
+Con il backend acceso, collega un client AI compatibile con MCP usando il
+trasporto Streamable HTTP e l'indirizzo:
+
+```text
+http://127.0.0.1:8000/mcp/
+```
+
+In sviluppo il backend non si spegne quando manca l'heartbeat, quindi il server MCP
+resta disponibile anche senza frontend aperto. Nell'app portable invece si spegne
+circa 60 secondi dopo la chiusura della UI (vedi `ARCHITETTURA_PORTABLE.md`).
+
+## 4. Controlli di qualita
+Prima di un commit esegui i linter.
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+```
+
+Backend (con l'ambiente virtuale attivo):
+
+```bash
+cd backend
+ruff check .
+```
+
+Non esistono ancora test automatici e GitHub Actions non esegue questi controlli.
+
+## 5. Build portable locale
 Per creare l'app portable localmente:
 
 ```bash
@@ -119,7 +158,7 @@ backend/dist/PlannerApp/PlannerApp.exe
 
 Con la modalita `--onedir` devi copiare tutta la cartella `PlannerApp`, non solo il file eseguibile.
 
-## 5. Release e GitHub Actions
+## 6. Release e GitHub Actions
 La build portable per Windows, Linux e macOS viene eseguita automaticamente da GitHub Actions solo quando viene pubblicato un tag di versione.
 
 Il workflow si trova in:
@@ -131,7 +170,8 @@ Il workflow si trova in:
 ### Creare una nuova versione
 Prima di creare una versione, assicurati di aver salvato e pubblicato tutte le modifiche su `main`.
 
-Aggiorna anche la versione in `backend/config.py`:
+Aggiorna la versione in `backend/config.py` (la versione in `frontend/package.json`
+non viene usata):
 
 ```python
 APP_VERSION = "0.1.0"

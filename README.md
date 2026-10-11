@@ -8,7 +8,8 @@ Il progetto e attualmente in fase beta: alcune funzionalita sono ancora in evolu
 
 - Gestione di aree di lavoro.
 - Creazione, modifica ed eliminazione di progetti.
-- Gestione delle task collegate ai progetti.
+- Gestione delle task e delle subtask collegate ai progetti, con avanzamento calcolato automaticamente.
+- Integrazione con client AI tramite server MCP integrato.
 - Cambio lingua tramite file JSON esterni.
 - Impostazioni tema e colori personalizzati.
 - Database locale SQLite.
@@ -18,16 +19,16 @@ Il progetto e attualmente in fase beta: alcune funzionalita sono ancora in evolu
 
 Il progetto e diviso in due parti principali:
 
-- `backend/`: API Python con Starlette, database SQLite e build portable.
+- `backend/`: API Python con Starlette, server MCP, database SQLite e build portable.
 - `frontend/`: interfaccia React con Vite.
 
-La documentazione tecnica si trova nella cartella:
-
-```text
-doc/
-```
+La documentazione tecnica si trova nella cartella `doc/`. Il punto di partenza e
+`doc/STRUTTURA_PROGETTO.md`.
 
 ## Avvio in sviluppo
+
+Riepilogo rapido. I passaggi completi, compresa la creazione dell'ambiente virtuale
+e le release, sono in `doc/GUIDA_SVILUPPO.md`.
 
 Backend:
 
@@ -35,18 +36,18 @@ Backend:
 cd backend
 ```
 
-Se usi un ambiente virtuale Python, crealo e attivalo prima di installare le dipendenze.
+Attiva l'ambiente virtuale Python (`backend/.venv`) prima di installare le dipendenze.
 
 Windows:
 
 ```powershell
-.\venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
 Linux/macOS:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 Poi installa le dipendenze e avvia il backend:

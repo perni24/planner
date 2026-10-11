@@ -14,9 +14,9 @@ def run(command, cwd):
 
 def get_pyinstaller_command(backend_dir):
     if os.name == "nt":
-        pyinstaller = backend_dir / "venv" / "Scripts" / "pyinstaller.exe"
+        pyinstaller = backend_dir / ".venv" / "Scripts" / "pyinstaller.exe"
     else:
-        pyinstaller = backend_dir / "venv" / "bin" / "pyinstaller"
+        pyinstaller = backend_dir / ".venv" / "bin" / "pyinstaller"
 
     if pyinstaller.exists():
         return [str(pyinstaller)]

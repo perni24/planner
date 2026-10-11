@@ -3,8 +3,6 @@ import threading
 import webbrowser
 
 from starlette.applications import Starlette
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 from starlette.routing import Route
 import uvicorn
@@ -25,12 +23,6 @@ from contextlib import asynccontextmanager
 from starlette.routing import Mount
 
 from integration.mcp.server import mcp_app, planner_mcp
-
-# Configurazione del Middleware CORS
-# allow_origins=["*"] permette a qualsiasi frontend di connettersi (ottimo per lo sviluppo)
-middleware = [
-    Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
-]
 
 @asynccontextmanager
 async def lifespan(app):
@@ -68,7 +60,7 @@ def open_browser():
     webbrowser.open(f"http://{browser_host}:{PORT}")
 
 
-app = Starlette(debug=DEBUG, routes=create_routes(), middleware=middleware, lifespan=lifespan,)
+app = Starlette(debug=DEBUG, routes=create_routes(), lifespan=lifespan,)
 
 if __name__ == "__main__":
     ensure_runtime_directories()
