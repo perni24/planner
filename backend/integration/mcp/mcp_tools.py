@@ -59,6 +59,10 @@ def register_mcp_tools(mcp):
 
     @mcp.tool()
     def bulk_set_task_completed(tasks: list[SetTaskCompleted]) -> dict:
-        """Set the completion status of multiple tasks in one operation."""
+        """Set the completion status of multiple tasks in one operation.
+
+        Tasks that have subtasks cannot be set directly: their status is derived
+        from their subtasks and is completed only when all of them are completed.
+        """
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_set_task_completed(task_data)

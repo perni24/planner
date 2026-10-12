@@ -3,10 +3,13 @@ import threading
 import webbrowser
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import FileResponse
 from starlette.routing import Route
 import uvicorn
 from config import (
+    ALLOWED_HOSTS,
     DEBUG,
     FRONTEND_DIST_DIR,
     HOST,
@@ -17,6 +20,7 @@ from config import (
     ensure_runtime_directories,
 )
 from db.db import init_db
+from middleware.origin_guard import origin_guard
 from routes.api import all_routes
 from services.app_lifecycle import set_shutdown_callback, start_heartbeat_monitor
 from contextlib import asynccontextmanager
@@ -60,7 +64,15 @@ def open_browser():
     webbrowser.open(f"http://{browser_host}:{PORT}")
 
 
-app = Starlette(debug=DEBUG, routes=create_routes(), lifespan=lifespan,)
+app = Starlette(
+    debug=DEBUG,
+    routes=create_routes(),
+    middleware=[
+        Middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS),
+        Middleware(origin_guard),
+    ],
+    lifespan=lifespan,
+)
 
 if __name__ == "__main__":
     ensure_runtime_directories()

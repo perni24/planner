@@ -32,6 +32,14 @@ RELOAD = False if IS_FROZEN else get_bool_env("RELOAD", IS_DEVELOPMENT)
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "8000"))
 
+# Valori ammessi nell'header Host (senza porta), contro il DNS rebinding.
+# Se HOST viene cambiato per raggiungere l'app con un altro nome o IP, quel valore
+# viene ammesso; con 0.0.0.0 o :: restano ammessi solo i nomi locali.
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+if HOST not in ("0.0.0.0", "::", *ALLOWED_HOSTS):
+    ALLOWED_HOSTS.append(HOST)
+
 if IS_FROZEN:
     APP_DIR = os.path.dirname(sys.executable)
     BUNDLE_DIR = getattr(sys, "_MEIPASS", APP_DIR)

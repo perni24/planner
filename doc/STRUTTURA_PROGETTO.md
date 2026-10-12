@@ -50,6 +50,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
   - `update_service.py`: controllo dell'ultima release su GitHub.
 - `integration/mcp/`: server MCP (`server.py`), registrazione dei tool (`mcp_tools.py`) e modelli Pydantic dei parametri (`models.py`).
 - `validators/request_validator.py`: validazione di id e testi, usata da route e service.
+- `middleware/origin_guard.py`: blocca le richieste di modifica inviate da pagine di altri siti (CSRF).
 - `locales/`: file lingua JSON di default.
 - `test/*.http`: richieste HTTP manuali per provare le API. Non esistono test automatici.
 

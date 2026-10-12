@@ -1,3 +1,5 @@
+from mcp.server.mcpserver.exceptions import ToolError
+
 from db.repositories import mcp_repo
 from services import event_service
 from validators.request_validator import validate_int, validate_text
@@ -21,12 +23,12 @@ def get_project_tasks(project_id) -> dict:
     project_id, error = validate_int(project_id, "project_id")
 
     if error:
-        raise ValueError(error)
+        raise ToolError(error)
 
     existing_project_ids = mcp_repo.get_existing_project_ids([project_id])
 
     if project_id not in existing_project_ids:
-        raise ValueError(f"Project not found: {project_id}.")
+        raise ToolError(f"Project not found: {project_id}.")
 
     tasks = mcp_repo.get_project_tasks(project_id)
 
@@ -39,10 +41,10 @@ def get_project_tasks(project_id) -> dict:
 
 def bulk_insert_area(names: list[str]) -> dict:
     if not names:
-        raise ValueError("At least one area is required.")
+        raise ToolError("At least one area is required.")
 
     if len(names) > MAX_BULK_AREAS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_AREAS} areas can be created at once."
         )
 
@@ -52,14 +54,14 @@ def bulk_insert_area(names: list[str]) -> dict:
         validated_name, error = validate_text(name, "name")
 
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         validated_names.append(validated_name)
 
     normalized_names = [name.casefold() for name in validated_names]
 
     if len(normalized_names) != len(set(normalized_names)):
-        raise ValueError("The request contains duplicate area names.")
+        raise ToolError("The request contains duplicate area names.")
 
     inserted_ids = mcp_repo.bulk_insert_area(validated_names)
 
@@ -78,10 +80,10 @@ def bulk_insert_area(names: list[str]) -> dict:
 
 def bulk_insert_project(projects: list[dict]) -> dict:
     if not projects:
-        raise ValueError("At least one project is required.")
+        raise ToolError("At least one project is required.")
 
     if len(projects) > MAX_BULK_PROJECTS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_PROJECTS} projects can be created at once."
         )
 
@@ -92,11 +94,11 @@ def bulk_insert_project(projects: list[dict]) -> dict:
     for project in projects:
         area_id, error = validate_int(project.get("area_id"), "area_id")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         name, error = validate_text(project.get("name"), "name")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         description, error = validate_text(
             project.get("description"),
@@ -104,7 +106,7 @@ def bulk_insert_project(projects: list[dict]) -> dict:
             required=False,
         )
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         area_ids.append(area_id)
         names.append(name)
@@ -115,7 +117,7 @@ def bulk_insert_project(projects: list[dict]) -> dict:
 
     if missing_area_ids:
         missing_ids = ", ".join(str(area_id) for area_id in missing_area_ids)
-        raise ValueError(f"Areas not found: {missing_ids}.")
+        raise ToolError(f"Areas not found: {missing_ids}.")
 
     inserted_ids = mcp_repo.bulk_insert_project(
         area_ids,
@@ -138,10 +140,10 @@ def bulk_insert_project(projects: list[dict]) -> dict:
 
 def bulk_insert_task(tasks: list[dict]) -> dict:
     if not tasks:
-        raise ValueError("At least one task is required.")
+        raise ToolError("At least one task is required.")
 
     if len(tasks) > MAX_BULK_TASKS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_TASKS} tasks can be created at once."
         )
 
@@ -153,11 +155,11 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
     for task in tasks:
         project_id, error = validate_int(task.get("project_id"), "project_id")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         title, error = validate_text(task.get("title"), "title")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         description, error = validate_text(
             task.get("description"),
@@ -165,13 +167,13 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
             required=False,
         )
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         parent_id = task.get("parent_id")
         if parent_id is not None:
             parent_id, error = validate_int(parent_id, "parent_id")
             if error:
-                raise ValueError(error)
+                raise ToolError(error)
 
         project_ids.append(project_id)
         titles.append(title)
@@ -185,7 +187,7 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
         missing_ids = ", ".join(
             str(project_id) for project_id in missing_project_ids
         )
-        raise ValueError(f"Projects not found: {missing_ids}.")
+        raise ToolError(f"Projects not found: {missing_ids}.")
 
     requested_parent_ids = {
         parent_id for parent_id in parent_ids if parent_id is not None
@@ -200,7 +202,7 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
         missing_ids = ", ".join(
             str(parent_id) for parent_id in missing_parent_ids
         )
-        raise ValueError(f"Parent tasks not found: {missing_ids}.")
+        raise ToolError(f"Parent tasks not found: {missing_ids}.")
 
     for project_id, parent_id in zip(project_ids, parent_ids, strict=True):
         if parent_id is None:
@@ -209,12 +211,12 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
         parent_task = parent_tasks_by_id[parent_id]
 
         if parent_task["project_id"] != project_id:
-            raise ValueError(
+            raise ToolError(
                 f"Parent task {parent_id} belongs to a different project."
             )
 
         if parent_task["parent_id"] is not None:
-            raise ValueError(
+            raise ToolError(
                 f"Task {parent_id} cannot be a parent because it is a subtask."
             )
 
@@ -240,10 +242,10 @@ def bulk_insert_task(tasks: list[dict]) -> dict:
 
 def bulk_update_project(projects: list[dict]) -> dict:
     if not projects:
-        raise ValueError("At least one project is required.")
+        raise ToolError("At least one project is required.")
 
     if len(projects) > MAX_BULK_PROJECTS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_PROJECTS} projects can be updated at once."
         )
 
@@ -254,11 +256,11 @@ def bulk_update_project(projects: list[dict]) -> dict:
     for project in projects:
         project_id, error = validate_int(project.get("id"), "id")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         name, error = validate_text(project.get("name"), "name")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         description, error = validate_text(
             project.get("description"),
@@ -266,14 +268,14 @@ def bulk_update_project(projects: list[dict]) -> dict:
             required=False,
         )
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         project_ids.append(project_id)
         names.append(name)
         descriptions.append(description)
 
     if len(project_ids) != len(set(project_ids)):
-        raise ValueError("The request contains duplicate project IDs.")
+        raise ToolError("The request contains duplicate project IDs.")
 
     existing_project_ids = mcp_repo.get_existing_project_ids(project_ids)
     missing_project_ids = sorted(set(project_ids) - existing_project_ids)
@@ -282,7 +284,7 @@ def bulk_update_project(projects: list[dict]) -> dict:
         missing_ids = ", ".join(
             str(project_id) for project_id in missing_project_ids
         )
-        raise ValueError(f"Projects not found: {missing_ids}.")
+        raise ToolError(f"Projects not found: {missing_ids}.")
 
     updated_ids = mcp_repo.bulk_update_project(
         project_ids,
@@ -305,10 +307,10 @@ def bulk_update_project(projects: list[dict]) -> dict:
 
 def bulk_update_task(tasks: list[dict]) -> dict:
     if not tasks:
-        raise ValueError("At least one task is required.")
+        raise ToolError("At least one task is required.")
 
     if len(tasks) > MAX_BULK_TASKS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_TASKS} tasks can be updated at once."
         )
 
@@ -319,11 +321,11 @@ def bulk_update_task(tasks: list[dict]) -> dict:
     for task in tasks:
         task_id, error = validate_int(task.get("id"), "id")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         title, error = validate_text(task.get("title"), "title")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         description, error = validate_text(
             task.get("description"),
@@ -331,21 +333,21 @@ def bulk_update_task(tasks: list[dict]) -> dict:
             required=False,
         )
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         task_ids.append(task_id)
         titles.append(title)
         descriptions.append(description)
 
     if len(task_ids) != len(set(task_ids)):
-        raise ValueError("The request contains duplicate task IDs.")
+        raise ToolError("The request contains duplicate task IDs.")
 
     existing_task_ids = mcp_repo.get_existing_task_ids(task_ids)
     missing_task_ids = sorted(set(task_ids) - existing_task_ids)
 
     if missing_task_ids:
         missing_ids = ", ".join(str(task_id) for task_id in missing_task_ids)
-        raise ValueError(f"Tasks not found: {missing_ids}.")
+        raise ToolError(f"Tasks not found: {missing_ids}.")
 
     updated_ids = mcp_repo.bulk_update_task(
         task_ids,
@@ -368,10 +370,10 @@ def bulk_update_task(tasks: list[dict]) -> dict:
 
 def bulk_set_task_completed(tasks: list[dict]) -> dict:
     if not tasks:
-        raise ValueError("At least one task is required.")
+        raise ToolError("At least one task is required.")
 
     if len(tasks) > MAX_BULK_TASKS:
-        raise ValueError(
+        raise ToolError(
             f"A maximum of {MAX_BULK_TASKS} tasks can be updated at once."
         )
 
@@ -381,24 +383,35 @@ def bulk_set_task_completed(tasks: list[dict]) -> dict:
     for task in tasks:
         task_id, error = validate_int(task.get("id"), "id")
         if error:
-            raise ValueError(error)
+            raise ToolError(error)
 
         completed = task.get("completed")
         if not isinstance(completed, bool):
-            raise ValueError("The completed field must be a boolean.")
+            raise ToolError("The completed field must be a boolean.")
 
         task_ids.append(task_id)
         completeds.append(completed)
 
     if len(task_ids) != len(set(task_ids)):
-        raise ValueError("The request contains duplicate task IDs.")
+        raise ToolError("The request contains duplicate task IDs.")
 
     existing_task_ids = mcp_repo.get_existing_task_ids(task_ids)
     missing_task_ids = sorted(set(task_ids) - existing_task_ids)
 
     if missing_task_ids:
         missing_ids = ", ".join(str(task_id) for task_id in missing_task_ids)
-        raise ValueError(f"Tasks not found: {missing_ids}.")
+        raise ToolError(f"Tasks not found: {missing_ids}.")
+
+    # Lo stato delle task con subtask e calcolato dai trigger del database:
+    # una modifica diretta verrebbe annullata pur risultando aggiornata.
+    parent_task_ids = sorted(mcp_repo.get_task_ids_with_subtasks(task_ids))
+
+    if parent_task_ids:
+        parent_ids = ", ".join(str(task_id) for task_id in parent_task_ids)
+        raise ToolError(
+            f"Tasks with subtasks cannot be updated directly: {parent_ids}. "
+            "Their status is derived from their subtasks: update the subtasks instead."
+        )
 
     updated_ids = mcp_repo.bulk_set_task_completed(
         task_ids,

@@ -39,6 +39,21 @@ Il backend usa:
 http://127.0.0.1:8000
 ```
 
+## Errore `Invalid host header`
+
+Il backend accetta solo richieste rivolte a `127.0.0.1` o `localhost` (protezione
+contro il DNS rebinding). Apri l'app da:
+
+```text
+http://127.0.0.1:8000
+http://localhost:8000
+```
+
+Se hai impostato la variabile `HOST` con un nome o un IP specifico, quel valore
+viene accettato. Con `HOST=0.0.0.0` restano accettati solo i nomi locali, quindi
+l'app non e raggiungibile da altri dispositivi della rete. Anche `HOST=::1` (IPv6)
+non e supportato.
+
 ## `npm` non trovato durante la build
 
 Verifica che Node.js sia installato e disponibile nel PATH:

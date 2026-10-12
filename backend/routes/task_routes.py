@@ -38,6 +38,11 @@ async def update_status_task(request):
     values, error = validate_payload(data, ["task_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
+    if taskRepo.has_subtasks(values["task_id"]):
+        return JSONResponse(
+            {"error": "Task has subtasks: its status is derived from them"},
+            status_code=409,
+        )
     updated_rows = taskRepo.update_status_task(values["task_id"])
     if updated_rows == 0:
         return JSONResponse({"error": "Task not found"}, status_code=404)

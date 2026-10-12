@@ -70,6 +70,14 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   parametri definiti come modelli Pydantic in `integration/mcp/models.py`. Le
   operazioni bulk validano tutto prima di scrivere e accettano al massimo 50
   elementi.
+- In `mcp_service.py` gli errori di validazione si sollevano con `ToolError`
+  (`mcp.server.mcpserver.exceptions`): l'SDK mostra al client AI il messaggio solo
+  per questa eccezione. Qualsiasi altra eccezione arriva come un generico
+  `Error executing tool <nome>` e viene registrata nei log come crash.
+- REST e MCP hanno logica separata di proposito: le route lavorano su un elemento
+  alla volta, i tool MCP in blocco con messaggi pensati per un modello AI. Non
+  unificarli. Se una regola vale per entrambi (es. chi puo fare da parent),
+  applicala su entrambi i lati.
 - Eventi SSE: `services/event_service.publish()` invia un evento
   `{"entity", "action", "ids"}` ai client connessi a `/api/events`. Oggi lo fanno
   solo le operazioni MCP. Se aggiungi una scrittura che il frontend deve vedere in
@@ -140,9 +148,21 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 ## Sicurezza
 
 Il backend ascolta solo su `127.0.0.1`, ma e raggiungibile da qualsiasi pagina web
-aperta nel browser dell'utente. Non ha autenticazione, quindi:
+aperta nel browser dell'utente. Non ha autenticazione. Le protezioni attive sono:
 
-- non allargare CORS o gli host consentiti;
+- nessun middleware CORS: le altre origini non possono leggere le risposte;
+- `TrustedHostMiddleware` (in `main.py`): rifiuta con `400` le richieste con un
+  header `Host` non presente in `ALLOWED_HOSTS` (`config.py`), contro il DNS
+  rebinding. Non gestisce IPv6 (`Host: [::1]:8000` viene rifiutato);
+- `middleware/origin_guard.py`: rifiuta con `403` le richieste `POST`, `PUT`,
+  `PATCH` e `DELETE` con un `Origin` diverso da quello del backend (in sviluppo
+  sono ammesse anche le origini locali, per Vite).
+
+Di conseguenza:
+
+- non aggiungere CORS, non allargare le origini ammesse da `origin_guard` e non
+  aggiungere `*` ad `ALLOWED_HOSTS`;
+- non creare endpoint `GET` che modificano dati: `origin_guard` non li controlla;
 - non aggiungere endpoint che leggono o scrivono file arbitrari o eseguono comandi;
 - valida sempre gli input, anche quelli dei tool MCP, che arrivano da un modello AI.
 

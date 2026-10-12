@@ -21,6 +21,24 @@ stato `400` e la forma:
 Gli update e i delete restituiscono `404` se l'elemento non esiste. Gli errori non
 gestiti (JSON non valido, foreign key inesistente) restituiscono `500`.
 
+Tutte le richieste con un header `Host` diverso da `127.0.0.1` o `localhost` (piu il
+valore di `HOST`, se cambiato) vengono rifiutate con `400` e il testo
+`Invalid host header`. E la protezione contro il DNS rebinding, applicata da
+`TrustedHostMiddleware` con l'elenco `ALLOWED_HOSTS` di `backend/config.py`.
+
+Le richieste `POST`, `PUT`, `PATCH` e `DELETE` inviate da una pagina di un altro sito
+vengono rifiutate con `403` (`{"error": "Cross-origin request blocked"}`), comprese
+quelle verso `/mcp`. Il controllo e in `backend/middleware/origin_guard.py`:
+
+- l'header `Origin` deve coincidere con l'indirizzo del backend (stessa origine);
+- in sviluppo e accettata anche qualsiasi origine locale (`localhost`, `127.0.0.1`,
+  `[::1]` su qualsiasi porta), per il frontend servito da Vite;
+- le richieste senza `Origin` (client MCP, curl, file `.http`) sono accettate, salvo
+  che il browser le marchi con `Sec-Fetch-Site: cross-site`.
+
+Le richieste `GET` non sono controllate: un altro sito puo inviarle ma, senza CORS,
+non puo leggerne la risposta.
+
 ## Health check
 
 ```text
@@ -75,8 +93,8 @@ POST /api/tasks/delete_task          {task_id}
 
 `parent_id` e facoltativo: se presente, la task e una subtask della task indicata.
 
-`update_status_task` inverte lo stato `completed` della task. Lo stato delle task con
-subtask viene ricalcolato dai trigger del database (vedi `DATABASE.md`).
+`update_status_task` inverte lo stato `completed` della task. Su una task che ha
+subtask risponde `409`: il suo stato e calcolato dalle subtask (vedi `DATABASE.md`).
 
 ## Settings
 
@@ -169,11 +187,14 @@ Tool disponibili:
 | `bulk_insert_task` | Crea piu task o subtask. Il parent deve appartenere allo stesso progetto e non essere a sua volta una subtask. |
 | `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. |
 | `bulk_update_task` | Aggiorna titolo e descrizione di piu task. |
-| `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. |
+| `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. Rifiuta le task che hanno subtask, il cui stato e calcolato dalle subtask. |
 
 Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per
 intero se un elemento non e valido o se un id non esiste. Non esistono tool di
 eliminazione.
+
+Quando una richiesta non e valida, il tool restituisce un errore con il motivo
+(per esempio `Tasks not found: 99.`), cosi il client AI puo correggerla.
 
 La logica dei tool sta in `services/mcp_service.py`, le query in
 `db/repositories/mcp_repo.py`.

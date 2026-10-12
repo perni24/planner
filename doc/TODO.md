@@ -8,14 +8,9 @@ storico resta nella cronologia Git. Le idee non ancora pianificate stanno in
 
 Da risolvere prima della prossima release.
 
-### Sicurezza
-- [ ] Bloccare le richieste inviate da altri siti (CSRF): `request.json()` accetta anche body con `Content-Type: text/plain`, che il browser invia senza preflight, quindi una pagina web puo ancora modificare o cancellare i dati e chiamare `/app/shutdown`. Controllare l'header `Origin` (o `Sec-Fetch-Site`), compreso `/mcp`
-- [ ] Aggiungere il controllo dell'header `Host` (`TrustedHostMiddleware`) contro il DNS rebinding, verificando anche l'endpoint `/mcp`
-
 ### Database
 - [ ] Introdurre un sistema di migrazioni dello schema (`PRAGMA user_version` e script numerati): oggi `init_db()` non modifica un DB esistente
-- [ ] Trigger: eliminando l'ultima subtask aperta il parent risulta completato
-- [ ] Trigger: lo stato di un parent con subtask non e modificabile, ma `bulk_set_task_completed` lo riporta come aggiornato
+- [ ] Trigger `trg_subtask_after_delete`: corretto in `schema.sql`, ma i database esistenti hanno ancora la versione vecchia (eliminando l'ultima subtask aperta il parent risulta completato). Aggiornarlo con la prima migrazione
 - [ ] REST `insert_task`: impedire subtask di subtask e `parent_id` di un altro progetto (come gia fa MCP)
 
 ### Funzionamento
@@ -27,7 +22,7 @@ Da risolvere prima della prossima release.
 
 ### Dipendenze e build
 - [ ] Convertire `requirements.txt` da UTF-16 a UTF-8
-- [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer`)
+- [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer` e `ToolError` dell'SDK 2.x)
 - [ ] Separare `pyinstaller` e `ruff` dalle dipendenze di runtime
 - [ ] CI: verificare che gli zip Linux/macOS creati con `Compress-Archive` mantengano il permesso di esecuzione
 - [ ] CI: eseguire `npm run lint` e `ruff check` nel workflow

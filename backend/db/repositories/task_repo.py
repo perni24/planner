@@ -46,6 +46,16 @@ def update_task(id, title, description):
         conn.commit()
         return cursor.rowcount
 
+def has_subtasks(id):
+    with get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT 1 FROM tasks WHERE parent_id = ? LIMIT 1
+            """,
+            (id,)
+        ).fetchone()
+        return row is not None
+
 def update_status_task(id): 
     with get_db_connection() as conn:
         cursor = conn.execute(

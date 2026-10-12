@@ -51,15 +51,19 @@ quattro trigger:
 
 - `trg_subtask_after_insert`, `trg_subtask_after_update`, `trg_subtask_after_delete`:
   dopo ogni modifica di una subtask ricalcolano il parent, che risulta completato
-  solo se non ha subtask aperte;
+  solo se non ha subtask aperte. Se viene eliminata l'ultima subtask, lo stato del
+  parent resta invariato e la task torna modificabile a mano;
 - `trg_parent_derived`: se si modifica direttamente lo stato di una task che ha
   subtask, lo ricalcola dalle subtask, annullando la modifica manuale.
 
-Comportamenti da conoscere (vedi `TODO.md`):
+Una modifica diretta dello stato di un parent con subtask verrebbe annullata da
+`trg_parent_derived`. Per questo l'API REST (`update_status_task`) e il tool MCP
+`bulk_set_task_completed` la rifiutano con un errore invece di eseguirla.
 
-- eliminando l'ultima subtask aperta, il parent risulta completato anche se non
-  ha piu subtask;
-- impostare lo stato di un parent con subtask non ha effetto.
+Comportamento da conoscere (vedi `TODO.md`): nei database creati prima della
+correzione di `trg_subtask_after_delete` (ottobre 2026) il trigger e ancora quello
+vecchio: eliminando l'ultima subtask aperta, il parent risulta completato. Serve una
+migrazione per aggiornarlo.
 
 ## Vista progetti
 

@@ -85,6 +85,22 @@ def get_existing_task_ids(task_ids):
 
     return {row["id"] for row in rows}
 
+def get_task_ids_with_subtasks(task_ids):
+    unique_task_ids = tuple(set(task_ids))
+
+    if not unique_task_ids:
+        return set()
+
+    placeholders = ", ".join("?" for _ in unique_task_ids)
+
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            f"SELECT DISTINCT parent_id FROM tasks WHERE parent_id IN ({placeholders})",
+            unique_task_ids,
+        ).fetchall()
+
+    return {row["parent_id"] for row in rows}
+
 def get_parent_tasks(parent_ids):
     unique_parent_ids = tuple(set(parent_ids))
 

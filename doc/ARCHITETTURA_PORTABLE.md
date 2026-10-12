@@ -58,7 +58,7 @@ Quando l'eseguibile parte:
 1. crea le cartelle runtime `data/` e `locales/` se non esistono;
 2. copia i file lingua default in `locales/` solo se mancano;
 3. crea il database SQLite se non esiste;
-4. avvia il backend locale su `127.0.0.1:8000` (modificabile con le variabili d'ambiente `HOST` e `PORT`);
+4. avvia il backend locale su `127.0.0.1:8000` (modificabile con le variabili d'ambiente `HOST` e `PORT`; il backend risponde solo alle richieste rivolte a `127.0.0.1`, `localhost` o al valore di `HOST`);
 5. apre automaticamente il browser dopo circa un secondo;
 6. serve il frontend React buildato, le API sotto `/api` e il server MCP sotto `/mcp`.
 

@@ -68,9 +68,12 @@ BEGIN
     WHERE id = NEW.parent_id;
 END;
 
+-- Se il parent non ha piu subtask il suo stato resta invariato: senza la condizione
+-- EXISTS verrebbe segnato come completato anche eliminando l'ultima subtask aperta.
 CREATE TRIGGER trg_subtask_after_delete
 AFTER DELETE ON tasks
 WHEN OLD.parent_id IS NOT NULL
+AND EXISTS (SELECT 1 FROM tasks WHERE parent_id = OLD.parent_id)
 BEGIN
     UPDATE tasks
     SET completed = CASE
