@@ -21,7 +21,19 @@ def get_tasks_by_project(project_id):
                 (project_id,)
             ).fetchall()
         return [format_data(row) for row in cursor]
-    
+
+def get_task(task_id):
+    with get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT id, project_id, parent_id
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+        return format_data(row)
+
 def insert_task(project_id, title, description, parent_id=None):
     with get_db_connection() as conn:
         cursor  = conn.execute(

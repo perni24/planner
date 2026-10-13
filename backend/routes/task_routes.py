@@ -20,7 +20,30 @@ async def insert_task(request):
     values, error = validate_payload(data, ["project_id", "title", "description", "parent_id"])
     if error:
         return JSONResponse({"error": error}, status_code=400)
-    taskRepo.insert_task(values["project_id"], values["title"], values["description"], values.get("parent_id"))
+
+    parent_id = values.get("parent_id")
+    if parent_id is not None:
+        parent = taskRepo.get_task(parent_id)
+
+        if parent is None:
+            return JSONResponse(
+                {"error": "Parent task not found"},
+                status_code=404,
+            )
+
+        if parent["project_id"] != values["project_id"]:
+            return JSONResponse(
+                {"error": "Parent task belongs to a different project"},
+                status_code=400,
+            )
+
+        if parent["parent_id"] is not None:
+            return JSONResponse(
+                {"error": "A subtask cannot be used as a parent"},
+                status_code=400,
+            )
+
+    taskRepo.insert_task(values["project_id"], values["title"], values["description"], parent_id)
     return JSONResponse({"message": "Task insert successful"})
 
 async def update_task(request):

@@ -1,42 +1,50 @@
 # Sviluppi Futuri
 
 Questo documento raccoglie idee e possibili evoluzioni non ancora pianificate.
-Le voci presenti non sono attivita confermate e richiedono una valutazione prima
-dell'implementazione.
+Le idee richiedono una valutazione prima dell'implementazione; per quelle gia
+pianificate viene indicato il rimando a `TODO.md`.
 
 ## Interfaccia desktop con PyWebView
 
-Valutare PyWebView per mostrare il frontend React in una finestra desktop nativa,
-senza aprire una scheda del browser.
+L'integrazione e stata pianificata nella sezione "Interfaccia desktop e
+spegnimento (PyWebView)" di `TODO.md`, con una prova prima della distribuzione.
+Il frontend React verra mostrato in una finestra dedicata: backend e MCP resteranno
+attivi anche con la finestra minimizzata e verranno arrestati alla sua chiusura,
+senza heartbeat. Per la portable non e prevista una modalita solo backend.
 
-Possibili vantaggi:
+## Distribuzione server con Docker o Podman
 
-- esperienza piu simile a un'applicazione desktop;
-- finestra dedicata senza barra degli indirizzi;
-- mantenimento dell'attuale frontend React e backend Starlette;
-- soluzione generalmente piu leggera rispetto a Electron.
+Valutare un'immagine container per eseguire Planner su un server personale,
+mantenendo React, Starlette, SQLite e MCP. Non sarebbe necessario usare
+l'eseguibile PyInstaller nel container.
 
-Aspetti da verificare:
+Separare esplicitamente le modalita di avvio, per esempio con una futura
+configurazione `APP_MODE=desktop|server`, senza basarsi soltanto su
+`IS_PRODUCTION`:
 
-- compatibilita e dipendenze richieste su Windows, Linux e macOS;
-- integrazione con PyInstaller e GitHub Actions;
-- gestione dell'avvio e dello spegnimento del backend;
-- comportamento dei download, come il backup SQLite;
-- firma e notarizzazione delle build macOS;
-- disponibilita del runtime WebView2 sui sistemi Windows supportati.
+- desktop: finestra PyWebView; alla chiusura si arrestano backend e MCP, come deciso per la portable;
+- server: nessuna finestra, browser o heartbeat; backend e MCP restano attivi fino all'arresto del container.
 
-Flusso ipotizzato:
+Aspetti da implementare o verificare:
 
-```text
-PlannerApp
-  -> avvia il backend Starlette locale
-  -> apre una finestra PyWebView
-  -> carica http://127.0.0.1:8000
-  -> arresta il backend alla chiusura della finestra
-```
+- mantenere il launcher desktop separato, senza importare o richiedere dipendenze grafiche in modalita server;
+- creare un `Dockerfile`/`Containerfile` con build frontend tramite Node e immagine finale Python che serva `frontend/dist`, senza Vite, PyInstaller o reload;
+- rendere configurabili i percorsi di database, backup e lingue personalizzate e montarli come volumi persistenti; verificare permessi e avvio rootless con Podman;
+- inizializzare il database ed eseguire le migrazioni prima di rendere disponibili le API, conservando i backup automatici;
+- configurare l'ascolto sulle interfacce del container, la pubblicazione controllata della porta e gli host ammessi, senza wildcard;
+- adeguare `origin_guard` a HTTPS e all'eventuale reverse proxy mantenendo controlli sulle origini esatte, senza disattivare le protezioni o aggiungere CORS permissivo;
+- proteggere sia REST sia MCP prima dell'accesso in rete: oggi l'app non ha autenticazione; valutare autenticazione oppure accesso limitato tramite VPN o reverse proxy autenticato;
+- gestire i segnali di arresto del container e la chiusura ordinata delle connessioni SSE/MCP, con un tempo massimo di spegnimento;
+- verificare aggiornamento dell'immagine senza perdita di dati, log, controllo di salute e compatibilita con Docker e Podman.
 
-Prima di adottarlo conviene creare una prova separata dalla build principale e
-confrontare dimensioni, stabilita e comportamento sui tre sistemi operativi.
+Inizialmente prevedere una sola istanza e un solo processo del backend: gli
+eventi SSE sono conservati in memoria e non sono condivisi tra processi o
+repliche. SQLite puo restare per questo scenario; la scalabilita richiederebbe
+una valutazione separata.
+
+Distinguere l'app condivisa da un'app multiutente con dati isolati: le aree non
+sono account e le impostazioni sono globali. Account, autorizzazioni e isolamento
+dei dati richiederebbero modifiche aggiuntive allo schema e alle API.
 
 ## Sincronizzazione completa tramite eventi SSE
 

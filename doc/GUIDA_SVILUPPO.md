@@ -127,7 +127,19 @@ cd backend
 ruff check .
 ```
 
-Non esistono ancora test automatici e GitHub Actions non esegue questi controlli.
+Test automatici delle migrazioni (da `backend/`, con l'ambiente virtuale attivo):
+
+```bash
+python -m unittest discover -s test -p test_migrations.py -v
+```
+
+I test usano database temporanei: non modificano `backend/db/planner.db`.
+Coprono creazione, aggiornamento delle vecchie release, comportamento dei trigger,
+rollback e riavvio dopo errori. Le API vengono ancora provate manualmente.
+GitHub Actions non esegue questi controlli.
+
+Per modifiche allo schema segui la procedura in `DATABASE.md`: occorre aggiornare
+sia `schema.sql` sia le migrazioni per i database esistenti.
 
 ## 5. Build portable locale
 Per creare l'app portable localmente:

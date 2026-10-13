@@ -89,6 +89,31 @@ In modalita portable il DB viene creato qui:
 PlannerApp/data/planner.db
 ```
 
+## Errore durante una migrazione del database
+
+Avvia l'app da terminale per leggere il nome dello script e la causa dell'errore.
+L'avvio si interrompe e la migrazione corrente viene annullata; quelle precedenti
+gia confermate non vengono ripetute al prossimo avvio.
+
+Conserva il database originale e controlla permessi di scrittura e spazio libero.
+Se manca uno script, ricopia l'intera cartella `_internal/` dalla build: include
+anche `db/migrations/`. Non eliminare il DB e non modificare manualmente
+`PRAGMA user_version` per aggirare l'errore.
+
+Prima dell'aggiornamento viene salvato un backup in:
+
+```text
+PlannerApp/data/migration_backups/
+```
+
+In sviluppo si trova in `backend/db/migration_backups/`. Per un ripristino manuale
+chiudi prima tutti i processi dell'app, conserva una copia del DB attuale e copia
+il backup scelto al posto di `planner.db`. Il prossimo avvio tentera nuovamente
+le migrazioni mancanti: occorre prima risolvere la causa dell'errore.
+
+Se compare `Unsupported database schema version`, usa una versione dell'app che
+supporti quello schema. Non e disponibile un downgrade automatico.
+
 ## Le lingue non cambiano
 
 Controlla che i file lingua siano presenti in:

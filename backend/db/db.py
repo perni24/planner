@@ -1,7 +1,16 @@
 import os
 import sqlite3
+from contextlib import closing
 
-from config import DATA_DIR, DB_PATH, SCHEMA_PATH
+from config import DATA_DIR, DB_PATH, MIGRATION_BACKUPS_DIR, MIGRATIONS_DIR, SCHEMA_PATH
+from db.migration_runner import (
+    apply_migrations,
+    create_migration_backup,
+    execute_script,
+    get_schema_version,
+    load_migrations,
+    validate_schema_version,
+)
 
 
 def get_db_connection():
@@ -17,20 +26,40 @@ def init_db():
         os.makedirs(DATA_DIR)
         print(f"Cartella database creata in: {DATA_DIR}")
 
-    if os.path.exists(DB_PATH):
-        print(f"Il database esiste gia in: {DB_PATH}. Salto l'inizializzazione.")
-        return
+    migrations = load_migrations(MIGRATIONS_DIR)
+    latest_version = len(migrations)
 
-    if not os.path.exists(SCHEMA_PATH):
-        raise FileNotFoundError(f"File schema non trovato: {SCHEMA_PATH}")
+    with closing(get_db_connection()) as conn:
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            version = get_schema_version(conn)
+            validate_schema_version(version, latest_version)
+            has_tables = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                "AND name NOT LIKE 'sqlite_%' LIMIT 1"
+            ).fetchone()
 
-    print(f"Creazione del database in: {DB_PATH}...")
+            if not has_tables:
+                if version != 0:
+                    raise RuntimeError("Database has a schema version but no tables")
 
-    with sqlite3.connect(DB_PATH) as conn:
-        with open(SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
-            conn.executescript(schema_file.read())
+                print(f"Creazione del database in: {DB_PATH}...")
+                with open(SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
+                    execute_script(conn, schema_file.read())
+                conn.execute(f"PRAGMA user_version = {latest_version}")
+                conn.commit()
+                print(f"Database inizializzato con successo (schema {latest_version})!")
+                return
 
-    print("Database inizializzato con successo!")
+            conn.rollback()
+        except Exception:
+            conn.rollback()
+            raise
+
+        if version < latest_version:
+            create_migration_backup(conn, MIGRATION_BACKUPS_DIR, version)
+        apply_migrations(conn, migrations, MIGRATIONS_DIR)
+        print(f"Database pronto in: {DB_PATH} (schema {get_schema_version(conn)}).")
 
 
 if __name__ == "__main__":

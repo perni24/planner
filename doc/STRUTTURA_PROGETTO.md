@@ -39,7 +39,9 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
 - `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
 - `requirements.txt`: dipendenze Python.
-- `db/db.py`: connessione SQLite e creazione del DB al primo avvio.
+- `db/db.py`: connessione SQLite, creazione del DB e migrazioni all'avvio.
+- `db/migration_runner.py`: elenco ordinato delle migrazioni, versionamento con `PRAGMA user_version`, transazioni e backup automatici.
+- `db/migrations/`: script SQL numerati per aggiornare i database esistenti e compatibilita con le release precedenti.
 - `db/repositories/`: un modulo per entita (`area_repo`, `project_repo`, `task_repo`, `setting_repo`) piu `mcp_repo` con le query usate dai tool MCP (letture e operazioni bulk). Contengono solo SQL e conversione dati.
 - `routes/`: un modulo per gruppo di endpoint. `api.py` li monta sia alla radice sia sotto `/api`.
 - `services/`:
@@ -52,7 +54,8 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `validators/request_validator.py`: validazione di id e testi, usata da route e service.
 - `middleware/origin_guard.py`: blocca le richieste di modifica inviate da pagine di altri siti (CSRF).
 - `locales/`: file lingua JSON di default.
-- `test/*.http`: richieste HTTP manuali per provare le API. Non esistono test automatici.
+- `test/*.http`: richieste HTTP manuali per provare le API.
+- `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
 
 ## Frontend (`frontend/src/`)
 
@@ -71,4 +74,5 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `frontend/node_modules/` e `frontend/dist/`: dipendenze npm e build frontend.
 - `backend/.venv/`: ambiente virtuale Python.
 - `backend/db/planner.db`: DB di sviluppo.
+- `backend/db/migration_backups/`: backup automatici prima delle migrazioni in sviluppo.
 - `backend/build/` e `backend/dist/`: output PyInstaller.

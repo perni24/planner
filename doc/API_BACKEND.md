@@ -92,6 +92,13 @@ POST /api/tasks/delete_task          {task_id}
 ```
 
 `parent_id` e facoltativo: se presente, la task e una subtask della task indicata.
+Se omesso o `null`, viene creata una task principale. Prima dell'inserimento,
+`insert_task` verifica che il parent esista, appartenga allo stesso progetto e
+sia una task principale. Una relazione non valida non viene salvata:
+
+- parent inesistente: `404`, `{"error": "Parent task not found"}`;
+- parent di un altro progetto: `400`, `{"error": "Parent task belongs to a different project"}`;
+- parent che e gia una subtask: `400`, `{"error": "A subtask cannot be used as a parent"}`.
 
 `update_status_task` inverte lo stato `completed` della task. Su una task che ha
 subtask risponde `409`: il suo stato e calcolato dalle subtask (vedi `DATABASE.md`).

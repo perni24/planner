@@ -1,4 +1,14 @@
 @baseUrl = http://127.0.0.1:8000
+@projectId = 1
+@otherProjectId = 2
+@parentTaskId = 1
+@subtaskId = 2
+@missingTaskId = 2147483647
+
+# Prima di provare i casi con parent, aggiornare gli ID con dati esistenti:
+# parentTaskId deve essere una task principale di projectId;
+# subtaskId deve essere una sua subtask; otherProjectId deve essere un altro progetto;
+# missingTaskId non deve esistere. Le richieste valide creano dati di prova.
 
 ### Recupera tutti i task
 GET {{baseUrl}}/tasks/get_all_tasks
@@ -14,6 +24,66 @@ Content-Type: application/json
   "project_id": 1,
   "title": "Task da test",
   "description": "Descrizione task da test"
+}
+
+### Inserisce una task principale con parent null (atteso 200)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "title": "Task principale da test",
+  "parent_id": null
+}
+
+### Inserisce una subtask con parent valido (atteso 200)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "title": "Subtask da test",
+  "parent_id": {{parentTaskId}}
+}
+
+### Rifiuta un parent inesistente (atteso 404)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "title": "Parent inesistente",
+  "parent_id": {{missingTaskId}}
+}
+
+### Rifiuta un parent di un altro progetto (atteso 400)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{otherProjectId}},
+  "title": "Parent di un altro progetto",
+  "parent_id": {{parentTaskId}}
+}
+
+### Rifiuta una subtask come parent (atteso 400)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "title": "Subtask di una subtask",
+  "parent_id": {{subtaskId}}
+}
+
+### Rifiuta un parent_id non valido (atteso 400)
+POST {{baseUrl}}/tasks/insert_task
+Content-Type: application/json
+
+{
+  "project_id": {{projectId}},
+  "title": "Parent ID non valido",
+  "parent_id": 0
 }
 
 ### Elimina un task

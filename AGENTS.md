@@ -24,6 +24,7 @@ Backend (da `backend/`, con il venv attivo in `backend/.venv/`):
 pip install -r requirements.txt
 python main.py          # sviluppo: reload attivo, nessuno spegnimento automatico
 ruff check .            # lint
+python -m unittest discover -s test -p test_migrations.py -v
 ```
 
 Frontend (da `frontend/`):
@@ -38,9 +39,10 @@ npm run build
 Build portable: `python build_portable.py` da `backend/` (output in
 `backend/dist/PlannerApp/`).
 
-Non esistono test automatici. Per verificare una modifica: esegui i linter,
-`npm run build` se hai toccato il frontend, e prova le API con i file
-`backend/test/*.http` o con l'app avviata.
+Esistono test automatici delle migrazioni in `backend/test/test_migrations.py`,
+su database temporanei. Per verificare una modifica: esegui i linter, i test se
+hai toccato il database, `npm run build` se hai toccato il frontend, e prova le API
+con i file `backend/test/*.http` o con l'app avviata.
 
 ## Architettura backend
 
@@ -51,8 +53,9 @@ route REST (routes/*.py) -> repository (db/repositories/*_repo.py) -> SQLite
 tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/repositories/mcp_repo.py -> SQLite
 ```
 
-- L'SQL sta solo nei repository. Route e service validano, chiamano il repository e
-  restituiscono il risultato.
+- L'SQL sui dati sta solo nei repository. Route e service validano, chiamano il
+  repository e restituiscono il risultato. Lo schema e le migrazioni sono gestiti
+  separatamente all'avvio in `db/db.py` e `db/migration_runner.py`.
 - Apri le connessioni sempre con `get_db_connection()` (`db/db.py`): attiva
   `PRAGMA foreign_keys = ON`, senza il quale i `ON DELETE CASCADE` non funzionano.
 - I repository REST chiamano `conn.commit()` esplicitamente; `mcp_repo` si affida al
@@ -92,9 +95,18 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Schema in `backend/schema.sql`: tabelle `areas`, `projects`, `tasks`, `settings`
   (una sola riga), `calendar` (vuota, inutilizzata), vista `v_projects_status`,
   quattro trigger sul completamento delle task.
-- **Lo schema viene applicato solo se il file del DB non esiste.** Modificare
-  `schema.sql` non aggiorna i database esistenti degli utenti e non esiste ancora un
-  sistema di migrazioni. Non cambiare lo schema senza prevedere la migrazione.
+- `schema.sql` viene applicato ai database nuovi o vuoti. Quelli esistenti vengono
+  aggiornati all'avvio con `PRAGMA user_version` e gli script in `db/migrations/`,
+  registrati in ordine in `MIGRATION_FILES` (`db/migration_runner.py`). Ogni modifica
+  allo schema richiede sia l'aggiornamento di `schema.sql` sia una nuova migrazione;
+  non modificare o rinumerare script gia distribuiti.
+- Prima delle migrazioni viene creato un backup con l'API SQLite in
+  `MIGRATION_BACKUPS_DIR` (`data/migration_backups/` nella portable). Ogni script e
+  l'incremento di versione sono una transazione; un errore blocca l'avvio. Non
+  inserire transazioni o assegnazioni a `user_version` negli script.
+- La migrazione `001` corregge il trigger di eliminazione subtask e gestisce anche
+  i DB di `v0.0.1` senza `parent_id`. Versione dello schema e `APP_VERSION` sono
+  indipendenti; i database piu recenti di quelli supportati vengono rifiutati.
 - Un solo livello di subtask (`tasks.parent_id`). Lo stato di una task con subtask
   e calcolato dai trigger: non va impostato dal codice applicativo.
 - `completed` e un intero `0`/`1`: il frontend confronta con `=== 1`, non con

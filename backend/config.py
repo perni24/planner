@@ -47,6 +47,7 @@ if IS_FROZEN:
     DATA_DIR = os.path.join(APP_DIR, "data")
     DB_PATH = os.path.join(DATA_DIR, "planner.db")
     SCHEMA_PATH = os.path.join(BUNDLE_DIR, "schema.sql")
+    MIGRATIONS_DIR = os.path.join(BUNDLE_DIR, "db", "migrations")
     LOCALES_DIR = os.path.join(APP_DIR, "locales")
     DEFAULT_LOCALES_DIR = os.path.join(BUNDLE_DIR, "locales")
     FRONTEND_DIST_DIR = os.path.join(BUNDLE_DIR, "frontend_dist")
@@ -57,9 +58,12 @@ else:
     DATA_DIR = os.path.join(BACKEND_DIR, "db")
     DB_PATH = os.path.join(DATA_DIR, "planner.db")
     SCHEMA_PATH = os.path.join(BACKEND_DIR, "schema.sql")
+    MIGRATIONS_DIR = os.path.join(BACKEND_DIR, "db", "migrations")
     LOCALES_DIR = os.path.join(BACKEND_DIR, "locales")
     DEFAULT_LOCALES_DIR = LOCALES_DIR
     FRONTEND_DIST_DIR = os.path.join(PROJECT_DIR, "frontend", "dist")
+
+MIGRATION_BACKUPS_DIR = os.path.join(DATA_DIR, "migration_backups")
 
 
 def ensure_runtime_directories():

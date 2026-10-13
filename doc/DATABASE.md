@@ -43,8 +43,10 @@ Usare sempre quella funzione per aprire connessioni.
 ## Subtask e trigger di completamento
 
 Il modello prevede un solo livello di subtask: una task con `parent_id` non
-dovrebbe avere a sua volta subtask. I tool MCP verificano questa regola e che il
-parent appartenga allo stesso progetto; l'API REST e il database non la verificano.
+puo avere a sua volta subtask. Sia i tool MCP sia l'API REST `insert_task`
+verificano che il parent esista, appartenga allo stesso progetto e non sia una
+subtask. Il database verifica l'esistenza tramite foreign key, ma non impone
+le altre due regole.
 
 Lo stato di una task che ha subtask e derivato da quello delle subtask tramite
 quattro trigger:
@@ -60,10 +62,9 @@ Una modifica diretta dello stato di un parent con subtask verrebbe annullata da
 `trg_parent_derived`. Per questo l'API REST (`update_status_task`) e il tool MCP
 `bulk_set_task_completed` la rifiutano con un errore invece di eseguirla.
 
-Comportamento da conoscere (vedi `TODO.md`): nei database creati prima della
-correzione di `trg_subtask_after_delete` (ottobre 2026) il trigger e ancora quello
-vecchio: eliminando l'ultima subtask aperta, il parent risulta completato. Serve una
-migrazione per aggiornarlo.
+La migrazione `001_fix_subtask_delete.sql` aggiorna anche i database esistenti:
+il vecchio trigger completava il parent eliminando l'ultima subtask aperta.
+La correzione non ricostruisce gli stati eventualmente alterati in passato.
 
 ## Vista progetti
 
@@ -91,12 +92,49 @@ impostazioni.
 
 ## Creazione e modifiche dello schema
 
-`init_db()` esegue `schema.sql` solo se il file del database non esiste. Se esiste,
-non viene applicato nulla.
+`init_db()` viene eseguita all'avvio, prima di rendere disponibili le API:
 
-Di conseguenza una modifica a `schema.sql` vale solo per i database nuovi: i
-database gia creati dagli utenti non vengono aggiornati. Prima di modificare lo
-schema in una release va introdotto un sistema di migrazioni (vedi `TODO.md`).
+- per un database nuovo o vuoto applica `schema.sql` e registra la versione corrente;
+- per un database esistente legge `PRAGMA user_version` e applica soltanto le migrazioni mancanti;
+- se la versione del database e superiore a quella supportata, interrompe l'avvio senza modificarlo: non esiste un downgrade automatico.
+
+La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `1`.
+I database delle release precedenti, senza versione, vengono riconosciuti come `0`.
+Le migrazioni sono file SQL in `backend/db/migrations/`, registrati in ordine nella
+tupla `MIGRATION_FILES` di `backend/db/migration_runner.py`.
+
+Prima di aggiornare un database esistente viene creato un backup consistente con
+`sqlite3.backup()`. I backup hanno nome `planner_v<versione>_<data_ora>.db` e stanno
+in `backend/db/migration_backups/` in sviluppo, oppure in
+`PlannerApp/data/migration_backups/` nell'app portable. Non vengono creati per un
+database nuovo o gia aggiornato.
+
+Ogni migrazione e una transazione: script e incremento di `user_version` vengono
+confermati insieme. Un errore annulla la migrazione corrente e blocca l'avvio; le
+migrazioni precedenti gia confermate restano applicate. Al prossimo avvio si
+riparte da quelle mancanti.
+
+### Prima migrazione
+
+`001_fix_subtask_delete.sql` sostituisce il trigger difettoso. Per i database di
+`v0.0.1`, che non hanno ancora le subtask, il runner esegue prima
+`legacy_add_subtasks.sql` nella stessa transazione: aggiunge `parent_id`, i trigger
+di completamento e aggiorna la vista progetti. I dati e gli id esistenti vengono
+conservati. I database di `v0.1.0` hanno gia questi elementi e ricevono soltanto la
+correzione del trigger.
+
+### Aggiungere una modifica allo schema
+
+1. Aggiorna `backend/schema.sql`, che deve rappresentare lo schema finale per le nuove installazioni.
+2. Crea lo script successivo, per esempio `backend/db/migrations/002_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
+3. Aggiungi il nome del file in fondo a `MIGRATION_FILES`, senza saltare numeri.
+4. Verifica sia un database nuovo sia l'aggiornamento di un database precedente, anche in caso di errore e riavvio.
+
+Non modificare o rinumerare migrazioni gia distribuite: aggiungine una nuova.
+Gli script non devono contenere `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` o
+assegnazioni a `PRAGMA user_version`: transazioni e versione sono gestite dal
+runner, che rifiuta queste istruzioni. La build portable include automaticamente
+l'intera cartella delle migrazioni.
 
 ## Accesso al DB
 

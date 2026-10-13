@@ -47,6 +47,8 @@ def main():
             "--add-data",
             f"schema.sql{add_data_separator}.",
             "--add-data",
+            f"db/migrations{add_data_separator}db/migrations",
+            "--add-data",
             f"locales{add_data_separator}locales",
             "--add-data",
             f"../frontend/dist{add_data_separator}frontend_dist",
