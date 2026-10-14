@@ -24,7 +24,7 @@ Backend (da `backend/`, con il venv attivo in `backend/.venv/`):
 pip install -r requirements.txt
 python main.py          # sviluppo: reload attivo, nessuno spegnimento automatico
 ruff check .            # lint
-python -m unittest discover -s test -p test_migrations.py -v
+python -m unittest discover -s test -p test_*.py -v
 ```
 
 Frontend (da `frontend/`):
@@ -39,10 +39,11 @@ npm run build
 Build portable: `python build_portable.py` da `backend/` (output in
 `backend/dist/PlannerApp/`).
 
-Esistono test automatici delle migrazioni in `backend/test/test_migrations.py`,
-su database temporanei. Per verificare una modifica: esegui i linter, i test se
-hai toccato il database, `npm run build` se hai toccato il frontend, e prova le API
-con i file `backend/test/*.http` o con l'app avviata.
+Esistono test automatici delle migrazioni e del download backup in
+`backend/test/test_migrations.py` e `backend/test/test_backup.py`, su database
+temporanei. Per verificare una modifica: esegui i linter, i test se hai toccato il
+database o il backup, `npm run build` se hai toccato il frontend, e prova le altre
+API con i file `backend/test/*.http` o con l'app avviata.
 
 ## Architettura backend
 
@@ -107,11 +108,18 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - La migrazione `001` corregge il trigger di eliminazione subtask e gestisce anche
   i DB di `v0.0.1` senza `parent_id`. Versione dello schema e `APP_VERSION` sono
   indipendenti; i database piu recenti di quelli supportati vengono rifiutati.
+- Il download backup usa `backup_database()` in `db/db.py` (`Connection.backup()`)
+  su una copia temporanea dentro `DATA_DIR`, non invia il DB originale in uso.
+  Le connessioni sono chiuse prima dell'invio e il temporaneo viene eliminato
+  al termine della risposta ASGI, anche in caso di errore o cancellazione.
 - Un solo livello di subtask (`tasks.parent_id`). Lo stato di una task con subtask
   e calcolato dai trigger: non va impostato dal codice applicativo.
 - `completed` e un intero `0`/`1`: il frontend confronta con `=== 1`, non con
   booleani.
 - La vista conta solo le task di primo livello.
+- Il trigger `trg_recreate_last_area` ricrea un'area vuota `utente` con nuovo id
+  dopo l'eliminazione dell'ultima area, senza recuperare progetti o task. La
+  migrazione `002` installa il trigger e ripristina i DB gia senza aree.
 - Il DB di sviluppo e `backend/db/planner.db`: non va mai committato (gia in
   `.gitignore`). Per ripartire da zero basta eliminarlo.
 

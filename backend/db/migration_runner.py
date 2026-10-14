@@ -6,6 +6,7 @@ from datetime import datetime
 
 MIGRATION_FILES = (
     "001_fix_subtask_delete.sql",
+    "002_recreate_last_area.sql",
 )
 
 

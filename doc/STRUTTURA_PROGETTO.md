@@ -39,7 +39,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
 - `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
 - `requirements.txt`: dipendenze Python.
-- `db/db.py`: connessione SQLite, creazione del DB e migrazioni all'avvio.
+- `db/db.py`: connessione SQLite, creazione del DB, migrazioni all'avvio e copie consistenti per il download backup.
 - `db/migration_runner.py`: elenco ordinato delle migrazioni, versionamento con `PRAGMA user_version`, transazioni e backup automatici.
 - `db/migrations/`: script SQL numerati per aggiornare i database esistenti e compatibilita con le release precedenti.
 - `db/repositories/`: un modulo per entita (`area_repo`, `project_repo`, `task_repo`, `setting_repo`) piu `mcp_repo` con le query usate dai tool MCP (letture e operazioni bulk). Contengono solo SQL e conversione dati.
@@ -56,6 +56,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `locales/`: file lingua JSON di default.
 - `test/*.http`: richieste HTTP manuali per provare le API.
 - `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
+- `test/test_backup.py`: test automatici del download backup, consistenza delle copie e pulizia dei temporanei, senza avviare il server.
 
 ## Frontend (`frontend/src/`)
 

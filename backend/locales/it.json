@@ -47,7 +47,7 @@
   "confirmModal.actions.cancel": "Annulla",
   "confirmModal.actions.delete": "Elimina",
   "confirmModal.area.title": "Eliminare area?",
-  "confirmModal.area.message": "Questa azione eliminerà l'area e tutti i progetti collegati. Non può essere annullata.",
+  "confirmModal.area.message": "Questa azione eliminerà l'area, tutti i progetti collegati e le relative task. Non può essere annullata. Se è l'ultima area, ne verrà creata automaticamente una nuova vuota chiamata 'utente'.",
   "confirmModal.project.title": "Eliminare progetto?",
   "confirmModal.project.message": "Questa azione eliminerà il progetto e tutte le task collegate. Non può essere annullata.",
   "confirmModal.task.title": "Eliminare task?",

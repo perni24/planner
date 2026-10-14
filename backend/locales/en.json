@@ -47,7 +47,7 @@
   "confirmModal.actions.cancel": "Cancel",
   "confirmModal.actions.delete": "Delete",
   "confirmModal.area.title": "Delete area?",
-  "confirmModal.area.message": "This action will delete the area and all linked projects. It cannot be undone.",
+  "confirmModal.area.message": "This action will delete the area, all linked projects and their tasks. It cannot be undone. If this is the last area, a new empty area named 'utente' will be created automatically.",
   "confirmModal.project.title": "Delete project?",
   "confirmModal.project.message": "This action will delete the project and all linked tasks. It cannot be undone.",
   "confirmModal.task.title": "Delete task?",

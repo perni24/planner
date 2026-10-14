@@ -127,15 +127,18 @@ cd backend
 ruff check .
 ```
 
-Test automatici delle migrazioni (da `backend/`, con l'ambiente virtuale attivo):
+Test automatici di migrazioni e download backup (da `backend/`, con l'ambiente virtuale attivo):
 
 ```bash
-python -m unittest discover -s test -p test_migrations.py -v
+python -m unittest discover -s test -p test_*.py -v
 ```
 
 I test usano database temporanei: non modificano `backend/db/planner.db`.
 Coprono creazione, aggiornamento delle vecchie release, comportamento dei trigger,
-rollback e riavvio dopo errori. Le API vengono ancora provate manualmente.
+rollback e riavvio dopo errori. I test del backup simulano richieste ASGI e
+verificano integrita della copia, WAL, modifiche durante l'invio, download
+simultanei e pulizia dei temporanei anche in caso di errore o cancellazione.
+Le altre API vengono ancora provate manualmente.
 GitHub Actions non esegue questi controlli.
 
 Per modifiche allo schema segui la procedura in `DATABASE.md`: occorre aggiornare

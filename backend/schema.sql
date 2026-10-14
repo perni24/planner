@@ -42,6 +42,13 @@ CREATE TABLE settings (
     custom_hover_text TEXT NOT NULL DEFAULT '#f0f9ff'
 );
 
+CREATE TRIGGER trg_recreate_last_area
+AFTER DELETE ON areas
+WHEN NOT EXISTS (SELECT 1 FROM areas)
+BEGIN
+    INSERT INTO areas (name) VALUES ('utente');
+END;
+
 CREATE TRIGGER trg_subtask_after_insert
 AFTER INSERT ON tasks
 WHEN NEW.parent_id IS NOT NULL

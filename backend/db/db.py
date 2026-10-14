@@ -21,6 +21,12 @@ def get_db_connection():
     return conn
 
 
+def backup_database(destination_path):
+    with closing(get_db_connection()) as source:
+        with closing(sqlite3.connect(destination_path)) as destination:
+            source.backup(destination, pages=256)
+
+
 def init_db():
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)

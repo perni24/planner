@@ -8,9 +8,6 @@ storico resta nella cronologia Git. Le idee non ancora pianificate stanno in
 
 Da risolvere prima della prossima release.
 
-### Funzionamento
-- [ ] Impedire l'eliminazione dell'ultima area, oppure permettere di crearne una quando non ce ne sono (oggi l'interfaccia resta senza `AreaSwitcher`)
-
 ### Interfaccia desktop e spegnimento (PyWebView)
 
 Decisione: nell'app portable backend e MCP restano attivi finche la finestra di
@@ -47,9 +44,6 @@ React, API REST, MCP, SQLite ed eventi SSE restano invariati.
 
 ### Lingue portable
 - [ ] Integrare le nuove chiavi dei dizionari inclusi nel bundle con i file esterni `locales/`, preservando le traduzioni dell'utente: oggi aggiornare l'app con file lingua gia presenti puo lasciare testi vuoti
-
-### Backup
-- [ ] Generare il backup con l'API `sqlite3.backup()` invece di copiare il file in uso
 
 ## 3. Media
 

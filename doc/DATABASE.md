@@ -40,6 +40,19 @@ Le foreign key in SQLite sono attive solo se la connessione esegue
 `PRAGMA foreign_keys = ON`, come fa `get_db_connection()` in `backend/db/db.py`.
 Usare sempre quella funzione per aprire connessioni.
 
+## Eliminazione dell'ultima area
+
+Il trigger `trg_recreate_last_area` crea una nuova area vuota chiamata `utente`
+quando un'eliminazione lascia la tabella `areas` senza righe. La nuova area ha
+un nuovo id: non e un ripristino di quella eliminata e non recupera i suoi
+progetti o task, che vengono cancellati normalmente tramite le foreign key.
+Eliminazione e creazione avvengono nella stessa transazione.
+
+Se rimangono altre aree, non viene creata alcuna area aggiuntiva. La conferma
+di eliminazione nell'interfaccia esplicita questo comportamento; dopo
+`reloadAreas()` il context seleziona una delle aree presenti, inclusa quella
+ricreata. La migrazione `002` ripristina anche i database gia rimasti senza aree.
+
 ## Subtask e trigger di completamento
 
 Il modello prevede un solo livello di subtask: una task con `parent_id` non
@@ -98,7 +111,7 @@ impostazioni.
 - per un database esistente legge `PRAGMA user_version` e applica soltanto le migrazioni mancanti;
 - se la versione del database e superiore a quella supportata, interrompe l'avvio senza modificarlo: non esiste un downgrade automatico.
 
-La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `1`.
+La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `2`.
 I database delle release precedenti, senza versione, vengono riconosciuti come `0`.
 Le migrazioni sono file SQL in `backend/db/migrations/`, registrati in ordine nella
 tupla `MIGRATION_FILES` di `backend/db/migration_runner.py`.
@@ -121,12 +134,19 @@ riparte da quelle mancanti.
 `legacy_add_subtasks.sql` nella stessa transazione: aggiunge `parent_id`, i trigger
 di completamento e aggiorna la vista progetti. I dati e gli id esistenti vengono
 conservati. I database di `v0.1.0` hanno gia questi elementi e ricevono soltanto la
-correzione del trigger.
+correzione del trigger. Successivamente viene applicata anche la migrazione `002`.
+
+### Seconda migrazione
+
+`002_recreate_last_area.sql` installa `trg_recreate_last_area`. Se non esistono
+aree, inserisce `utente`; altrimenti conserva tutte le aree esistenti. Non modifica
+gli id o i dati presenti. I database allo schema `1` ricevono solo questa
+migrazione, quelli senza versione ricevono prima la `001`.
 
 ### Aggiungere una modifica allo schema
 
 1. Aggiorna `backend/schema.sql`, che deve rappresentare lo schema finale per le nuove installazioni.
-2. Crea lo script successivo, per esempio `backend/db/migrations/002_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
+2. Crea lo script successivo, per esempio `backend/db/migrations/003_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
 3. Aggiungi il nome del file in fondo a `MIGRATION_FILES`, senza saltare numeri.
 4. Verifica sia un database nuovo sia l'aggiornamento di un database precedente, anche in caso di errore e riavvio.
 
@@ -135,6 +155,18 @@ Gli script non devono contenere `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` o
 assegnazioni a `PRAGMA user_version`: transazioni e versione sono gestite dal
 runner, che rifiuta queste istruzioni. La build portable include automaticamente
 l'intera cartella delle migrazioni.
+
+## Backup scaricabili
+
+`GET /api/backup/download` genera una copia consistente tramite
+`backup_database()` (`backend/db/db.py`), che usa `Connection.backup()` e chiude
+esplicitamente entrambe le connessioni. Il file originale non viene inviato al
+browser: la copia viene creata in una cartella temporanea dentro `DATA_DIR`,
+eliminata dopo il trasferimento anche in caso di errore. Sono conservati anche
+schema, trigger e `user_version`; i file lingua esterni non sono inclusi.
+
+I backup delle migrazioni restano separati e vengono conservati in
+`MIGRATION_BACKUPS_DIR`. L'importazione da interfaccia non e ancora disponibile.
 
 ## Accesso al DB
 

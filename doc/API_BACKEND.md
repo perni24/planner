@@ -62,6 +62,10 @@ DELETE /api/areas/delete_area      {id}
 ```
 
 Eliminando un'area vengono eliminati anche i suoi progetti e le loro task.
+Se era l'ultima area, il trigger `trg_recreate_last_area` crea automaticamente
+un'area vuota `utente` con un nuovo id, senza recuperare i dati eliminati.
+La risposta del delete resta invariata; per ottenere la nuova area si ricarica
+`get_all_areas`.
 
 ## Projects
 
@@ -148,8 +152,15 @@ non lo usa.
 GET /api/backup/download
 ```
 
-Scarica una copia del database con data e ora nel nome del file. L'importazione di
-un backup non e ancora disponibile.
+Scarica una copia consistente del database creata con `Connection.backup()`
+di SQLite, con data e ora nel nome del file. La generazione avviene in un thread
+separato e non invia il file originale in uso. Le connessioni vengono chiuse prima
+del trasferimento; la copia temporanea viene eliminata al termine dell'invio,
+anche in caso di errore. La risposta non viene memorizzata in cache.
+
+Il backup conserva dati, schema e `PRAGMA user_version`. Non include i file lingua
+esterni. Se il DB non esiste, la route restituisce `404` senza crearlo.
+L'importazione di un backup non e ancora disponibile.
 
 ## Eventi (SSE)
 
