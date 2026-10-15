@@ -1,10 +1,12 @@
+from contextlib import closing
+
 from db.db import get_db_connection
 
 def format_data(row):
     return dict(row) if row else None
 
 def get_all_tasks(): 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT * FROM tasks
@@ -13,7 +15,7 @@ def get_all_tasks():
         return [format_data(row) for row in cursor]
 
 def get_tasks_by_project(project_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT * FROM tasks WHERE project_id = ?
@@ -23,7 +25,7 @@ def get_tasks_by_project(project_id):
         return [format_data(row) for row in cursor]
 
 def get_task(task_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         row = conn.execute(
             """
             SELECT id, project_id, parent_id
@@ -35,7 +37,7 @@ def get_task(task_id):
         return format_data(row)
 
 def insert_task(project_id, title, description, parent_id=None):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor  = conn.execute(
             """
             INSERT INTO tasks (project_id, parent_id, title, description) VALUES (?, ?, ?, ?)
@@ -46,7 +48,7 @@ def insert_task(project_id, title, description, parent_id=None):
         return cursor.lastrowid 
     
 def update_task(id, title, description):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             UPDATE tasks 
@@ -59,7 +61,7 @@ def update_task(id, title, description):
         return cursor.rowcount
 
 def has_subtasks(id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         row = conn.execute(
             """
             SELECT 1 FROM tasks WHERE parent_id = ? LIMIT 1
@@ -69,7 +71,7 @@ def has_subtasks(id):
         return row is not None
 
 def update_status_task(id): 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             UPDATE tasks
@@ -83,7 +85,7 @@ def update_status_task(id):
         return cursor.rowcount
 
 def delete_task(id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor  = conn.execute(
             """
             DELETE FROM tasks WHERE id = ?

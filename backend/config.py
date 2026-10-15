@@ -27,10 +27,18 @@ IS_DEVELOPMENT = APP_ENV == "development"
 IS_PRODUCTION = APP_ENV == "production"
 
 DEBUG = get_bool_env("DEBUG", IS_DEVELOPMENT)
-RELOAD = False if IS_FROZEN else get_bool_env("RELOAD", IS_DEVELOPMENT)
+# Il reload di Uvicorn non e compatibile con il ciclo di vita della finestra desktop.
+RELOAD = False
 
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "8000"))
+
+APP_HOST = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
+APP_URL = f"http://{APP_HOST}:{PORT}"
+WEBVIEW_GUI = "edgechromium" if sys.platform == "win32" else None
+SERVER_STARTUP_TIMEOUT_SECONDS = 15
+SERVER_GRACEFUL_SHUTDOWN_SECONDS = 5
+SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10
 
 # Valori ammessi nell'header Host (senza porta), contro il DNS rebinding.
 # Se HOST viene cambiato per raggiungere l'app con un altro nome o IP, quel valore

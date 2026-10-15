@@ -22,27 +22,13 @@ LATEST_SCHEMA_VERSION = len(migration_runner.MIGRATION_FILES)
 def isolated_database():
     with TemporaryDirectory(prefix="planner-migrations-") as directory:
         root = Path(directory)
-        repository_connections = []
-
-        def open_repository_connection():
-            conn = database.get_db_connection()
-            repository_connections.append(conn)
-            return conn
-
         with patch.multiple(
             database,
             DATA_DIR=str(root),
             DB_PATH=str(root / "planner.db"),
             MIGRATION_BACKUPS_DIR=str(root / "migration_backups"),
-        ), patch.object(
-            area_repo, "get_db_connection", open_repository_connection
         ), redirect_stdout(StringIO()):
-            try:
-                yield root
-            finally:
-                # I repository non chiudono le connessioni: evita file bloccati nei test.
-                for conn in repository_connections:
-                    conn.close()
+            yield root
 
 
 def seed_legacy_database(with_subtasks=True):

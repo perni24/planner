@@ -1,10 +1,12 @@
+from contextlib import closing
+
 from db.db import get_db_connection
 
 def format_data(row):
     return dict(row) if row else None
 
 def get_all_areas(): 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT * FROM areas
@@ -13,7 +15,7 @@ def get_all_areas():
         return [format_data(row) for row in cursor]
 
 def insert_area(name):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             INSERT INTO areas (name) VALUES (?)
@@ -24,7 +26,7 @@ def insert_area(name):
         return cursor.lastrowid
 
 def update_area(id, name):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             UPDATE areas SET name = ? WHERE id = ?
@@ -35,7 +37,7 @@ def update_area(id, name):
         return cursor.rowcount
 
 def delete_area(id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             DELETE FROM areas WHERE id = ? 

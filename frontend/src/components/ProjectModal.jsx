@@ -1,16 +1,11 @@
 import { useState } from "react";
-import { insertProject, updateProject, deleteProject } from "../api";
-import { useArea } from "../context/useArea";
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 import ConfirmModal from "./ConfirmModal";
 
-function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = null }) {
-    const navigate = useNavigate();
+function ProjectModal({ onClose, onSave, onDelete, areaId = null, isEditMode = false, project = null }) {
     const {jsonLanguage} = useLanguage(); 
     const { showToast } = useToast();
-    const {currentArea} = useArea(); 
     const [projectName, setProjectName] = useState(isEditMode ? project?.name ?? '' : '');
     const [projectDescription, setProjectDescription] = useState(isEditMode ? project?.description ?? '' : ''); 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +13,7 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
 
     const disabledButton = projectName.trim().length === 0
     const hasChanges = projectName.trim() !== (project?.name ?? '').trim() || projectDescription.trim() !== (project?.description ?? '').trim()
-    const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !currentArea?.id) || (isEditMode && (!project?.id || !hasChanges))
+    const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !areaId) || (isEditMode && (!project?.id || !hasChanges))
     const disabledDeleteButton = isSubmitting || (isEditMode && !project?.id)
 
     async function handleUpsertProject(){
@@ -28,7 +23,7 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
 
         const name = projectName.trim();
 
-        if (!name || (!isEditMode && !currentArea?.id) || (isEditMode && !project?.id)) {
+        if (!name || (!isEditMode && !areaId) || (isEditMode && !project?.id)) {
             showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
             return;
         }
@@ -36,20 +31,10 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
         try {
             setIsSubmitting(true);
 
-            if (!isEditMode) {
-                await insertProject(currentArea.id, name, projectDescription); 
-                showToast(jsonLanguage['projectModal.toast.created'], 'success');
-                await refreshFunction?.(); 
-            }else{
-                await updateProject(project.id, name, projectDescription)
-                showToast(jsonLanguage['projectModal.toast.updated'], 'success');
-                await refreshFunction?.(); 
-            }
-
+            await onSave({ name, description: projectDescription });
             onClose(); 
-        } catch (error) {
-            console.error(error);
-            showToast(jsonLanguage['projectModal.toast.errorSave'], 'error');
+        } catch {
+            return;
         } finally {
             setIsSubmitting(false);
         }
@@ -68,13 +53,10 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
         try {
             setIsSubmitting(true);
 
-            await deleteProject(project.id);
-            showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
+            await onDelete(project.id);
             onClose();
-            navigate('/');
-        } catch (error) {
-            console.error(error);
-            showToast(jsonLanguage['projectModal.toast.errorDelete'], 'error');
+        } catch {
+            return;
         } finally {
             setIsSubmitting(false);
         }
@@ -93,6 +75,7 @@ function ProjectModal({ onClose, refreshFunction, isEditMode = false, project = 
                     <button
                         type="button"
                         onClick={onClose}
+                        disabled={isSubmitting}
                         className="rounded-md px-2 py-1 text-sm text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
                     >
                         X

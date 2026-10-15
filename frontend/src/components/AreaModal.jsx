@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { insertArea, updateArea, deleteArea } from "../api";
-import { useArea } from "../context/useArea";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from '../context/useToast';
 import ConfirmModal from "./ConfirmModal";
 
-function AreaModal({ onClose, area = null, isEditMode = false  }) {
+function AreaModal({ onClose, onSave, onDelete, area = null, isEditMode = false }) {
   
-const { reloadAreas } = useArea();
 const { jsonLanguage } = useLanguage(); 
 const { showToast } = useToast();
 const [areaName, setAreaName] = useState(isEditMode ? area?.name ?? '' : '')
@@ -33,18 +30,10 @@ async function handleUpsertArea() {
   try {
     setIsSubmitting(true);
 
-    if(isEditMode){
-      await updateArea(area.id, name);
-      showToast(jsonLanguage['areaModal.toast.updated'], 'success');
-    }else{
-      await insertArea(name);
-      showToast(jsonLanguage['areaModal.toast.created'], 'success');
-    }
-    await reloadAreas();
+    await onSave({ name });
     onClose();
-    } catch (error) {
-      console.error(error);
-      showToast(jsonLanguage['areaModal.toast.errorSave'], 'error');
+    } catch {
+      return;
     } finally {
       setIsSubmitting(false);
     }
@@ -63,13 +52,10 @@ async function handleDeleteArea() {
   try {
     setIsSubmitting(true);
 
-    await deleteArea(area.id)
-    showToast(jsonLanguage['areaModal.toast.deleted'], 'success');
-    await reloadAreas();
+    await onDelete(area.id);
     onClose();
-  } catch (error) {
-    console.error(error);
-    showToast(jsonLanguage['areaModal.toast.errorDelete'], 'error');
+  } catch {
+    return;
   } finally {
     setIsSubmitting(false);
   }
@@ -86,6 +72,7 @@ return (
           <button
             type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             className="rounded-md px-2 py-1 text-sm text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
           >
             X

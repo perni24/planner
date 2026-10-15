@@ -1,10 +1,12 @@
+from contextlib import closing
+
 from db.db import get_db_connection
 
 def format_data(row):
     return dict(row) if row else None
 
 def get_all_settings():
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
             """
             SELECT * FROM settings
@@ -16,7 +18,7 @@ def get_all_settings():
 
     
 def get_current_language(): 
-     with get_db_connection() as conn:
+     with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT language FROM settings
@@ -27,7 +29,7 @@ def get_current_language():
      
 
 def update_language(language):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         conn.execute(
             """
             UPDATE settings SET language = ?
@@ -38,7 +40,7 @@ def update_language(language):
 
 
 def update_theme(theme, custom_colors):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         conn.execute(
             """
             UPDATE settings

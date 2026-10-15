@@ -1,4 +1,4 @@
-from queue import Empty, Full, Queue
+from queue import Empty, Full, Queue, ShutDown
 from threading import Lock
 from typing import Any
 
@@ -21,6 +21,17 @@ def subscribe() -> Queue:
 def unsubscribe(subscriber: Queue) -> None:
     with _subscribers_lock:
         _subscribers.discard(subscriber)
+    subscriber.shutdown(immediate=True)
+
+
+def close_subscribers() -> None:
+    """Sblocca le letture SSE prima della chiusura dell'event loop del server."""
+    with _subscribers_lock:
+        subscribers = list(_subscribers)
+        _subscribers.clear()
+
+    for subscriber in subscribers:
+        subscriber.shutdown(immediate=True)
 
 
 def publish(event: dict[str, Any]) -> None:
@@ -30,13 +41,15 @@ def publish(event: dict[str, Any]) -> None:
     for subscriber in subscribers:
         try:
             subscriber.put_nowait(event.copy())
+        except ShutDown:
+            continue
         except Full:
             try:
                 subscriber.get_nowait()
-            except Empty:
+            except (Empty, ShutDown):
                 pass
 
             try:
                 subscriber.put_nowait(event.copy())
-            except Full:
+            except (Full, ShutDown):
                 pass

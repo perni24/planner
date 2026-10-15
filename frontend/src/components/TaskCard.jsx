@@ -1,10 +1,9 @@
-import { updateStatusTask} from "../api";
 import { useState } from "react";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 import settingsIcon from '../assets/icons/settings.svg?no-inline';
 
-function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction}) {
+function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, onToggle }) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -28,11 +27,9 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction})
     try {
       setIsUpdatingStatus(true);
 
-      await updateStatusTask(task.id); 
-      await refreshFunction?.();
-    } catch (error) {
-      console.error(error);
-      showToast(jsonLanguage['taskCard.toast.errorUpdateStatus'], 'error');
+      await onToggle(task);
+    } catch {
+      return;
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -133,7 +130,7 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, refreshFunction})
               subtasks={[]}
               onEdit={onEdit}
               onAddSubtask={null}
-              refreshFunction={refreshFunction}
+              onToggle={onToggle}
             />
           ))}
         </div>

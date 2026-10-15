@@ -10,7 +10,7 @@ dell'utente come cartella portable (PyInstaller). Un backend Python serve sia
 l'interfaccia React sia le API su `127.0.0.1:8000`, e salva i dati in SQLite. Un
 server MCP integrato permette a un client AI di leggere e modificare i dati.
 
-- `backend/`: Python 3.12+ (il codice deve restare compatibile con la 3.12 usata dalla CI), Starlette, Uvicorn, `sqlite3`, SDK `mcp`.
+- `backend/`: Python 3.14 (versione di riferimento per sviluppo e CI), Starlette, Uvicorn, `sqlite3`, SDK `mcp`.
 - `frontend/`: React 19, Vite 8, Tailwind CSS 4, React Router 7.
 - `doc/`: documentazione in italiano. Parti da `doc/STRUTTURA_PROGETTO.md`.
 - `doc/TODO.md`: attivita aperte e problemi noti. Controllalo prima di "correggere"
@@ -21,8 +21,8 @@ server MCP integrato permette a un client AI di leggere e modificare i dati.
 Backend (da `backend/`, con il venv attivo in `backend/.venv/`):
 
 ```bash
-pip install -r requirements.txt
-python main.py          # sviluppo: reload attivo, nessuno spegnimento automatico
+python -m pip install -r requirements-dev.txt
+python main.py          # finestra PyWebView e backend, reload disattivato
 ruff check .            # lint
 python -m unittest discover -s test -p test_*.py -v
 ```
@@ -33,17 +33,25 @@ Frontend (da `frontend/`):
 npm install
 npm run dev             # http://localhost:5173, proxy /api -> 127.0.0.1:8000
 npm run lint
+npm run typecheck       # controlla i file .ts e .tsx senza generare JavaScript
 npm run build
 ```
 
 Build portable: `python build_portable.py` da `backend/` (output in
 `backend/dist/PlannerApp/`).
 
-Esistono test automatici delle migrazioni e del download backup in
-`backend/test/test_migrations.py` e `backend/test/test_backup.py`, su database
-temporanei. Per verificare una modifica: esegui i linter, i test se hai toccato il
-database o il backup, `npm run build` se hai toccato il frontend, e prova le altre
-API con i file `backend/test/*.http` o con l'app avviata.
+`backend/requirements.txt` contiene solo le dipendenze di runtime;
+`backend/requirements-dev.txt` lo include e aggiunge PyInstaller e Ruff.
+Per sviluppo e build (anche in CI) installa il secondo file.
+
+Esistono test automatici di migrazioni, download backup e repository in
+`backend/test/test_migrations.py`, `backend/test/test_backup.py` e
+`backend/test/test_repositories.py`, su database temporanei. `test_startup.py` e
+`test_events.py` verificano l'avvio desktop e la chiusura SSE; la finestra e simulata
+e i test di integrazione usano porte TCP locali temporanee. Per verificare una
+modifica: esegui i linter, i test se hai toccato il database o il backup,
+`npm run build` se hai toccato il frontend, e prova le altre API con i file
+`backend/test/*.http` o con l'app avviata.
 
 ## Architettura backend
 
@@ -60,7 +68,10 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Apri le connessioni sempre con `get_db_connection()` (`db/db.py`): attiva
   `PRAGMA foreign_keys = ON`, senza il quale i `ON DELETE CASCADE` non funzionano.
 - I repository REST chiamano `conn.commit()` esplicitamente; `mcp_repo` si affida al
-  commit automatico di `with conn:`. Nota: `with conn:` non chiude la connessione.
+  commit automatico di `with conn:`. Tutti i repository usano
+  `with closing(get_db_connection()) as conn, conn:`: prima viene eseguito il
+  commit/rollback e poi viene chiusa la connessione, anche con return o eccezioni.
+  Non sostituirlo con il solo `closing()`, che non esegue il commit automatico.
 - Tutte le route sono montate due volte, alla radice e sotto `/api`
   (`routes/api.py`). Il frontend usa sempre `/api/...`.
 - Gli endpoint seguono lo stile `/<entita>/<azione>` (es. `/tasks/insert_task`).
@@ -88,8 +99,18 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   tempo reale, pubblica un evento.
 - Configurazione e percorsi stanno in `config.py` e cambiano tra sviluppo e
   eseguibile PyInstaller (`IS_FROZEN`). Non costruire percorsi a mano altrove.
-- In produzione il server si spegne se non riceve heartbeat dalla UI per 60 secondi
-  (`services/app_lifecycle.py`). In sviluppo il controllo e disattivato.
+- `main.py` avvia Uvicorn in un thread non-daemon e PyWebView nel thread principale,
+  dopo la preparazione del runtime e la verifica del frontend compilato. La
+  finestra si apre solo quando quel server risulta avviato, non dopo una risposta
+  di un servizio qualsiasi sulla stessa porta. Il reload e sempre disattivato.
+- La chiusura della finestra richiede lo stop di Uvicorn e attende il thread;
+  minimizzare non ferma il server. I timeout sono in `config.py`. Il superamento
+  del timeout di arresto viene segnalato senza terminare forzatamente il thread:
+  la gestione completa dei casi bloccati resta in `doc/TODO.md`.
+- Il monitor heartbeat non viene piu avviato. Il vecchio service e le chiamate
+  frontend restano temporaneamente presenti, ma non decidono il ciclo di vita.
+- Le code SSE vengono chiuse con `Queue.shutdown()` alla disconnessione e alla
+  chiusura del lifespan, per non lasciare letture dell'executor bloccate.
 
 ## Database
 
@@ -128,6 +149,17 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Tutte le chiamate HTTP passano da `src/api.ts`, che usa `apiCore` in
   `src/apiCore.ts`. Non usare `fetch` nei componenti. Eccezioni: `EventSource` in
   `DataSyncContext.jsx` e il download del backup in `Setting.jsx`.
+- Le funzioni di `api.ts` usano camelCase (es. `getTasksByProject`,
+  `getProjectsByArea`, `updateTaskStatus`, `getSettings`). Gli endpoint e i nomi
+  dei campi nel payload mantengono la convenzione del backend.
+- Modali e card non importano `api.ts`: ricevono callback `onSave`, `onDelete`,
+  `onToggle` e `onEdit`. Le scritture delle aree sono in `AreaProvider`, quelle
+  di progetti e task nelle pagine `Project.jsx` e `Tasks.jsx`. I componenti
+  mantengono form, validazione, conferme e blocco dei pulsanti durante l'attesa.
+- Le callback di scrittura restituiscono Promise e propagano gli errori. I
+  chiamanti gestiscono toast di esito, aggiornamento dati e navigazione; modali
+  e card non duplicano questi toast e il modale si chiude solo se la callback
+  riesce. `AreaSwitcher` coordina i toast e la navigazione per le azioni delle aree.
 - Stato globale con i context in `src/context/`, composti in `AppProviders.jsx`.
   Ogni context usa tre file: `XContext.jsx` (provider), `xContextValue.js`
   (`createContext`) e `useX.js` (hook che lancia un errore fuori dal provider).
@@ -139,8 +171,10 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   `src/index.css`: usale invece dei colori fissi, cosi i temi chiaro, scuro e custom
   continuano a funzionare.
 - Componenti e pagine in PascalCase, un componente per file.
-- I file `.ts` in `src/types/` non vengono verificati: non c'e `tsconfig` ne il
-  pacchetto `typescript`, ed ESLint controlla solo `.js` e `.jsx`.
+- TypeScript verifica i file `.ts` e `.tsx` in `src/` con `npm run typecheck`
+  (`tsc --noEmit`, configurazione strict in `frontend/tsconfig.json`). Il controllo
+  viene eseguito anche da `npm run build`. I file `.js` e `.jsx` restano esclusi
+  dal controllo dei tipi e sono verificati da ESLint. Usa `import type` per i tipi.
 
 ## Testi e lingue
 
@@ -158,8 +192,8 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Messaggi di errore delle API e descrizioni dei tool MCP in inglese.
 - Python: stile coerente con i file esistenti, funzioni a livello di modulo, niente
   classi se non per i modelli Pydantic.
-- `backend/requirements.txt` e codificato in UTF-16. Se lo modifichi, controlla di
-  non mischiare codifiche (meglio convertirlo tutto in UTF-8).
+- Mantieni `backend/requirements.txt` e `backend/requirements-dev.txt` in UTF-8;
+  gli strumenti di sviluppo e build vanno solo nel secondo file.
 - `APP_VERSION` in `backend/config.py` deve corrispondere al tag di release senza
   la `v` (tag `v0.1.0` -> `"0.1.0"`). La versione in `frontend/package.json` non e
   usata.

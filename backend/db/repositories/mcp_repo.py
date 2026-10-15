@@ -1,7 +1,9 @@
+from contextlib import closing
+
 from db.db import get_db_connection
 
 def get_all_areas():
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT *
@@ -11,7 +13,7 @@ def get_all_areas():
         return [dict(row) for row in cursor]
 
 def get_all_projects():
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT *
@@ -23,7 +25,7 @@ def get_all_projects():
         return [dict(row) for row in cursor]
 
 def get_project_tasks(project_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             """
             SELECT *
@@ -44,7 +46,7 @@ def get_existing_area_ids(area_ids):
 
     placeholders = ", ".join("?" for _ in unique_area_ids)
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             f"SELECT id FROM areas WHERE id IN ({placeholders})",
             unique_area_ids,
@@ -60,7 +62,7 @@ def get_existing_project_ids(project_ids):
 
     placeholders = ", ".join("?" for _ in unique_project_ids)
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             f"SELECT id FROM projects WHERE id IN ({placeholders})",
             unique_project_ids,
@@ -77,7 +79,7 @@ def get_existing_task_ids(task_ids):
 
     placeholders = ", ".join("?" for _ in unique_task_ids)
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             f"SELECT id FROM tasks WHERE id IN ({placeholders})",
             unique_task_ids,
@@ -93,7 +95,7 @@ def get_task_ids_with_subtasks(task_ids):
 
     placeholders = ", ".join("?" for _ in unique_task_ids)
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             f"SELECT DISTINCT parent_id FROM tasks WHERE parent_id IN ({placeholders})",
             unique_task_ids,
@@ -109,7 +111,7 @@ def get_parent_tasks(parent_ids):
 
     placeholders = ", ".join("?" for _ in unique_parent_ids)
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             f"""
             SELECT id, project_id, parent_id
@@ -125,7 +127,7 @@ def bulk_insert_area(names):
 
     inserted_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for name in names:
             cursor = conn.execute(
                 """
@@ -140,7 +142,7 @@ def bulk_insert_project(area_ids, names, descriptions):
 
     inserted_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for area_id, name, description in zip(
             area_ids,
             names,
@@ -161,7 +163,7 @@ def bulk_insert_task(project_ids, titles, descriptions, parent_ids):
 
     inserted_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for project_id, title, description, parent_id in zip(
             project_ids,
             titles,
@@ -182,7 +184,7 @@ def bulk_insert_task(project_ids, titles, descriptions, parent_ids):
 def bulk_update_project(project_ids, names, descriptions):
     updated_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for project_id, name, description in zip(
             project_ids,
             names,
@@ -208,7 +210,7 @@ def bulk_update_project(project_ids, names, descriptions):
 def bulk_update_task(ids, titles, descriptions):
     updated_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for task_id, title, description in zip(
             ids,
             titles,
@@ -234,7 +236,7 @@ def bulk_update_task(ids, titles, descriptions):
 def bulk_set_task_completed(ids, completeds):
     updated_ids = []
 
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         for task_id, completed in zip(
             ids,
             completeds,

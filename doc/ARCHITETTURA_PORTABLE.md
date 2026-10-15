@@ -2,6 +2,11 @@
 
 L'app puo essere eseguita come cartella portable generata con PyInstaller in modalita `--onedir`.
 
+Il codice usa ora l'avvio desktop PyWebView, ancora in fase di integrazione:
+packaging e funzionamento nativo sui tre sistemi devono essere verificati prima
+della distribuzione. Le vecchie release gia pubblicate mantengono il precedente
+avvio nel browser.
+
 ## Struttura dell'output
 
 Dopo la build locale o GitHub Actions, l'output principale e:
@@ -62,30 +67,36 @@ Quando l'eseguibile parte:
 1. crea le cartelle runtime `data/` e `locales/` se non esistono;
 2. copia i file lingua default in `locales/` solo se mancano;
 3. crea il database SQLite se nuovo o vuoto, oppure applica le migrazioni mancanti dopo un backup automatico;
-4. avvia il backend locale su `127.0.0.1:8000` (modificabile con le variabili d'ambiente `HOST` e `PORT`; il backend risponde solo alle richieste rivolte a `127.0.0.1`, `localhost` o al valore di `HOST`);
-5. apre automaticamente il browser dopo circa un secondo;
-6. serve il frontend React buildato, le API sotto `/api` e il server MCP sotto `/mcp`.
+4. verifica la presenza del frontend compilato e avvia Uvicorn in un thread separato su `127.0.0.1:8000`, senza reload (host e porta restano configurabili);
+5. attende che quel server sia pronto, con un timeout di 15 secondi, senza interrogare altri servizi eventualmente presenti sulla stessa porta;
+6. apre PyWebView nel thread principale all'URL configurato in `APP_URL`; su Windows usa WebView2;
+7. serve il frontend React buildato, le API sotto `/api` e il server MCP sotto `/mcp` finche la finestra resta aperta.
 
-## Shutdown automatico
+L'importazione di `main.py` non prepara il runtime e non avvia server o finestra.
+Frontend mancante, porta occupata, timeout ed errori del renderer impediscono
+l'avvio o richiedono lo stop del backend e vengono propagati alla console.
 
-Il frontend invia un heartbeat al backend ogni 10 secondi.
+## Chiusura della finestra
 
-Se il backend non riceve heartbeat per circa 60 secondi in produzione, presume che la UI sia stata chiusa e arresta il server.
+Chiudere la finestra richiede l'arresto di Uvicorn e attende il thread backend.
+Minimizzare la finestra non lo interrompe, quindi anche MCP resta attivo.
 
-Endpoint coinvolto:
+Uvicorn concede 5 secondi alle richieste in corso; il coordinatore attende fino
+a 10 secondi. Le code SSE vengono chiuse alla disconnessione e nel lifespan per
+sbloccare le letture ancora pendenti nell'executor. I timeout sono definiti in
+`config.py`.
 
-```text
-POST /api/app/heartbeat
-```
+Se il thread non termina entro il timeout viene segnalato un errore, senza
+ucciderlo o troncare le operazioni: puo quindi restare attivo. La gestione
+completa dei blocchi, delle scritture e delle sessioni MCP durante lo spegnimento
+resta aperta in `TODO.md`, come la gestione della finestra dopo uno stop via API.
 
-Conseguenze da conoscere:
+Il monitor heartbeat non viene piu avviato. L'endpoint `POST /api/app/heartbeat`
+e le chiamate del frontend ogni 10 secondi sono ancora presenti, ma non decidono
+quando spegnere il server; saranno rimossi in un passaggio successivo.
 
-- il server MCP funziona solo finche la UI resta aperta nel browser: un client AI
-  usato senza la scheda di Planner aperta perde la connessione dopo circa un minuto;
-- i browser rallentano i timer delle schede in background, quindi una scheda nascosta
-  a lungo potrebbe non inviare heartbeat abbastanza spesso (vedi `TODO.md`).
-
-In sviluppo il controllo dell'heartbeat e disattivato.
+Download del backup nella finestra e persistenza del profilo WebView non sono
+ancora configurati e restano da verificare nel passaggio dedicato.
 
 ## Aggiornare l'app
 

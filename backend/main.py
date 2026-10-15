@@ -1,6 +1,6 @@
 import os
 import threading
-import webbrowser
+import time
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -10,19 +10,24 @@ from starlette.routing import Route
 import uvicorn
 from config import (
     ALLOWED_HOSTS,
+    APP_URL,
     DEBUG,
     FRONTEND_DIST_DIR,
     HOST,
-    IS_PRODUCTION,
     PORT,
     RELOAD,
+    SERVER_GRACEFUL_SHUTDOWN_SECONDS,
+    SERVER_SHUTDOWN_TIMEOUT_SECONDS,
+    SERVER_STARTUP_TIMEOUT_SECONDS,
+    WEBVIEW_GUI,
     ensure_default_locales,
     ensure_runtime_directories,
 )
 from db.db import init_db
 from middleware.origin_guard import origin_guard
 from routes.api import all_routes
-from services.app_lifecycle import set_shutdown_callback, start_heartbeat_monitor
+from services.app_lifecycle import set_shutdown_callback
+from services.event_service import close_subscribers
 from contextlib import asynccontextmanager
 from starlette.routing import Mount
 
@@ -31,7 +36,10 @@ from integration.mcp.server import mcp_app, planner_mcp
 @asynccontextmanager
 async def lifespan(app):
     async with planner_mcp.session_manager.run():
-        yield
+        try:
+            yield
+        finally:
+            close_subscribers()
 
 async def serve_frontend(request):
     path = request.path_params.get("path", "")
@@ -59,11 +67,6 @@ def create_routes():
     return routes
 
 
-def open_browser():
-    browser_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
-    webbrowser.open(f"http://{browser_host}:{PORT}")
-
-
 app = Starlette(
     debug=DEBUG,
     routes=create_routes(),
@@ -74,23 +77,84 @@ app = Starlette(
     lifespan=lifespan,
 )
 
-if __name__ == "__main__":
+
+def initialize_runtime():
+    """Prepara cartelle, lingue e database prima dell'avvio del server."""
     ensure_runtime_directories()
     ensure_default_locales()
-    # Inizializza il DB all'avvio
     init_db()
 
-    if IS_PRODUCTION and not RELOAD:
-        threading.Timer(1.0, open_browser).start()
 
-    # Avvia il server
-    if RELOAD:
-        uvicorn.run("main:app", host=HOST, port=PORT, reload=RELOAD)
-    else:
-        config = uvicorn.Config(app, host=HOST, port=PORT, reload=RELOAD)
-        server = uvicorn.Server(config)
+def start_server():
+    """Avvia il backend in un thread e la finestra nel thread principale."""
+    index_path = os.path.join(FRONTEND_DIST_DIR, "index.html")
+    if not os.path.isfile(index_path):
+        raise RuntimeError("Frontend build not found. Run 'npm run build' in frontend first.")
 
-        set_shutdown_callback(lambda: setattr(server, "should_exit", True))
-        start_heartbeat_monitor(IS_PRODUCTION)
+    import webview
 
-        server.run()
+    config = uvicorn.Config(
+        app,
+        host=HOST,
+        port=PORT,
+        reload=RELOAD,
+        timeout_graceful_shutdown=SERVER_GRACEFUL_SHUTDOWN_SECONDS,
+    )
+    server = uvicorn.Server(config)
+    errors = []
+
+    def run_backend():
+        try:
+            server.run()
+        except BaseException as error:
+            # Uvicorn solleva SystemExit anche quando la porta e gia occupata.
+            errors.append(error)
+
+    def request_stop():
+        server.should_exit = True
+
+    backend_thread = threading.Thread(target=run_backend, name="planner-backend", daemon=False)
+    set_shutdown_callback(request_stop)
+    try:
+        backend_thread.start()
+        wait_for_server(server, backend_thread, errors)
+        window = webview.create_window(
+            "Planner", APP_URL, width=1280, height=800, min_size=(800, 600)
+        )
+        window.events.closed += request_stop
+        webview.start(gui=WEBVIEW_GUI, debug=DEBUG)
+    finally:
+        request_stop()
+        if backend_thread.ident is not None:
+            backend_thread.join(timeout=SERVER_SHUTDOWN_TIMEOUT_SECONDS)
+        if backend_thread.is_alive():
+            raise RuntimeError("Backend shutdown timed out; the server thread is still running.")
+        set_shutdown_callback(None)
+
+    if errors:
+        raise RuntimeError("Backend stopped unexpectedly.") from errors[0]
+
+
+def wait_for_server(server, backend_thread, errors):
+    """Attende il nostro server, senza fidarsi di altri servizi sulla stessa porta."""
+    deadline = time.monotonic() + SERVER_STARTUP_TIMEOUT_SECONDS
+    while not server.started:
+        if not backend_thread.is_alive():
+            error = errors[0] if errors else None
+            raise RuntimeError("Backend failed to start. Check the server logs.") from error
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Backend startup timed out.")
+        time.sleep(0.05)
+
+    if not backend_thread.is_alive() or server.should_exit:
+        error = errors[0] if errors else None
+        raise RuntimeError("Backend stopped before the window could be opened.") from error
+
+
+def main():
+    initialize_runtime()
+    start_server()
+
+
+if __name__ == "__main__":
+    main()

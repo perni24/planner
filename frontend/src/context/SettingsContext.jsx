@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllSettings } from '../api';
+import { getSettings } from '../api';
 import { SettingsContext } from './settingsContextValue';
 
 export function SettingsProvider({ children }) {
@@ -10,7 +10,7 @@ export function SettingsProvider({ children }) {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const response = await getAllSettings(); 
+                const response = await getSettings();
                 setSettings(response); 
             }catch (error) {
                 console.error('Error loading settings:', error);

@@ -7,7 +7,13 @@ Il backend gestisce il database SQLite e le API.
 
 ### Prima configurazione
 
-Serve Python 3.12 o superiore. GitHub Actions compila le release con la 3.12, quindi il codice deve restare compatibile con quella versione.
+Usa Python 3.14, aggiornato a una patch recente della serie `3.14.x`.
+GitHub Actions compila le release Windows, Linux e macOS con la serie `3.14`;
+sviluppo locale e dipendenze devono restare compatibili con questa serie.
+
+Prima di creare il venv, verifica che `python --version` mostri `3.14.x`.
+Un venv gia creato con un'altra serie Python va ricreato con l'interprete 3.14:
+aggiornare il workflow non cambia l'interprete del venv locale.
 
 ```bash
 cd backend
@@ -15,6 +21,8 @@ python -m venv .venv
 ```
 
 Usa il nome `.venv`: `build_portable.py` cerca PyInstaller in `backend/.venv/`.
+Se hai gia un ambiente chiamato `venv`, adatta i percorsi di attivazione; lo script
+di build usa l'interprete corrente quando non trova PyInstaller in `.venv`.
 
 ### Avvio del server
 
@@ -34,23 +42,47 @@ Attiva l'ambiente virtuale su Linux/macOS:
 source .venv/bin/activate
 ```
 
-Installa le dipendenze:
+Installa le dipendenze di sviluppo e build (incluse quelle del backend):
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
-Avvia il server:
+`requirements.txt` contiene solo le dipendenze di runtime (Starlette, Uvicorn,
+MCP e PyWebView).
+`requirements-dev.txt` lo include tramite `-r requirements.txt` e aggiunge
+PyInstaller e Ruff. Per avviare l'app senza gli strumenti di lint o build, usa
+`python -m pip install -r requirements.txt`.
+
+Prima dell'avvio desktop prepara il frontend, dalla cartella `frontend/`:
+
+```bash
+npm install
+npm run build
+```
+
+Poi, da `backend/` con il venv attivo, avvia l'app:
 
 ```bash
 python main.py
 ```
 
-Il server sara disponibile su:
+Si apre una finestra PyWebView con il frontend compilato; il backend resta
+disponibile su:
 
 ```text
 http://127.0.0.1:8000
 ```
+
+Su Windows e richiesto WebView2. Uvicorn lavora in un thread separato senza
+reload, anche se `RELOAD` e impostato nell'ambiente. Le modifiche Python
+richiedono di chiudere e riavviare l'app; per vedere quelle React nella finestra
+occorre una nuova build e un ricaricamento della pagina o un riavvio dell'app.
+Gli errori di avvio vengono mostrati in console.
+
+La finestra resta aperta durante l'uso del backend/MCP; chiuderla ne richiede
+l'arresto. Minimizzarla non interrompe il backend. Non viene piu aperto
+automaticamente il browser e il monitor heartbeat non viene avviato.
 
 Il database di sviluppo viene creato automaticamente in:
 
@@ -59,7 +91,10 @@ backend/db/planner.db
 ```
 
 ## 2. Frontend (React + Vite)
-Il frontend e l'interfaccia utente dell'applicazione.
+Il frontend e l'interfaccia utente dell'applicazione. Per svilupparlo con hot
+reload puoi avviare Vite in un secondo terminale e aprirlo nel browser, mantenendo
+aperta la finestra Planner per tenere attivo il backend. La finestra PyWebView
+continua a usare il frontend compilato, non il server Vite.
 
 ```bash
 cd frontend
@@ -106,9 +141,9 @@ trasporto Streamable HTTP e l'indirizzo:
 http://127.0.0.1:8000/mcp/
 ```
 
-In sviluppo il backend non si spegne quando manca l'heartbeat, quindi il server MCP
-resta disponibile anche senza frontend aperto. Nell'app portable invece si spegne
-circa 60 secondi dopo la chiusura della UI (vedi `ARCHITETTURA_PORTABLE.md`).
+Il server MCP resta disponibile finche la finestra Planner e aperta, anche se
+minimizzata. La sua chiusura richiede l'arresto del backend, indipendentemente
+dagli heartbeat del frontend (vedi `ARCHITETTURA_PORTABLE.md`).
 
 ## 4. Controlli di qualita
 Prima di un commit esegui i linter.
@@ -118,7 +153,16 @@ Frontend:
 ```bash
 cd frontend
 npm run lint
+npm run typecheck
 ```
+
+`typecheck` esegue `tsc --noEmit`: controlla i file `.ts` e `.tsx` in `src/`
+con le regole strict di `tsconfig.json`, senza produrre file JavaScript.
+I componenti `.jsx` e gli altri file `.js` restano esclusi da questo controllo;
+ESLint continua a verificarli. I tipi non validano le risposte JSON a runtime.
+
+Anche `npm run build` esegue il controllo dei tipi prima di Vite e si interrompe
+se trova errori. Vale anche per le build portable locali e in GitHub Actions.
 
 Backend (con l'ambiente virtuale attivo):
 
@@ -127,7 +171,7 @@ cd backend
 ruff check .
 ```
 
-Test automatici di migrazioni e download backup (da `backend/`, con l'ambiente virtuale attivo):
+Test automatici di migrazioni, download backup, repository, avvio ed eventi (da `backend/`, con l'ambiente virtuale attivo):
 
 ```bash
 python -m unittest discover -s test -p test_*.py -v
@@ -138,14 +182,22 @@ Coprono creazione, aggiornamento delle vecchie release, comportamento dei trigge
 rollback e riavvio dopo errori. I test del backup simulano richieste ASGI e
 verificano integrita della copia, WAL, modifiche durante l'invio, download
 simultanei e pulizia dei temporanei anche in caso di errore o cancellazione.
+I test dei repository verificano la chiusura delle connessioni, la persistenza
+delle scritture REST/MCP e il rollback delle operazioni bulk fallite a meta.
 Le altre API vengono ancora provate manualmente.
-GitHub Actions non esegue questi controlli.
+`test/test_startup.py` verifica il ciclo desktop, i thread, i timeout e gli errori
+con una finestra simulata e server su porte TCP locali temporanee.
+`test/test_events.py` verifica la chiusura delle code SSE e lo sblocco delle letture.
+Non vengono aperte finestre native: la prova manuale di PyWebView resta necessaria.
+I linter e i test backend restano manuali. GitHub Actions esegue il controllo
+TypeScript come parte della build frontend.
 
 Per modifiche allo schema segui la procedura in `DATABASE.md`: occorre aggiornare
 sia `schema.sql` sia le migrazioni per i database esistenti.
 
 ## 5. Build portable locale
-Per creare l'app portable localmente:
+Per creare l'app portable localmente, con l'ambiente virtuale attivo e le
+dipendenze di `requirements-dev.txt` installate:
 
 ```bash
 cd backend

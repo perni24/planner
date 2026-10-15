@@ -1,10 +1,12 @@
+from contextlib import closing
+
 from db.db import get_db_connection
 
 def format_data(row):
     return dict(row) if row else None
 
 def get_all_projects():
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor = conn.execute(
                 """
                 SELECT * FROM projects
@@ -13,7 +15,7 @@ def get_all_projects():
         return [format_data(row) for row in cursor]
     
 def get_projects_by_area(area_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         rows = conn.execute(
             """
             SELECT *
@@ -27,7 +29,7 @@ def get_projects_by_area(area_id):
         return [format_data(row) for row in rows]
     
 def get_project(project_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         row = conn.execute(
             """
             SELECT *
@@ -40,7 +42,7 @@ def get_project(project_id):
         return format_data(row)
 
 def insert_project(area_id, name, description):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor  = conn.execute(
             """
             INSERT INTO projects (area_id, name, description) VALUES (?, ?, ?)
@@ -51,7 +53,7 @@ def insert_project(area_id, name, description):
         return cursor.lastrowid
     
 def update_project(project_id, name, description):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor  = conn.execute(
             """
             UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? 
@@ -62,7 +64,7 @@ def update_project(project_id, name, description):
         return cursor.rowcount
 
 def delete_project(project_id):
-    with get_db_connection() as conn:
+    with closing(get_db_connection()) as conn, conn:
         cursor  = conn.execute(
             """
             DELETE FROM projects WHERE id = ?

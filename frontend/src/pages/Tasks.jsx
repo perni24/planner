@@ -1,16 +1,28 @@
-import { useParams } from 'react-router-dom';
-import { get_tasks_by_project, getProject } from '../api';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  getTasksByProject,
+  getProject,
+  insertTask,
+  updateTask,
+  deleteTask,
+  updateTaskStatus,
+  updateProject,
+  deleteProject,
+} from '../api';
 import { useEffect, useEffectEvent, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import ProjectModal from '../components/ProjectModal';
 import { useLanguage } from '../context/useLanguage';
 import { useDataSync } from '../context/useDataSync';
+import { useToast } from '../context/useToast';
 
 function Tasks() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const { jsonLanguage } = useLanguage();
   const { lastEvent } = useDataSync();
+  const { showToast } = useToast();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -45,10 +57,98 @@ function Tasks() {
 
   async function loadTasks() {
     try {
-      const response = await get_tasks_by_project(Number(projectId));
+      const response = await getTasksByProject(Number(projectId));
       setTasks(response);
     } catch (error) {
       console.error('Error loading tasks:', error);
+    }
+  }
+
+  async function handleSaveTask({ title, description, parentId }) {
+    if ((!isTaskEditMode && !Number(projectId)) || (isTaskEditMode && !selectedTask?.id)) {
+      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
+      throw new Error('Missing project or task id');
+    }
+
+    try {
+      if (isTaskEditMode) {
+        await updateTask(selectedTask.id, title, description);
+      } else {
+        await insertTask(Number(projectId), title, description, parentId);
+      }
+      await loadTasks();
+      showToast(jsonLanguage[isTaskEditMode ? 'taskModal.toast.updated' : 'taskModal.toast.created'], 'success');
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['taskModal.toast.errorSave'], 'error');
+      throw error;
+    }
+  }
+
+  async function handleDeleteTask(id) {
+    if (!id) {
+      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
+      throw new Error('Missing task id');
+    }
+
+    try {
+      await deleteTask(id);
+      await loadTasks();
+      showToast(jsonLanguage['taskModal.toast.deleted'], 'success');
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['taskModal.toast.errorDelete'], 'error');
+      throw error;
+    }
+  }
+
+  async function handleToggleTask(task) {
+    if (!task?.id) {
+      showToast(jsonLanguage['taskCard.toast.invalidData'], 'error');
+      throw new Error('Missing task id');
+    }
+
+    try {
+      await updateTaskStatus(task.id);
+      await loadTasks();
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['taskCard.toast.errorUpdateStatus'], 'error');
+      throw error;
+    }
+  }
+
+  async function handleSaveProject({ name, description }) {
+    if (!project?.id) {
+      showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
+      throw new Error('Missing project id');
+    }
+
+    try {
+      await updateProject(project.id, name, description);
+      await loadProject();
+      showToast(jsonLanguage['projectModal.toast.updated'], 'success');
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['projectModal.toast.errorSave'], 'error');
+      throw error;
+    }
+  }
+
+  async function handleDeleteProject(id) {
+    if (!id) {
+      showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
+      throw new Error('Missing project id');
+    }
+
+    try {
+      await deleteProject(id);
+      showToast(jsonLanguage['projectModal.toast.deleted'], 'success');
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['projectModal.toast.errorDelete'], 'error');
+      throw error;
     }
   }
 
@@ -94,7 +194,7 @@ function Tasks() {
       }
 
       try {
-        const tasksResponse = await get_tasks_by_project(id);
+        const tasksResponse = await getTasksByProject(id);
         setTasks(tasksResponse);
       } catch (error) {
         console.error('Error loading tasks:', error);
@@ -169,7 +269,7 @@ function Tasks() {
           </div>
         ) : (
           openTasks.map((task) => (
-            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
+            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} onToggle={handleToggleTask}/>
           ))
         )}
       </section>
@@ -188,7 +288,7 @@ function Tasks() {
           </div>
         ) : (
           completedTasks.map((task) => (
-            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} refreshFunction={loadTasks}/>
+            <TaskCard key={task.id} task={task} subtasks={getSubtasks(task.id)} onEdit={openEditTaskModal} onAddSubtask={openAddSubtaskModal} onToggle={handleToggleTask}/>
           ))
         )}
       </section>
@@ -198,7 +298,8 @@ function Tasks() {
           onClose={() => setIsTaskModalOpen(false)}
           isEditMode={isTaskEditMode}
           task={selectedTask}
-          refreshFunction={loadTasks}
+          onSave={handleSaveTask}
+          onDelete={handleDeleteTask}
           project_id={Number(projectId)}
           parentOptions={topLevelTasks}
           initialParentId={initialParentId}
@@ -208,7 +309,8 @@ function Tasks() {
       {isProjectModalOpen && (
         <ProjectModal
           onClose={() => setIsProjectModalOpen(false)}
-          refreshFunction={loadProject}
+          onSave={handleSaveProject}
+          onDelete={handleDeleteProject}
           isEditMode={true}
           project={project}
         />

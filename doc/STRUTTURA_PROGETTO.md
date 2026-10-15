@@ -29,16 +29,17 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 
 - Frontend: React 19, Vite 8, Tailwind CSS 4 e React Router 7.
 - Backend: Python, Starlette, Uvicorn, SQLite e SDK Python `mcp`.
-- Qualita: ESLint per il frontend e Ruff per il backend.
+- Qualita: ESLint e TypeScript per il frontend, Ruff per il backend.
 - Distribuzione: PyInstaller e GitHub Actions.
 
 ## Backend
 
-- `main.py`: entry point. Crea l'app Starlette, monta API e server MCP, serve il frontend buildato, apre il browser e avvia Uvicorn.
-- `config.py`: ambiente (sviluppo/produzione), percorsi, host, porta, versione app.
+- `main.py`: unico entry point. `main()` prepara cartelle, lingue e database con `initialize_runtime()`, poi `start_server()` avvia Uvicorn in un thread e PyWebView nel thread principale. Attende il nostro server prima di aprire la finestra, ne richiede l'arresto alla chiusura e mantiene API REST, MCP e frontend compilato. Importare il modulo non avvia server o finestra.
+- `config.py`: ambiente (sviluppo/produzione), percorsi, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
 - `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
-- `requirements.txt`: dipendenze Python.
+- `requirements.txt`: dipendenze Python di runtime (Starlette, Uvicorn, MCP e PyWebView).
+- `requirements-dev.txt`: include le dipendenze di runtime e aggiunge PyInstaller e Ruff per sviluppo e build.
 - `db/db.py`: connessione SQLite, creazione del DB, migrazioni all'avvio e copie consistenti per il download backup.
 - `db/migration_runner.py`: elenco ordinato delle migrazioni, versionamento con `PRAGMA user_version`, transazioni e backup automatici.
 - `db/migrations/`: script SQL numerati per aggiornare i database esistenti e compatibilita con le release precedenti.
@@ -46,8 +47,8 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `routes/`: un modulo per gruppo di endpoint. `api.py` li monta sia alla radice sia sotto `/api`.
 - `services/`:
   - `mcp_service.py`: validazione e logica delle operazioni MCP, pubblicazione degli eventi;
-  - `event_service.py`: code in memoria per gli eventi SSE;
-  - `app_lifecycle.py`: heartbeat e spegnimento automatico in produzione;
+  - `event_service.py`: code in memoria per gli eventi SSE, chiuse alla disconnessione o allo spegnimento per sbloccare le letture pendenti;
+  - `app_lifecycle.py`: callback per lo shutdown REST e vecchie funzioni heartbeat, ancora presenti ma senza monitor attivo;
   - `locale_service.py`: lettura dei file lingua;
   - `update_service.py`: controllo dell'ultima release su GitHub.
 - `integration/mcp/`: server MCP (`server.py`), registrazione dei tool (`mcp_tools.py`) e modelli Pydantic dei parametri (`models.py`).
@@ -57,18 +58,42 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/*.http`: richieste HTTP manuali per provare le API.
 - `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
 - `test/test_backup.py`: test automatici del download backup, consistenza delle copie e pulizia dei temporanei, senza avviare il server.
+- `test/test_repositories.py`: test automatici di letture e scritture REST/MCP, commit/rollback e chiusura delle connessioni SQLite.
+- `test/test_startup.py`: test dell'inizializzazione, della finestra simulata, dei thread, dei timeout e degli errori di avvio; include prove con Uvicorn e porte locali temporanee, senza aprire finestre native.
+- `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
 
 ## Frontend (`frontend/src/`)
 
+La configurazione `frontend/tsconfig.json` verifica i file `.ts` e `.tsx` in
+`src/` in modalita strict, senza generare JavaScript. Il comando
+`npm run typecheck` viene eseguito anche prima della build Vite. I file `.js` e
+`.jsx` restano controllati solo da ESLint.
+
 - `main.jsx`: monta React dentro `AppProviders`.
 - `App.jsx`: router (`/`, `/tasks/:projectId`, `/settings`, `/calendar`).
-- `api.ts` e `apiCore.ts`: tutte le chiamate HTTP al backend.
+- `api.ts` e `apiCore.ts`: tutte le chiamate HTTP al backend. Le funzioni usano camelCase (`getProjectsByArea`, `getTasksByProject`, `updateTaskStatus`, `getSettings`); endpoint e campi dei payload restano quelli del backend.
 - `index.css`: Tailwind e variabili CSS dei temi.
 - `pages/`: `Project.jsx` (progetti dell'area corrente), `Tasks.jsx` (task e subtask di un progetto), `Setting.jsx` (tema, lingua, backup, MCP, versione), `Calendar.jsx` (segnaposto, non implementato).
 - `components/`: layout (`Dashboard`, `Header`, `SideBar`, `AreaSwitcher`), card, modali di creazione/modifica/eliminazione, `ConfirmModal`, `Toast`, `McpSettings`.
 - `context/`: provider globali composti in `AppProviders.jsx`, che gestisce anche heartbeat e controllo aggiornamenti. `DataSyncContext.jsx` riceve gli eventi SSE da `/api/events`. Per ogni context esistono un file `*ContextValue.js` e un hook `use*.js`.
-- `types/`: tipi delle risposte API (non verificati: manca la configurazione TypeScript).
+- `context/ToastContext.jsx`: mostra una sola notifica alla volta; annulla il timer precedente quando arriva un nuovo messaggio, alla chiusura manuale e allo smontaggio del provider.
+- `types/`: tipi delle risposte API, verificati insieme ad `api.ts` e `apiCore.ts` da TypeScript.
 - `assets/icons/`: icone SVG (licenza in `THIRD_PARTY_NOTICES.md`).
+
+## Azioni dell'interfaccia
+
+Modali e card ricevono callback, senza chiamare direttamente le API. Mantengono
+campi, validazione, conferme e blocco dei pulsanti durante l'attesa.
+
+- `AreaProvider`: espone `createArea`, `editArea` e `removeArea`, esegue le API e ricarica le aree; mantiene l'area corrente allineata ai dati ricevuti. `AreaSwitcher` passa le callback al modale e coordina toast e navigazione.
+- `Project.jsx`: crea i progetti e aggiorna l'elenco dopo il salvataggio.
+- `Tasks.jsx`: gestisce creazione, modifica, eliminazione e completamento delle task, incluse le subtask, e modifica/eliminazione del progetto aperto.
+
+`onSave` e `onDelete` restituiscono Promise: il modale resta aperto se vengono
+rifiutate. Anche `onToggle` viene attesa dalla card; i toast relativi alle API
+sono gestiti dal chiamante, senza duplicazioni. La navigazione e decisa dal
+contenitore, non dal modale. Le letture e gli aggiornamenti SSE restano nei
+context e nelle pagine che possiedono i dati.
 
 ## Cartelle generate (non tracciate da Git)
 

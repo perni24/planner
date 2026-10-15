@@ -16,17 +16,50 @@ Non sono previste una modalita solo backend o un'icona nell'area di notifica.
 PyWebView sostituira il browser e l'heartbeat per il ciclo di vita dell'app;
 React, API REST, MCP, SQLite ed eventi SSE restano invariati.
 
-- [ ] Creare una prova di integrazione PyWebView separata dalla build distribuita, verificando il funzionamento sui tre sistemi operativi
-- [ ] Aggiungere `pywebview` alle dipendenze e scegliere i renderer supportati: verificare WebView2 su Windows e le dipendenze native su Linux/macOS
-- [ ] Creare `backend/desktop.py` per gestire la finestra nel thread principale e Uvicorn in un thread separato
-- [ ] Adeguare `main.py` e `config.py`: avvio desktop nella portable, sviluppo con browser/Vite e reload invariato, senza apertura automatica del browser in modalita desktop
-- [ ] Attendere che il backend sia pronto prima di caricare la pagina nella finestra; gestire gli errori di avvio (incluse migrazioni fallite e porta occupata) senza lasciare processi attivi
-- [ ] Collegare la chiusura della finestra all'arresto ordinato di Uvicorn, mantenendo l'app attiva se minimizzata; gestire SSE/MCP e prevedere un tempo massimo per lo spegnimento
-- [ ] Rimuovere il monitor heartbeat e le chiamate periodiche del frontend quando il ciclo di vita sara gestito da PyWebView, adeguando gli endpoint e i riferimenti rimasti
-- [ ] Configurare in `config.py` il percorso dei dati persistenti del WebView e la modalita non privata per conservare `localStorage` e cookie tra gli avvii
-- [ ] Adeguare PyInstaller e GitHub Actions alle dipendenze grafiche e al packaging macOS, valutando firma e notarizzazione; mantenere inizialmente la console per diagnosticare gli errori e verificare su macchine pulite
-- [ ] Testare download del backup, apertura dei link GitHub nel browser esterno, temi, lingue, SSE e MCP; verificare chiusura con richieste in corso, riavvio, minimizzazione e sospensione del PC
-- [ ] Aggiornare guide, istruzioni per gli agenti e documentazione portable quando l'integrazione sara implementata
+`backend/main.py` resta l'unico punto di ingresso, anche per PyInstaller:
+prepara l'ambiente, avvia Uvicorn in un thread separato, attende che sia pronto
+e apre PyWebView nel thread principale. Non e previsto `backend/desktop.py`
+ne un secondo avvio portable basato sul browser.
+
+Procedere nell'ordine seguente, verificando un passaggio alla volta. L'avvio
+dell'app nella finestra nativa e stato verificato manualmente su Windows.
+Restano le verifiche funzionali sotto elencate; macOS e Linux verranno verificati
+prima di integrare il nuovo avvio nelle release.
+
+#### Passaggio 1: Dipendenze
+
+- [ ] Definire i renderer supportati e le dipendenze native necessarie su macOS e Linux
+
+#### Passaggio 3: Avvio desktop di prova
+
+- [ ] Completare le verifiche manuali nella finestra nativa Windows: lettura e salvataggio di progetti/task, MCP attivo durante la minimizzazione e porta liberata alla chiusura; l'avvio e confermato, mentre i test automatici simulano la finestra
+
+#### Passaggio 4: Attesa ed errori di avvio
+
+- [ ] Mostrare anche graficamente gli errori di avvio (migrazioni, porta occupata, frontend mancante e renderer non disponibile): oggi vengono propagati alla console; verificare anche inizializzazioni bloccate oltre il timeout
+- [ ] Gestire l'arresto inatteso del backend dopo l'apertura della finestra e lo shutdown via API, evitando che la UI rimanga aperta senza server
+
+#### Passaggio 5: Spegnimento dalla finestra
+
+- [ ] Verificare lo spegnimento con scritture REST/MCP, download e connessioni SSE/MCP in corso; i test coprono gia la chiusura delle code SSE e il rilascio della porta con un client SSE connesso
+- [ ] Gestire il superamento del timeout di arresto: oggi viene segnalato un errore ma il thread non-daemon puo rimanere attivo per non troncare operazioni; definire una strategia di cancellazione e verificare che non rimangano processi attivi
+
+#### Passaggio 6: Persistenza e funzioni della finestra
+
+- [ ] Configurare in `config.py` il percorso del profilo WebView (per esempio `data/webview/`) e la modalita non privata per conservare `localStorage` e cookie tra gli avvii; il profilo sara distinto da quello del browser
+- [ ] Verificare download del backup e scelta della destinazione, link GitHub nel browser esterno e copia dell'indirizzo MCP, adeguando i comportamenti dove necessario
+- [ ] Testare temi, lingue, aggiornamenti SSE e uso MCP, inclusi riavvio, minimizzazione e sospensione del PC
+
+#### Passaggio 7: Rimozione heartbeat
+
+- [ ] Solo dopo la verifica del ciclo di vita desktop, rimuovere il monitor in `app_lifecycle.py`, l'endpoint heartbeat e i relativi riferimenti backend
+- [ ] Rimuovere `sendAppHeartbeat` e il timer da `AppProviders.jsx`, mantenendo il controllo degli aggiornamenti dell'app
+
+#### Passaggio 8: Build e documentazione
+
+- [ ] Adeguare PyInstaller e GitHub Actions al nuovo flusso desktop e alle dipendenze grafiche, mantenendo `main.py` come entry point e inizialmente la console per diagnosticare gli errori
+- [ ] Verificare le build su macchine pulite Windows, macOS e Linux, inclusi requisiti nativi, packaging macOS, percorsi dei dati persistenti e valutazione di firma e notarizzazione
+- [ ] Aggiornare guide, istruzioni per gli agenti e documentazione portable, rimuovendo i riferimenti al vecchio ciclo di vita basato su browser e heartbeat
 
 ## 2. Alta
 
@@ -48,20 +81,8 @@ React, API REST, MCP, SQLite ed eventi SSE restano invariati.
 ## 3. Media
 
 ### Backend
-- [ ] Chiudere esplicitamente le connessioni SQLite (`with conn` fa commit ma non chiude)
 - [ ] Progettare e implementare l'importazione sicura di un backup
 - [ ] Aggiornare i file `.http` per coprire tutte le route (mancano `update_task`, `update_status_task`, `app/*` e `backup/download`)
-
-### Frontend
-- [ ] Sistemare il timer del `ToastContext` con `clearTimeout`/`useRef`
-
-### Refactoring
-
-Miglioramenti organizzativi, non bloccanti per la release.
-
-- [ ] Spostare le chiamate API dai modali e dalle card verso pagine o context, passando ai componenti callback come `onSave`, `onDelete`, `onToggle` e `onEdit`
-- [ ] Uniformare i nomi delle funzioni API frontend (es. `get_tasks_by_project` e `getProjectByArea`)
-- [ ] Separare `pyinstaller` e `ruff` dalle dipendenze di runtime
 
 ## 4. Bassa
 
@@ -73,11 +94,6 @@ Miglioramenti organizzativi, non bloccanti per la release.
 - [ ] Far seguire al tema `system` i cambi del tema del sistema operativo
 - [ ] Migliorare l'accessibilita dei modali e la gestione del focus
 - [ ] Calendario: implementare la pagina (e usare la tabella `calendar`) oppure nascondere la pagina e rimuovere la tabella
-
-### Codice
-- [ ] Convertire `requirements.txt` da UTF-16 a UTF-8 per uniformare la codifica del repository
-- [ ] Aggiungere `tsconfig` e `typescript` per verificare i tipi, oppure convertire i file `.ts` in `.js`
-- [ ] Rimuovere `types/test.ts`
 
 ### Automazione facoltativa
 

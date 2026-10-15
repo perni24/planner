@@ -40,6 +40,19 @@ Le foreign key in SQLite sono attive solo se la connessione esegue
 `PRAGMA foreign_keys = ON`, come fa `get_db_connection()` in `backend/db/db.py`.
 Usare sempre quella funzione per aprire connessioni.
 
+Nei repository il pattern e:
+
+```python
+with closing(get_db_connection()) as conn, conn:
+    ...
+```
+
+Il contesto `conn` gestisce commit e rollback; `closing()` chiude poi la
+connessione anche con return anticipati o eccezioni. Il solo `with conn` non
+chiude la connessione, mentre il solo `closing()` non conferma le scritture.
+I commit espliciti dei repository REST sono conservati; le operazioni bulk MCP
+continuano a usare il commit automatico al termine del blocco.
+
 ## Eliminazione dell'ultima area
 
 Il trigger `trg_recreate_last_area` crea una nuova area vuota chiamata `utente`

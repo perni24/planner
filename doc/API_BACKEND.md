@@ -137,10 +137,12 @@ GET  /api/app/version
 GET  /api/app/check_update
 ```
 
-`heartbeat` mantiene vivo il backend quando la UI e aperta.
+`heartbeat` resta temporaneamente disponibile, ma il monitor non viene piu
+avviato: il ciclo di vita e gestito dalla finestra PyWebView.
 
 `shutdown` permette uno spegnimento esplicito del backend. Attualmente il frontend
-non lo usa.
+non lo usa. La chiusura automatica della finestra quando il backend viene
+arrestato via API resta da gestire (vedi `TODO.md`).
 
 `version` restituisce `APP_VERSION` definita in `backend/config.py`.
 

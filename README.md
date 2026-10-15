@@ -30,40 +30,61 @@ La documentazione tecnica si trova nella cartella `doc/`. Il punto di partenza e
 Riepilogo rapido. I passaggi completi, compresa la creazione dell'ambiente virtuale
 e le release, sono in `doc/GUIDA_SVILUPPO.md`.
 
-Backend:
+Prima prepara il frontend, dalla cartella principale del progetto:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+Backend (da un altro terminale nella cartella principale):
 
 ```bash
 cd backend
 ```
 
-Attiva l'ambiente virtuale Python (`backend/.venv`) prima di installare le dipendenze.
+Se usi un ambiente virtuale Python nella cartella `backend/venv`, attivalo prima
+di installare le dipendenze. I comandi seguenti vanno eseguiti da `backend/`;
+se il tuo ambiente ha un nome diverso, adatta il percorso.
 
-Windows:
+Windows (PowerShell):
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+.\venv\Scripts\Activate.ps1
 ```
 
 Linux/macOS:
 
 ```bash
-source .venv/bin/activate
+source venv/bin/activate
 ```
 
 Poi installa le dipendenze e avvia il backend:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python main.py
 ```
 
-Frontend:
+`requirements-dev.txt` include le dipendenze dell'app e gli strumenti di sviluppo
+e build. Per il solo backend basta `requirements.txt`.
+
+`python main.py` apre Planner in una finestra PyWebView e avvia il backend senza
+reload. Su Windows serve WebView2. Chiudendo la finestra si richiede l'arresto
+del backend; minimizzandola resta attivo.
+
+Per sviluppare il frontend con Vite, in un terminale separato:
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+Apri l'indirizzo di Vite nel browser mantenendo la finestra Planner aperta.
+La finestra desktop usa invece la build: per aggiornarla esegui `npm run build`
+e riavvia l'app.
 
 ## Build portable
 

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { insertTask, updateTask, deleteTask } from "../api";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 import ConfirmModal from "./ConfirmModal";
 
-function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, project_id, parentOptions = [], initialParentId = null }) {
+function TaskModal({ onClose, onSave, onDelete, isEditMode = false, task = null, project_id, parentOptions = [], initialParentId = null }) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
 
@@ -18,14 +17,14 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
   const disabledSaveButton = disabledButton || isSubmitting || (!isEditMode && !project_id) || (isEditMode && (!task?.id || !hasChanges))
   const disabledDeleteButton = isSubmitting || (isEditMode && !task?.id)
 
-  async function handleInsertTask(){
+  async function handleSaveTask(){
     if (isSubmitting) {
       return;
     }
 
     const title = taskName.trim();
 
-    if (!title || !project_id) {
+    if (!title || (!isEditMode && !project_id) || (isEditMode && !task?.id)) {
       showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
       return;
     }
@@ -33,40 +32,10 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     try {
       setIsSubmitting(true);
 
-      await insertTask(project_id, title, taskDescription, parentId ?? null); 
-      showToast(jsonLanguage['taskModal.toast.created'], 'success');
-      await refreshFunction?.();
+      await onSave({ title, description: taskDescription, parentId: parentId ?? null });
       onClose(); 
-    } catch (error) {
-      console.error(error);
-      showToast(jsonLanguage['taskModal.toast.errorSave'], 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleUpdateTask(){
-    if (isSubmitting) {
+    } catch {
       return;
-    }
-
-    const title = taskName.trim();
-
-    if (!title || !task?.id) {
-      showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      await updateTask(task.id, title, taskDescription);
-      showToast(jsonLanguage['taskModal.toast.updated'], 'success');
-      await refreshFunction?.();
-      onClose(); 
-    } catch (error) {
-      console.error(error);
-      showToast(jsonLanguage['taskModal.toast.errorSave'], 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -85,13 +54,10 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
     try {
       setIsSubmitting(true);
 
-      await deleteTask(task.id);
-      showToast(jsonLanguage['taskModal.toast.deleted'], 'success');
-      await refreshFunction?.();
+      await onDelete(task.id);
       onClose(); 
-    } catch (error) {
-      console.error(error);
-      showToast(jsonLanguage['taskModal.toast.errorDelete'], 'error');
+    } catch {
+      return;
     } finally {
       setIsSubmitting(false);
     }
@@ -110,6 +76,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
           <button
             type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             className="rounded-md px-2 py-1 text-sm text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
           >
             X
@@ -184,7 +151,7 @@ function TaskModal({ onClose, isEditMode = false, task = null, refreshFunction, 
             type="button"
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-60 disabled:hover:bg-gray-400"
             disabled={disabledSaveButton}
-            onClick={() => isEditMode ? handleUpdateTask() : handleInsertTask()}
+            onClick={handleSaveTask}
           >
             {isEditMode ? jsonLanguage['taskModal.actions.edit'] : jsonLanguage['taskModal.actions.create']}
           </button>

@@ -66,11 +66,11 @@ Su Windows lo script usa `npm.cmd` automaticamente.
 
 ## PyInstaller non trovato
 
-Installa le dipendenze backend:
+Attiva l'ambiente virtuale e installa le dipendenze di sviluppo e build:
 
 ```powershell
 cd backend
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
 Poi rilancia:

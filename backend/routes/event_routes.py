@@ -1,6 +1,6 @@
 import asyncio
 import json
-from queue import Empty
+from queue import Empty, ShutDown
 
 from starlette.responses import StreamingResponse
 from starlette.routing import Route
@@ -29,6 +29,8 @@ async def stream_events(request):
                 except Empty:
                     yield ": heartbeat\n\n"
                     continue
+                except ShutDown:
+                    break
 
                 yield f"data: {json.dumps(event)}\n\n"
         finally:

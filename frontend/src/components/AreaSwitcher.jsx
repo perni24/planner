@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useArea } from '../context/useArea';
 import AreaModal from './AreaModal';
 import { useLanguage } from '../context/useLanguage';
+import { useToast } from '../context/useToast';
 import settingsIcon from '../assets/icons/settings.svg?no-inline';
 
 function AreaSwitcher() {
-  const { areas, currentArea, setCurrentArea, error } = useArea(); 
+  const { areas, currentArea, setCurrentArea, createArea, editArea, removeArea, error } = useArea();
   const { jsonLanguage } = useLanguage(); 
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
@@ -46,6 +48,35 @@ function AreaSwitcher() {
     setIsOpen(false);
     setIsAreaModalOpen(true);
     setIsEditMode(true);
+  }
+
+  async function handleSaveArea({ name }) {
+    try {
+      if (isEditMode) {
+        await editArea(selectedArea.id, name);
+      } else {
+        await createArea(name);
+      }
+      showToast(jsonLanguage[isEditMode ? 'areaModal.toast.updated' : 'areaModal.toast.created'], 'success');
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['areaModal.toast.errorSave'], 'error');
+      throw error;
+    }
+  }
+
+  async function handleDeleteArea(id) {
+    try {
+      await removeArea(id);
+      showToast(jsonLanguage['areaModal.toast.deleted'], 'success');
+      if (currentArea?.id === id) {
+        navigate('/');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast(jsonLanguage['areaModal.toast.errorDelete'], 'error');
+      throw error;
+    }
   }
 
   if (error) {
@@ -134,7 +165,13 @@ function AreaSwitcher() {
       )}
 
       {isAreaModalOpen && (
-        <AreaModal onClose={() => setIsAreaModalOpen(false)} area={selectedArea} isEditMode={isEditMode} />
+        <AreaModal
+          onClose={() => setIsAreaModalOpen(false)}
+          onSave={handleSaveArea}
+          onDelete={handleDeleteArea}
+          area={selectedArea}
+          isEditMode={isEditMode}
+        />
       )}
     </div>
   );
