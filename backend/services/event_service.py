@@ -2,6 +2,8 @@ from queue import Empty, Full, Queue, ShutDown
 from threading import Lock
 from typing import Any
 
+from services.operation_control import is_stopping
+
 
 MAX_PENDING_EVENTS = 100
 
@@ -13,7 +15,10 @@ def subscribe() -> Queue:
     subscriber = Queue(maxsize=MAX_PENDING_EVENTS)
 
     with _subscribers_lock:
-        _subscribers.add(subscriber)
+        if is_stopping():
+            subscriber.shutdown(immediate=True)
+        else:
+            _subscribers.add(subscriber)
 
     return subscriber
 

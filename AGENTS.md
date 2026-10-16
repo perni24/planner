@@ -48,7 +48,9 @@ Esistono test automatici di migrazioni, download backup e repository in
 `backend/test/test_migrations.py`, `backend/test/test_backup.py` e
 `backend/test/test_repositories.py`, su database temporanei. `test_startup.py` e
 `test_events.py` verificano l'avvio desktop e la chiusura SSE; la finestra e simulata
-e i test di integrazione usano porte TCP locali temporanee. Per verificare una
+e i test di integrazione usano porte TCP locali temporanee. `test_operation_control.py`
+copre cancellazione cooperativa, lock SQLite, backup e rollback. `test_desktop_errors.py`
+verifica log rotanti, dizionari e fallback con dialoghi simulati. Per verificare una
 modifica: esegui i linter, i test se hai toccato il database o il backup,
 `npm run build` se hai toccato il frontend, e prova le altre API con i file
 `backend/test/*.http` o con l'app avviata.
@@ -103,14 +105,40 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   dopo la preparazione del runtime e la verifica del frontend compilato. La
   finestra si apre solo quando quel server risulta avviato, non dopo una risposta
   di un servizio qualsiasi sulla stessa porta. Il reload e sempre disattivato.
+- Il profilo desktop usa `WEBVIEW_STORAGE_DIR` (`DATA_DIR/webview/`) e
+  `private_mode=False`; e creato all'avvio e non va committato. Download abilitati
+  e link esterni nel browser sono impostati in `main.py`. Clipboard e download
+  usano ancora le API React esistenti, senza bridge Python-JavaScript: la verifica
+  del renderer nativo resta distinta dai test con finestra simulata.
 - La chiusura della finestra richiede lo stop di Uvicorn e attende il thread;
   minimizzare non ferma il server. I timeout sono in `config.py`. Il superamento
-  del timeout di arresto viene segnalato senza terminare forzatamente il thread:
-  la gestione completa dei casi bloccati resta in `doc/TODO.md`.
-- Il monitor heartbeat non viene piu avviato. Il vecchio service e le chiamate
-  frontend restano temporaneamente presenti, ma non decidono il ciclo di vita.
-- Le code SSE vengono chiuse con `Queue.shutdown()` alla disconnessione e alla
-  chiusura del lifespan, per non lasciare letture dell'executor bloccate.
+  del timeout di arresto viene segnalato e il coordinatore continua ad attendere
+  la pulizia, senza terminare forzatamente il thread. Non garantire un tempo
+  massimo assoluto per I/O bloccato internamente dal sistema operativo.
+- `services/operation_control.py` gestisce stop idempotente e scadenze cooperative.
+  Le nuove connessioni SQLite sono rifiutate dopo lo stop; quelle esistenti e i
+  backup si interrompono ai controlli di avanzamento dopo 3 secondi. I bulk
+  controllano anche tra gli elementi e prima del commit, preservando il rollback.
+  I timeout SQLite (30 secondi), lock (1 secondo) e inizializzazione (120 secondi)
+  sono in `config.py`. Non rimuovere i controlli o sostituirli con `os._exit()`.
+- Il vecchio monitor heartbeat, la route e il timer frontend sono rimossi.
+  `app_lifecycle.py` mantiene la callback dello shutdown REST; `AppProviders.jsx`
+  mantiene il controllo aggiornamenti. Non rimuovere il commento heartbeat SSE:
+  serve alla connessione eventi, non al ciclo di vita del backend.
+- Le code SSE vengono chiuse con `Queue.shutdown()` alla disconnessione, alla
+  richiesta di stop e alla chiusura del lifespan; nuove sottoscrizioni durante
+  lo stop restituiscono code gia chiuse, senza bloccare letture dell'executor.
+- `services/desktop_error_service.py` gestisce gli errori fatali Python, non quelli
+  delle singole richieste API: log rotanti in `DESKTOP_LOG_PATH`, dialogo nella
+  finestra se disponibile e fallback nativo Windows indipendente da WebView2;
+  senza GUI disponibile su macOS/Linux restano console e log. `main()` restituisce
+  1 in caso di errore, 130 per Ctrl+C, 0 dopo uno stop normale.
+- Un evento del thread backend ne segnala la conclusione al monitor avviato con
+  PyWebView. Dopo l'evento `shown`, il monitor avvisa e chiude la finestra in caso
+  di crash; uno shutdown richiesto tramite callback/API chiude senza errore.
+- I messaggi desktop `desktop.errors.*` usano la lingua del sistema (it/en), con
+  fallback inglese e senza query al DB. Non dipendono dai context React; se anche
+  i dizionari sono illeggibili restano messaggi inglesi di emergenza.
 
 ## Database
 
@@ -227,7 +255,7 @@ Di conseguenza:
 | Struttura di cartelle e file | `doc/STRUTTURA_PROGETTO.md` |
 | Endpoint REST, SSE e tool MCP | `doc/API_BACKEND.md` |
 | Schema, trigger, vista | `doc/DATABASE.md` |
-| App portable, heartbeat, aggiornamenti | `doc/ARCHITETTURA_PORTABLE.md` |
+| App portable, ciclo di vita, aggiornamenti | `doc/ARCHITETTURA_PORTABLE.md` |
 | Avvio, lint, build, release | `doc/GUIDA_SVILUPPO.md` |
 | Lingue | `doc/I18N.md` |
 | Problemi comuni | `doc/TROUBLESHOOTING.md` |

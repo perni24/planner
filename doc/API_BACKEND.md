@@ -131,18 +131,24 @@ lingue vengono lette dalla cartella configurata in `LOCALES_DIR` (vedi `I18N.md`
 ## App lifecycle
 
 ```text
-POST /api/app/heartbeat
 POST /api/app/shutdown
 GET  /api/app/version
 GET  /api/app/check_update
 ```
 
-`heartbeat` resta temporaneamente disponibile, ma il monitor non viene piu
-avviato: il ciclo di vita e gestito dalla finestra PyWebView.
+Il ciclo di vita e gestito dalla finestra PyWebView, senza richieste periodiche
+dal frontend per mantenere attivo il backend.
 
-`shutdown` permette uno spegnimento esplicito del backend. Attualmente il frontend
-non lo usa. La chiusura automatica della finestra quando il backend viene
-arrestato via API resta da gestire (vedi `TODO.md`).
+`shutdown` permette uno spegnimento esplicito del backend e, quando il thread
+termina, la chiusura della finestra PyWebView senza segnalare un crash.
+Attualmente il frontend non lo usa.
+
+La richiesta usa lo stesso stop cooperativo della chiusura della finestra.
+Durante lo stop le nuove richieste ricevono `503`; quelle gia iniziate possono
+terminare entro la tolleranza configurata, oppure essere annullate con rollback.
+Un timeout SQLite intercettato prima dell'inizio della risposta restituisce
+`504` (o `503` durante lo stop). I tool MCP mantengono il proprio protocollo di
+errore; una risposta gia in streaming puo invece essere interrotta.
 
 `version` restituisce `APP_VERSION` definita in `backend/config.py`.
 

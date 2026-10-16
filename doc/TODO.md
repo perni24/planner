@@ -13,7 +13,7 @@ Da risolvere prima della prossima release.
 Decisione: nell'app portable backend e MCP restano attivi finche la finestra di
 Planner e aperta, anche se minimizzata. Chiudendo la finestra si arresta tutto.
 Non sono previste una modalita solo backend o un'icona nell'area di notifica.
-PyWebView sostituira il browser e l'heartbeat per il ciclo di vita dell'app;
+PyWebView gestisce il ciclo di vita dell'app senza heartbeat dal frontend;
 React, API REST, MCP, SQLite ed eventi SSE restano invariati.
 
 `backend/main.py` resta l'unico punto di ingresso, anche per PyInstaller:
@@ -21,51 +21,53 @@ prepara l'ambiente, avvia Uvicorn in un thread separato, attende che sia pronto
 e apre PyWebView nel thread principale. Non e previsto `backend/desktop.py`
 ne un secondo avvio portable basato sul browser.
 
-Procedere nell'ordine seguente, verificando un passaggio alla volta. L'avvio
-dell'app nella finestra nativa e stato verificato manualmente su Windows.
-Restano le verifiche funzionali sotto elencate; macOS e Linux verranno verificati
-prima di integrare il nuovo avvio nelle release.
+#### Verifiche native ancora aperte
 
-#### Passaggio 1: Dipendenze
+L'avvio della finestra e stato verificato manualmente su Windows. I test
+automatici simulano la GUI: non sostituiscono le prove seguenti. I dettagli delle
+funzioni implementate sono in `ARCHITETTURA_PORTABLE.md`; la procedura di prova
+e in `GUIDA_SVILUPPO.md`.
 
-- [ ] Definire i renderer supportati e le dipendenze native necessarie su macOS e Linux
+- [ ] Verificare lettura e salvataggio di progetti/task, MCP durante la minimizzazione e chiusura durante salvataggi REST/MCP e download; controllare che processo e porta vengano rilasciati
+- [ ] Verificare i messaggi nativi Windows per errori di avvio e crash e la chiusura della finestra dopo lo shutdown via API
+- [ ] Verificare che cookie e `localStorage` persistano dopo chiusura e riavvio; tema e lingua sono salvati nel DB e non dimostrano da soli la persistenza del profilo
+- [ ] Verificare download del backup con scelta della destinazione e annullamento del dialogo, link GitHub nel browser esterno e copia dell'indirizzo MCP; adeguare solo se necessario
+- [ ] Testare temi, lingue, aggiornamenti SSE e uso MCP dopo riavvio e sospensione/ripresa del PC
 
-#### Passaggio 3: Avvio desktop di prova
+#### Build e distribuzione desktop
 
-- [ ] Completare le verifiche manuali nella finestra nativa Windows: lettura e salvataggio di progetti/task, MCP attivo durante la minimizzazione e porta liberata alla chiusura; l'avvio e confermato, mentre i test automatici simulano la finestra
+Queste attivita sostituiscono il vecchio passaggio 8. Procedere nell'ordine
+seguente, prima di distribuire il nuovo avvio desktop.
 
-#### Passaggio 4: Attesa ed errori di avvio
+**1. Renderer e dipendenze**
 
-- [ ] Mostrare anche graficamente gli errori di avvio (migrazioni, porta occupata, frontend mancante e renderer non disponibile): oggi vengono propagati alla console; verificare anche inizializzazioni bloccate oltre il timeout
-- [ ] Gestire l'arresto inatteso del backend dopo l'apertura della finestra e lo shutdown via API, evitando che la UI rimanga aperta senza server
+- [ ] Confermare i requisiti WebView2 su Windows, scegliere GTK o Qt su Linux e verificare il renderer nativo e le dipendenze Python su macOS
+- [ ] Definire il fallback grafico degli errori prima dell'apertura della finestra su macOS/Linux: oggi restano log e console
 
-#### Passaggio 5: Spegnimento dalla finestra
+**2. Script PyInstaller**
 
-- [ ] Verificare lo spegnimento con scritture REST/MCP, download e connessioni SSE/MCP in corso; i test coprono gia la chiusura delle code SSE e il rilascio della porta con un client SSE connesso
-- [ ] Gestire il superamento del timeout di arresto: oggi viene segnalato un errore ma il thread non-daemon puo rimanere attivo per non troncare operazioni; definire una strategia di cancellazione e verificare che non rimangano processi attivi
+- [ ] Adeguare `build_portable.py` ai renderer scelti: verificare hook/import necessari ed escludere eventuali renderer inutilizzati, mantenendo `main.py` e inizialmente la console Windows
+- [ ] Verificare i contenuti del pacchetto: frontend, schema, migrazioni, lingue e licenze; non includere database, log o profili WebView personali
 
-#### Passaggio 6: Persistenza e funzioni della finestra
+**3. Pacchetto macOS**
 
-- [ ] Configurare in `config.py` il percorso del profilo WebView (per esempio `data/webview/`) e la modalita non privata per conservare `localStorage` e cookie tra gli avvii; il profilo sara distinto da quello del browser
-- [ ] Verificare download del backup e scelta della destinazione, link GitHub nel browser esterno e copia dell'indirizzo MCP, adeguando i comportamenti dove necessario
-- [ ] Testare temi, lingue, aggiornamenti SSE e uso MCP, inclusi riavvio, minimizzazione e sospensione del PC
+- [ ] Definire il formato di distribuzione macOS; se si usa un bundle `.app`, adattare `APP_DIR` per mantenere `data/` e `locales/` in una posizione esterna al bundle e scrivibile
+- [ ] Valutare firma e notarizzazione separatamente dalla semplice riuscita della build
 
-#### Passaggio 7: Rimozione heartbeat
+**4. GitHub Actions e archivi**
 
-- [ ] Solo dopo la verifica del ciclo di vita desktop, rimuovere il monitor in `app_lifecycle.py`, l'endpoint heartbeat e i relativi riferimenti backend
-- [ ] Rimuovere `sendAppHeartbeat` e il timer da `AppProviders.jsx`, mantenendo il controllo degli aggiornamenti dell'app
+- [ ] Installare nel workflow le dipendenze specifiche dei renderer per ciascun sistema, mantenendo gli avvii su tag `v*` e manuale
+- [ ] Adeguare il confezionamento degli archivi e verificare su Linux/macOS la conservazione dei permessi di esecuzione dopo l'estrazione
 
-#### Passaggio 8: Build e documentazione
+**5. Verifica dei pacchetti e documentazione**
 
-- [ ] Adeguare PyInstaller e GitHub Actions al nuovo flusso desktop e alle dipendenze grafiche, mantenendo `main.py` come entry point e inizialmente la console per diagnosticare gli errori
-- [ ] Verificare le build su macchine pulite Windows, macOS e Linux, inclusi requisiti nativi, packaging macOS, percorsi dei dati persistenti e valutazione di firma e notarizzazione
-- [ ] Aggiornare guide, istruzioni per gli agenti e documentazione portable, rimuovendo i riferimenti al vecchio ciclo di vita basato su browser e heartbeat
+- [ ] Provare i pacchetti estratti su macchine pulite Windows, macOS e Linux, senza Python, Node o Vite installati: avvio, salvataggi, backup, MCP, persistenza e chiusura completa
+- [ ] Allineare guide, istruzioni per gli agenti e documentazione portable ai renderer, ai prerequisiti e ai pacchetti effettivamente verificati
 
 ## 2. Alta
 
 ### Dipendenze e build
 - [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer` e `ToolError` dell'SDK 2.x)
-- [ ] Verificare su Linux/macOS che gli zip prodotti dalla CI mantengano il permesso di esecuzione e che l'app estratta si avvii
 - [ ] CI: verificare che `APP_VERSION` corrisponda al tag della release
 
 ### Gestione errori

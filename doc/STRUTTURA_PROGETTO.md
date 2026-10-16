@@ -35,7 +35,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 ## Backend
 
 - `main.py`: unico entry point. `main()` prepara cartelle, lingue e database con `initialize_runtime()`, poi `start_server()` avvia Uvicorn in un thread e PyWebView nel thread principale. Attende il nostro server prima di aprire la finestra, ne richiede l'arresto alla chiusura e mantiene API REST, MCP e frontend compilato. Importare il modulo non avvia server o finestra.
-- `config.py`: ambiente (sviluppo/produzione), percorsi, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
+- `config.py`: ambiente (sviluppo/produzione), percorsi incluso il profilo persistente WebView, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
 - `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
 - `requirements.txt`: dipendenze Python di runtime (Starlette, Uvicorn, MCP e PyWebView).
@@ -48,12 +48,15 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `services/`:
   - `mcp_service.py`: validazione e logica delle operazioni MCP, pubblicazione degli eventi;
   - `event_service.py`: code in memoria per gli eventi SSE, chiuse alla disconnessione o allo spegnimento per sbloccare le letture pendenti;
-  - `app_lifecycle.py`: callback per lo shutdown REST e vecchie funzioni heartbeat, ancora presenti ma senza monitor attivo;
+  - `app_lifecycle.py`: registrazione e invocazione della callback per lo shutdown REST, senza terminazioni forzate o monitor di presenza del frontend;
+  - `operation_control.py`: stop idempotente, scadenze ereditabili e controlli cooperativi condivisi da richieste, SQLite, backup e migrazioni;
+  - `desktop_error_service.py`: log desktop rotanti, messaggi localizzati senza accesso al DB e dialoghi con fallback;
   - `locale_service.py`: lettura dei file lingua;
   - `update_service.py`: controllo dell'ultima release su GitHub.
 - `integration/mcp/`: server MCP (`server.py`), registrazione dei tool (`mcp_tools.py`) e modelli Pydantic dei parametri (`models.py`).
 - `validators/request_validator.py`: validazione di id e testi, usata da route e service.
 - `middleware/origin_guard.py`: blocca le richieste di modifica inviate da pagine di altri siti (CSRF).
+- `middleware/shutdown_guard.py`: rifiuta le nuove richieste durante l'arresto e restituisce errori JSON per annullamento e timeout del database, se la risposta non e ancora iniziata.
 - `locales/`: file lingua JSON di default.
 - `test/*.http`: richieste HTTP manuali per provare le API.
 - `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
@@ -61,6 +64,9 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/test_repositories.py`: test automatici di letture e scritture REST/MCP, commit/rollback e chiusura delle connessioni SQLite.
 - `test/test_startup.py`: test dell'inizializzazione, della finestra simulata, dei thread, dei timeout e degli errori di avvio; include prove con Uvicorn e porte locali temporanee, senza aprire finestre native.
 - `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
+- `test/test_app_routes.py`: test di shutdown, versione e controllo aggiornamenti e rimozione del vecchio endpoint heartbeat.
+- `test/test_desktop_errors.py`: test di rotazione log, errori di scrittura, dizionari e dialoghi simulati.
+- `test/test_operation_control.py`: test di scadenze, cancellazione SQLite e bulk, timeout dei lock, pulizia dei backup e rollback delle migrazioni.
 
 ## Frontend (`frontend/src/`)
 
@@ -75,7 +81,7 @@ La configurazione `frontend/tsconfig.json` verifica i file `.ts` e `.tsx` in
 - `index.css`: Tailwind e variabili CSS dei temi.
 - `pages/`: `Project.jsx` (progetti dell'area corrente), `Tasks.jsx` (task e subtask di un progetto), `Setting.jsx` (tema, lingua, backup, MCP, versione), `Calendar.jsx` (segnaposto, non implementato).
 - `components/`: layout (`Dashboard`, `Header`, `SideBar`, `AreaSwitcher`), card, modali di creazione/modifica/eliminazione, `ConfirmModal`, `Toast`, `McpSettings`.
-- `context/`: provider globali composti in `AppProviders.jsx`, che gestisce anche heartbeat e controllo aggiornamenti. `DataSyncContext.jsx` riceve gli eventi SSE da `/api/events`. Per ogni context esistono un file `*ContextValue.js` e un hook `use*.js`.
+- `context/`: provider globali composti in `AppProviders.jsx`, che gestisce anche il controllo aggiornamenti. `DataSyncContext.jsx` riceve gli eventi SSE da `/api/events`. Per ogni context esistono un file `*ContextValue.js` e un hook `use*.js`.
 - `context/ToastContext.jsx`: mostra una sola notifica alla volta; annulla il timer precedente quando arriva un nuovo messaggio, alla chiusura manuale e allo smontaggio del provider.
 - `types/`: tipi delle risposte API, verificati insieme ad `api.ts` e `apiCore.ts` da TypeScript.
 - `assets/icons/`: icone SVG (licenza in `THIRD_PARTY_NOTICES.md`).
@@ -101,4 +107,6 @@ context e nelle pagine che possiedono i dati.
 - `backend/.venv/`: ambiente virtuale Python.
 - `backend/db/planner.db`: DB di sviluppo.
 - `backend/db/migration_backups/`: backup automatici prima delle migrazioni in sviluppo.
+- `backend/db/logs/`: log desktop e copie ruotate in sviluppo.
+- `backend/db/webview/`: profilo persistente del renderer desktop in sviluppo, separato dai dati SQLite.
 - `backend/build/` e `backend/dist/`: output PyInstaller.

@@ -3,6 +3,9 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime
 
+from config import DATABASE_OPERATION_TIMEOUT_SECONDS, SQLITE_BUSY_TIMEOUT_SECONDS
+from services.operation_control import check_operation, operation_deadline
+
 
 MIGRATION_FILES = (
     "001_fix_subtask_delete.sql",
@@ -14,6 +17,7 @@ def load_migrations(directory):
     migrations = []
 
     for version, filename in enumerate(MIGRATION_FILES, start=1):
+        check_operation()
         if not filename.startswith(f"{version:03d}_") or not filename.endswith(".sql"):
             raise RuntimeError(f"Invalid migration filename: {filename}")
 
@@ -54,6 +58,7 @@ def execute_script(conn, script):
     conn.set_authorizer(authorize_script)
     try:
         for part in script.split(";"):
+            check_operation()
             statement += part + ";"
             if sqlite3.complete_statement(statement):
                 conn.execute(statement)
@@ -65,12 +70,22 @@ def execute_script(conn, script):
 
 
 def create_migration_backup(conn, directory, version):
+    deadline = operation_deadline(DATABASE_OPERATION_TIMEOUT_SECONDS)
+    check_operation(deadline)
     os.makedirs(directory, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     path = os.path.join(directory, f"planner_v{version}_{timestamp}.db")
 
-    with closing(sqlite3.connect(path)) as backup_conn:
-        conn.backup(backup_conn)
+    def progress(status, remaining, total):
+        check_operation(deadline)
+
+    try:
+        with closing(sqlite3.connect(path, timeout=SQLITE_BUSY_TIMEOUT_SECONDS)) as backup_conn:
+            conn.backup(backup_conn, pages=256, progress=progress, sleep=0.05)
+    except BaseException:
+        if os.path.exists(path):
+            os.remove(path)
+        raise
 
     print(f"Backup prima delle migrazioni creato in: {path}")
     return path
@@ -81,6 +96,7 @@ def apply_migrations(conn, migrations, directory):
 
     for version, filename, script in migrations:
         try:
+            check_operation()
             conn.execute("BEGIN IMMEDIATE")
             current_version = get_schema_version(conn)
             validate_schema_version(current_version, latest_version)
@@ -103,6 +119,7 @@ def apply_migrations(conn, migrations, directory):
 
             execute_script(conn, script)
             conn.execute(f"PRAGMA user_version = {version}")
+            check_operation()
             conn.commit()
             print(f"Migrazione applicata: {filename} (schema {version})")
         except Exception as error:

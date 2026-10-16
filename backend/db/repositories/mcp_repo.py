@@ -1,6 +1,8 @@
 from contextlib import closing
 
 from db.db import get_db_connection
+from config import DATABASE_OPERATION_TIMEOUT_SECONDS
+from services.operation_control import check_operation, operation_scope
 
 def get_all_areas():
     with closing(get_db_connection()) as conn, conn:
@@ -127,8 +129,9 @@ def bulk_insert_area(names):
 
     inserted_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for name in names:
+            check_operation()
             cursor = conn.execute(
                 """
                 INSERT INTO areas (name) VALUES (?)
@@ -136,19 +139,21 @@ def bulk_insert_area(names):
                 (name,)
             )
             inserted_ids.append(cursor.lastrowid)
+        check_operation()
         return inserted_ids
 
 def bulk_insert_project(area_ids, names, descriptions):
 
     inserted_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for area_id, name, description in zip(
             area_ids,
             names,
             descriptions,
             strict=True,
         ):
+            check_operation()
             cursor = conn.execute(
                 """
                 INSERT INTO projects (area_id, name, description)
@@ -157,13 +162,14 @@ def bulk_insert_project(area_ids, names, descriptions):
                 (area_id, name, description)
             )
             inserted_ids.append(cursor.lastrowid)
+        check_operation()
         return inserted_ids
 
 def bulk_insert_task(project_ids, titles, descriptions, parent_ids):
 
     inserted_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for project_id, title, description, parent_id in zip(
             project_ids,
             titles,
@@ -171,6 +177,7 @@ def bulk_insert_task(project_ids, titles, descriptions, parent_ids):
             parent_ids,
             strict=True,
         ):
+            check_operation()
             cursor = conn.execute(
                 """
                 INSERT INTO tasks (project_id, parent_id, title, description)
@@ -179,18 +186,20 @@ def bulk_insert_task(project_ids, titles, descriptions, parent_ids):
                 (project_id, parent_id, title, description)
             )
             inserted_ids.append(cursor.lastrowid)
+        check_operation()
         return inserted_ids
 
 def bulk_update_project(project_ids, names, descriptions):
     updated_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for project_id, name, description in zip(
             project_ids,
             names,
             descriptions,
             strict=True,
         ):
+            check_operation()
             cursor = conn.execute(
                 """
                 UPDATE projects
@@ -204,19 +213,21 @@ def bulk_update_project(project_ids, names, descriptions):
 
             if cursor.rowcount == 1:
                 updated_ids.append(project_id)
+        check_operation()
 
     return updated_ids
 
 def bulk_update_task(ids, titles, descriptions):
     updated_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for task_id, title, description in zip(
             ids,
             titles,
             descriptions,
             strict=True,
         ):
+            check_operation()
             cursor = conn.execute(
                 """
                 UPDATE tasks
@@ -230,18 +241,20 @@ def bulk_update_task(ids, titles, descriptions):
 
             if cursor.rowcount == 1:
                 updated_ids.append(task_id)
+        check_operation()
 
     return updated_ids
 
 def bulk_set_task_completed(ids, completeds):
     updated_ids = []
 
-    with closing(get_db_connection()) as conn, conn:
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
         for task_id, completed in zip(
             ids,
             completeds,
             strict=True,
         ):
+            check_operation()
             cursor = conn.execute(
                 """
                 UPDATE tasks
@@ -254,5 +267,6 @@ def bulk_set_task_completed(ids, completeds):
 
             if cursor.rowcount == 1:
                 updated_ids.append(task_id)
+        check_operation()
 
     return updated_ids

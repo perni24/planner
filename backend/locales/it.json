@@ -1,4 +1,14 @@
 {
+  "desktop.errors.title": "Errore di Planner",
+  "desktop.errors.startup": "Impossibile avviare Planner. Controlla la cartella dell'applicazione e il log per i dettagli.",
+  "desktop.errors.runtime": "Il server locale si e arrestato in modo inatteso. Planner verra chiuso. Controlla il log prima di riavviare.",
+  "desktop.errors.frontend": "La build dell'interfaccia non e presente. Ripristina la cartella portable completa oppure, in sviluppo, esegui npm run build nella cartella frontend.",
+  "desktop.errors.renderer": "Impossibile aprire la finestra dell'applicazione. Verifica l'installazione del motore web (WebView2 su Windows).",
+  "desktop.errors.timeout": "L'avvio dell'applicazione ha superato il tempo previsto. Controlla il log prima di riavviare.",
+  "desktop.errors.shutdown": "Planner sta impiegando piu tempo del previsto per chiudersi. Attende ancora la conclusione sicura delle operazioni. Non riavviarlo finche il processo non termina. Controlla il log per i dettagli.",
+  "desktop.errors.log": "I dettagli tecnici sono disponibili in:",
+  "desktop.errors.console": "I dettagli tecnici sono disponibili nella console. Non e stato possibile aprire il file di log.",
+
   "settings.title": "Impostazioni",
   "settings.theme.label": "Tema dell'applicazione",
   "settings.theme.light": "Chiaro",

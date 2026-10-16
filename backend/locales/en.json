@@ -1,4 +1,14 @@
 {
+  "desktop.errors.title": "Planner error",
+  "desktop.errors.startup": "Planner could not start. Check the application folder and the log for details.",
+  "desktop.errors.runtime": "The local server stopped unexpectedly. Planner will close. Check the log before restarting.",
+  "desktop.errors.frontend": "The interface build is missing. Restore the complete portable folder or run npm run build in frontend during development.",
+  "desktop.errors.renderer": "The application window could not start. Check the web renderer installation (WebView2 on Windows).",
+  "desktop.errors.timeout": "Application startup exceeded its time limit. Check the log before restarting.",
+  "desktop.errors.shutdown": "Planner is taking longer than expected to stop. It is still waiting for safe cleanup. Do not restart it until the process exits. Check the log for details.",
+  "desktop.errors.log": "Technical details are available in:",
+  "desktop.errors.console": "Technical details are available in the console. The log file could not be opened.",
+
   "settings.title": "Settings",
   "settings.theme.label": "Application theme",
   "settings.theme.light": "Light",

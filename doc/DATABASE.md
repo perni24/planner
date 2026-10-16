@@ -140,6 +140,14 @@ confermati insieme. Un errore annulla la migrazione corrente e blocca l'avvio; l
 migrazioni precedenti gia confermate restano applicate. Al prossimo avvio si
 riparte da quelle mancanti.
 
+Query e backup hanno controlli cooperativi di avanzamento e limiti definiti in
+`config.py`; l'attesa di un lock SQLite e limitata a 1 secondo. I bulk MCP
+controllano l'annullamento tra gli elementi e prima del commit, mantenendo il
+rollback dell'intero batch. Un backup di migrazione incompleto viene rimosso;
+quelli completati restano disponibili anche se la migrazione successiva fallisce.
+L'inizializzazione ha un budget cooperativo di 120 secondi; non puo interrompere
+una chiamata I/O bloccata internamente dal sistema operativo.
+
 ### Prima migrazione
 
 `001_fix_subtask_delete.sql` sostituisce il trigger difettoso. Per i database di

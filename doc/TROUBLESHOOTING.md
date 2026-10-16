@@ -9,7 +9,11 @@ cd backend\dist\PlannerApp
 .\PlannerApp.exe
 ```
 
-Se lo avvii con doppio click, la finestra puo chiudersi prima di mostrare il messaggio.
+Gli errori gestiti dal coordinatore desktop mostrano un dialogo su Windows e
+salvano i dettagli in `PlannerApp/data/logs/planner.log` (in sviluppo
+`backend/db/logs/planner.log`). Se la cartella non e scrivibile resta la console.
+Gli errori del bootloader PyInstaller, precedenti all'avvio Python, richiedono
+ancora l'avvio da terminale e non passano dal gestore desktop.
 
 ## Errore `Failed to load Python DLL`
 
@@ -24,6 +28,11 @@ PlannerApp/
 ```
 
 ## Porta 8000 gia occupata
+
+Se Planner segnala che lo spegnimento sta impiegando troppo tempo, attende ancora
+la pulizia sicura del backend: non aprire una seconda istanza e non sostituire il
+DB in uso. Controlla il log. I timeout interrompono cooperativamente SQLite e i
+backup, ma non possono sbloccare I/O nativo fermo nel sistema operativo.
 
 Chiudi eventuali server gia avviati:
 

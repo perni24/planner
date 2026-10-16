@@ -23,6 +23,7 @@ Al primo avvio vengono aggiunte le cartelle modificabili:
 PlannerApp/
   data/
     planner.db
+    webview/
   locales/
     it.json
     en.json
@@ -34,6 +35,8 @@ Su Linux e macOS il file eseguibile non avra estensione `.exe`, ma la logica res
 
 - `_internal/`: contiene runtime Python, librerie, `schema.sql`, `db/migrations/`, frontend buildato e file inclusi da PyInstaller. Non va modificata manualmente.
 - `data/`: contiene il database SQLite creato vicino all'eseguibile al primo avvio. `migration_backups/` viene aggiunta quando un database esistente deve essere aggiornato.
+- `data/logs/`: log degli errori desktop e di Uvicorn. `planner.log` arriva a circa 1 MB, con al massimo tre copie ruotate; se la cartella non e scrivibile resta la console.
+- `data/webview/`: profilo della finestra (cookie, dati web e cache gestiti dal renderer), separato dal profilo del browser dell'utente.
 - `locales/`: contiene i file lingua esterni copiati al primo avvio e modificabili dall'utente.
 
 ## Percorsi principali
@@ -48,6 +51,8 @@ MIGRATIONS_DIR -> backend/db/migrations
 MIGRATION_BACKUPS_DIR -> backend/db/migration_backups
 LOCALES_DIR -> backend/locales
 FRONTEND_DIST_DIR -> frontend/dist
+DESKTOP_LOG_PATH -> backend/db/logs/planner.log
+WEBVIEW_STORAGE_DIR -> backend/db/webview/
 ```
 
 In PyInstaller:
@@ -58,13 +63,15 @@ MIGRATIONS_DIR -> _internal/db/migrations
 MIGRATION_BACKUPS_DIR -> PlannerApp/data/migration_backups
 LOCALES_DIR -> PlannerApp/locales
 FRONTEND_DIST_DIR -> _internal/frontend_dist
+DESKTOP_LOG_PATH -> PlannerApp/data/logs/planner.log
+WEBVIEW_STORAGE_DIR -> PlannerApp/data/webview/
 ```
 
 ## Avvio dell'app
 
 Quando l'eseguibile parte:
 
-1. crea le cartelle runtime `data/` e `locales/` se non esistono;
+1. crea le cartelle runtime `data/`, `locales/` e `data/webview/` se non esistono;
 2. copia i file lingua default in `locales/` solo se mancano;
 3. crea il database SQLite se nuovo o vuoto, oppure applica le migrazioni mancanti dopo un backup automatico;
 4. verifica la presenza del frontend compilato e avvia Uvicorn in un thread separato su `127.0.0.1:8000`, senza reload (host e porta restano configurabili);
@@ -74,29 +81,84 @@ Quando l'eseguibile parte:
 
 L'importazione di `main.py` non prepara il runtime e non avvia server o finestra.
 Frontend mancante, porta occupata, timeout ed errori del renderer impediscono
-l'avvio o richiedono lo stop del backend e vengono propagati alla console.
+l'avvio o richiedono lo stop del backend. Il coordinatore registra il traceback
+e mostra un messaggio breve, con il percorso del log; l'uscita ha codice 1.
+Ctrl+C termina con codice 130 senza mostrare un errore.
+
+Se la finestra e gia aperta si usa un dialogo PyWebView. Per gli errori prima
+della finestra o del renderer, Windows usa un dialogo nativo indipendente da
+WebView2; sulle altre piattaforme restano console e log finche il fallback
+grafico non sara definito. Un errore del dialogo non nasconde quello originale.
+I messaggi usano la lingua di sistema it/en e il fallback inglese, senza
+interrogare il database potenzialmente guasto (vedi `I18N.md`).
+
+L'inizializzazione precedente al server ha un budget cooperativo di 120 secondi,
+controllato tra le fasi e le istruzioni delle migrazioni. Ogni connessione SQLite
+ha un limite di esecuzione di 30 secondi e un'attesa per lock di 1 secondo.
+Backup e query controllano le scadenze anche durante il lavoro. I limiti non
+possono interrompere una singola chiamata I/O bloccata dal sistema operativo.
 
 ## Chiusura della finestra
 
 Chiudere la finestra richiede l'arresto di Uvicorn e attende il thread backend.
 Minimizzare la finestra non lo interrompe, quindi anche MCP resta attivo.
 
-Uvicorn concede 5 secondi alle richieste in corso; il coordinatore attende fino
-a 10 secondi. Le code SSE vengono chiuse alla disconnessione e nel lifespan per
-sbloccare le letture ancora pendenti nell'executor. I timeout sono definiti in
-`config.py`.
+La prima richiesta di stop fissa una scadenza condivisa; richieste successive non
+la prolungano. Le nuove richieste ricevono `503` e non vengono aperte nuove
+connessioni al database. Le code SSE vengono chiuse subito, oltre che alla
+disconnessione e nel lifespan, sbloccando le letture pendenti nell'executor.
 
-Se il thread non termina entro il timeout viene segnalato un errore, senza
-ucciderlo o troncare le operazioni: puo quindi restare attivo. La gestione
-completa dei blocchi, delle scritture e delle sessioni MCP durante lo spegnimento
-resta aperta in `TODO.md`, come la gestione della finestra dopo uno stop via API.
+Le operazioni gia iniziate hanno 3 secondi per terminare. Dopo questa tolleranza,
+i controlli di avanzamento interrompono query, backup e bulk MCP ancora in corso.
+I bulk controllano anche tra gli elementi e prima del commit: un annullamento
+esegue il rollback della transazione corrente, senza cancellare dati gia
+confermati. Anche migrazione e incremento della versione restano atomici.
+I file di backup incompleti vengono eliminati dopo la chiusura delle connessioni.
 
-Il monitor heartbeat non viene piu avviato. L'endpoint `POST /api/app/heartbeat`
-e le chiamate del frontend ogni 10 secondi sono ancora presenti, ma non decidono
-quando spegnere il server; saranno rimossi in un passaggio successivo.
+Uvicorn concede 5 secondi alle richieste in corso; il coordinatore attende 10
+secondi prima di segnalare un arresto lento. Se il thread non termina, mostra un
+messaggio specifico e continua ad attenderne la conclusione sicura. Non usa
+`os._exit()`, thread daemon o terminazioni forzate. Questo non garantisce l'uscita
+entro un tempo assoluto in caso di I/O nativo non interrompibile: non riavviare
+Planner finche il processo precedente non e terminato. Tutti i limiti sono in
+`config.py`; la verifica manuale della finestra resta in `TODO.md`.
 
-Download del backup nella finestra e persistenza del profilo WebView non sono
-ancora configurati e restano da verificare nel passaggio dedicato.
+Un evento Python segnala la conclusione del thread backend. Il monitor attende
+che la finestra sia mostrata prima di interagire con la GUI: in caso di crash
+mostra l'errore e chiude la finestra; dopo uno shutdown richiesto via API la
+chiude senza allarme. Se il renderer fallisce, il monitor viene annullato.
+
+Il vecchio monitor heartbeat, il relativo endpoint e il timer React sono stati
+rimossi. `app_lifecycle.py` mantiene soltanto la callback dello shutdown esplicito;
+`AppProviders.jsx` mantiene il controllo automatico degli aggiornamenti.
+Il commento heartbeat delle connessioni SSE resta attivo: mantiene la connessione
+eventi e non decide quando spegnere il backend.
+
+## Profilo e funzioni della finestra
+
+L'avvio passa `private_mode=False` e `storage_path=WEBVIEW_STORAGE_DIR` a
+PyWebView. La cartella viene creata senza cancellare i dati gia presenti ed e
+esclusa da Git. Cookie e `localStorage` appartengono alla finestra, non al browser
+esterno; i dati web sono inoltre separati per origine (host e porta). Cambiare
+host o porta puo quindi far apparire vuoto il `localStorage` della nuova origine.
+Tema e lingua continuano a essere salvati nel database SQLite.
+
+Il download backup usa ancora `/api/backup/download`, con nome datato generato
+dal backend. `ALLOW_DOWNLOADS=True` abilita la gestione del download da parte del
+renderer; su Windows/WebView2 e prevista la finestra di scelta della destinazione.
+Non viene esposto un endpoint che accetta percorsi di file dal frontend. Il
+backup scaricato contiene soltanto SQLite, non il profilo WebView o i file lingua.
+
+`OPEN_EXTERNAL_LINKS_IN_BROWSER=True` mantiene i link aperti con `window.open()`
+nel browser esterno; la pagina GitHub non deve sostituire Planner nella finestra.
+La copia dell'indirizzo MCP resta basata su `navigator.clipboard.writeText()` e
+sui toast esistenti, senza un bridge Python-JavaScript.
+
+I test automatici verificano le opzioni e i percorsi, non il renderer: salvataggio
+e annullamento download, link, clipboard, persistenza effettiva e ripresa dalla
+sospensione vanno ancora provati nella finestra nativa (vedi `TODO.md`). Non e
+garantita la trasferibilita del profilo WebView tra sistemi o PC diversi: il DB
+resta la fonte dei dati dell'applicazione.
 
 ## Aggiornare l'app
 

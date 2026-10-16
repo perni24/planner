@@ -78,11 +78,32 @@ Su Windows e richiesto WebView2. Uvicorn lavora in un thread separato senza
 reload, anche se `RELOAD` e impostato nell'ambiente. Le modifiche Python
 richiedono di chiudere e riavviare l'app; per vedere quelle React nella finestra
 occorre una nuova build e un ricaricamento della pagina o un riavvio dell'app.
-Gli errori di avvio vengono mostrati in console.
+Gli errori di avvio vengono registrati in `backend/db/logs/planner.log` e
+mostrati tramite dialogo nativo su Windows; se la GUI non e disponibile sulle
+altre piattaforme resta la console. Il file ruota a circa 1 MB con tre copie.
+Un crash del backend dopo l'apertura segnala l'errore e chiude la finestra;
+lo shutdown via API la chiude normalmente, senza allarme.
 
 La finestra resta aperta durante l'uso del backend/MCP; chiuderla ne richiede
 l'arresto. Minimizzarla non interrompe il backend. Non viene piu aperto
-automaticamente il browser e il monitor heartbeat non viene avviato.
+automaticamente il browser e non servono richieste periodiche del frontend per
+mantenere attivo il backend.
+
+Il profilo PyWebView usa `backend/db/webview/` in sviluppo e `data/webview/`
+nella portable, con modalita privata disattivata. Non e condiviso con Chrome o
+Edge ed e escluso da Git. I download sono abilitati e i link esterni devono aprire
+il browser predefinito, senza navigare via da Planner.
+
+### Verifiche manuali delle funzioni desktop
+
+1. Dalla console della finestra in sviluppo, salva una chiave di prova con `localStorage.setItem('planner-profile-test', 'ok')`. Chiudi e riavvia l'app mantenendo host e porta, verifica `localStorage.getItem('planner-profile-test')`, poi rimuovila con `localStorage.removeItem('planner-profile-test')`. La persistenza di tema e lingua non basta per questa prova: quei valori sono gia nel DB.
+2. Dalle Impostazioni scarica un backup, scegli una destinazione, controlla il nome datato e verifica il DB scaricato. Ripeti annullando il dialogo: Planner deve restare utilizzabile.
+3. Se e disponibile un aggiornamento, apri la pagina di download: deve comparire nel browser esterno, non al posto di Planner.
+4. Copia l'indirizzo MCP e incollalo in un editor esterno; controlla che il toast di esito corrisponda al risultato.
+5. Cambia tema e lingua, riavvia, poi verifica modifiche MCP e aggiornamenti SSE anche durante minimizzazione e dopo sospensione/ripresa del PC.
+
+Queste prove richiedono il renderer nativo di ogni sistema supportato. I test con
+finestra simulata verificano solo configurazione e coordinamento del backend.
 
 Il database di sviluppo viene creato automaticamente in:
 
@@ -142,8 +163,8 @@ http://127.0.0.1:8000/mcp/
 ```
 
 Il server MCP resta disponibile finche la finestra Planner e aperta, anche se
-minimizzata. La sua chiusura richiede l'arresto del backend, indipendentemente
-dagli heartbeat del frontend (vedi `ARCHITETTURA_PORTABLE.md`).
+minimizzata. La sua chiusura richiede l'arresto del backend; non sono previsti
+timer di presenza del frontend (vedi `ARCHITETTURA_PORTABLE.md`).
 
 ## 4. Controlli di qualita
 Prima di un commit esegui i linter.
@@ -186,8 +207,16 @@ I test dei repository verificano la chiusura delle connessioni, la persistenza
 delle scritture REST/MCP e il rollback delle operazioni bulk fallite a meta.
 Le altre API vengono ancora provate manualmente.
 `test/test_startup.py` verifica il ciclo desktop, i thread, i timeout e gli errori
-con una finestra simulata e server su porte TCP locali temporanee.
+con una finestra simulata e server su porte TCP locali temporanee, anche con
+scritture REST/MCP in corso durante lo stop. Verifica inoltre percorsi del profilo
+sviluppo/portable, creazione senza sovrascrittura e opzioni di download e browser.
 `test/test_events.py` verifica la chiusura delle code SSE e lo sblocco delle letture.
+`test/test_app_routes.py` verifica la rimozione del vecchio endpoint heartbeat e
+il mantenimento di shutdown, versione e controllo aggiornamenti, senza rete esterna.
+`test/test_desktop_errors.py` verifica log rotanti, traduzioni e fallback senza
+aprire dialoghi nativi; i file di log di prova sono temporanei.
+`test/test_operation_control.py` verifica cancellazione cooperativa, timeout dei
+lock SQLite, backup bloccati, rollback e ripetizione delle richieste di stop.
 Non vengono aperte finestre native: la prova manuale di PyWebView resta necessaria.
 I linter e i test backend restano manuali. GitHub Actions esegue il controllo
 TypeScript come parte della build frontend.

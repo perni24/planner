@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { checkAppUpdate, sendAppHeartbeat } from '../api';
+import { checkAppUpdate } from '../api';
 import { useLanguage } from './useLanguage';
 import { useToast } from './useToast';
 import { ThemeProvider } from './ThemeContext';
@@ -10,28 +10,10 @@ import { AreaProvider } from './areaContext';
 import { DataSyncProvider } from './DataSyncContext';
 import { ToastProvider } from './ToastContext';
 
-const HEARTBEAT_INTERVAL_MS = 10000;
-
 function AppLifecycle({ children }) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
   const hasCheckedUpdate = useRef(false);
-
-  useEffect(() => {
-    sendAppHeartbeat().catch((error) => {
-      console.error('Error sending app heartbeat:', error);
-    });
-
-    const heartbeatInterval = window.setInterval(() => {
-      sendAppHeartbeat().catch((error) => {
-        console.error('Error sending app heartbeat:', error);
-      });
-    }, HEARTBEAT_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(heartbeatInterval);
-    };
-  }, []);
 
   useEffect(() => {
     if (hasCheckedUpdate.current) {

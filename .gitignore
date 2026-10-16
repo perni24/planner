@@ -23,6 +23,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Database
+backend/db/logs/
+backend/db/webview/
 *.db
 *.sqlite3
 

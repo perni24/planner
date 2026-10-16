@@ -39,6 +39,12 @@ WEBVIEW_GUI = "edgechromium" if sys.platform == "win32" else None
 SERVER_STARTUP_TIMEOUT_SECONDS = 15
 SERVER_GRACEFUL_SHUTDOWN_SECONDS = 5
 SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10
+# La cancellazione SQLite precede la scadenza delle richieste ASGI (5 secondi).
+SHUTDOWN_OPERATION_GRACE_SECONDS = 3
+SQLITE_BUSY_TIMEOUT_SECONDS = 1
+DATABASE_OPERATION_TIMEOUT_SECONDS = 30
+DATABASE_PROGRESS_STEPS = 1000
+RUNTIME_INITIALIZATION_TIMEOUT_SECONDS = 120
 
 # Valori ammessi nell'header Host (senza porta), contro il DNS rebinding.
 # Se HOST viene cambiato per raggiungere l'app con un altro nome o IP, quel valore
@@ -72,10 +78,15 @@ else:
     FRONTEND_DIST_DIR = os.path.join(PROJECT_DIR, "frontend", "dist")
 
 MIGRATION_BACKUPS_DIR = os.path.join(DATA_DIR, "migration_backups")
+WEBVIEW_STORAGE_DIR = os.path.join(DATA_DIR, "webview")
+LOGS_DIR = os.path.join(DATA_DIR, "logs")
+DESKTOP_LOG_PATH = os.path.join(LOGS_DIR, "planner.log")
+DESKTOP_LOG_MAX_BYTES = 1_000_000
+DESKTOP_LOG_BACKUP_COUNT = 3
 
 
 def ensure_runtime_directories():
-    for directory in (DATA_DIR, LOCALES_DIR):
+    for directory in (DATA_DIR, LOCALES_DIR, WEBVIEW_STORAGE_DIR):
         os.makedirs(directory, exist_ok=True)
 
 
