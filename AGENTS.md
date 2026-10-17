@@ -105,6 +105,13 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   dopo la preparazione del runtime e la verifica del frontend compilato. La
   finestra si apre solo quando quel server risulta avviato, non dopo una risposta
   di un servizio qualsiasi sulla stessa porta. Il reload e sempre disattivato.
+- Sistemi supportati: Windows e Linux. macOS non e distribuito (niente build in
+  CI, vedi `doc/SVILUPPI_FUTURI.md`), ma non rimuovere il codice compatibile.
+- Renderer della finestra (`WEBVIEW_GUI` in `config.py`): WebView2 su Windows,
+  Qt (PyQt6 + QtWebEngine, basato su Chromium) su Linux, WebKit di sistema su
+  macOS. Su Linux `qt` e forzato, altrimenti pywebview proverebbe prima GTK. I
+  pacchetti Qt sono in `requirements.txt` con il marcatore `sys_platform == "linux"`:
+  aggiornali insieme, mantenendo le versioni fissate.
 - Il profilo desktop usa `WEBVIEW_STORAGE_DIR` (`DATA_DIR/webview/`) e
   `private_mode=False`; e creato all'avvio e non va committato. Download abilitati
   e link esterni nel browser sono impostati in `main.py`. Clipboard e download
@@ -131,7 +138,7 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - `services/desktop_error_service.py` gestisce gli errori fatali Python, non quelli
   delle singole richieste API: log rotanti in `DESKTOP_LOG_PATH`, dialogo nella
   finestra se disponibile e fallback nativo Windows indipendente da WebView2;
-  senza GUI disponibile su macOS/Linux restano console e log. `main()` restituisce
+  senza GUI disponibile su Linux (e macOS) restano console e log. `main()` restituisce
   1 in caso di errore, 130 per Ctrl+C, 0 dopo uno stop normale.
 - Un evento del thread backend ne segnala la conclusione al monitor avviato con
   PyWebView. Dopo l'evento `shown`, il monitor avvisa e chiude la finestra in caso

@@ -1,14 +1,16 @@
 import asyncio
 import json
+import time
 import unittest
 from unittest.mock import Mock, patch
+from urllib.error import HTTPError, URLError
 
 from starlette.applications import Starlette
 
 from config import APP_VERSION
 from routes import app_routes
 from routes.api import all_routes
-from services import app_lifecycle
+from services import app_lifecycle, update_service
 
 
 async def request_app(path, method="GET"):
@@ -68,6 +70,49 @@ def test_version_and_update_check_remain_available_without_heartbeat():
             assert status == 200
             assert json.loads(body) == update
     assert check_update.call_count == 2
+
+
+def test_update_check_does_not_block_other_requests():
+    order = []
+
+    def slow_check_update():
+        time.sleep(0.5)
+        order.append("check_update")
+        return {"update_available": False}
+
+    async def scenario():
+        update_request = asyncio.create_task(request_app("/api/app/check_update"))
+        await asyncio.sleep(0.05)
+        status, _ = await request_app("/api/app/version")
+        assert status == 200
+        order.append("version")
+        status, _ = await update_request
+        assert status == 200
+
+    with patch.object(app_routes, "check_update", slow_check_update):
+        asyncio.run(scenario())
+    # Se il controllo bloccasse il loop eventi, /version risponderebbe solo dopo.
+    assert order == ["version", "check_update"]
+
+
+def test_update_check_reports_network_errors_without_raising():
+    errors = (
+        URLError("no network"),
+        HTTPError(update_service.GITHUB_LATEST_RELEASE_API, 503, "Unavailable", None, None),
+        TimeoutError("read timed out"),
+        ConnectionResetError("connection reset"),
+        ValueError("invalid JSON"),
+    )
+    for error in errors:
+        with patch.object(update_service, "get_latest_release", side_effect=error):
+            result = update_service.check_update()
+        assert result["update_available"] is False
+        assert result["latest_version"] is None
+        assert result["error"] == "Unable to check for updates"
+
+    for release in ({}, {"tag_name": None}, {"tag_name": "v1.0.0-beta"}, []):
+        with patch.object(update_service, "get_latest_release", return_value=release):
+            assert update_service.check_update()["error"] == "Unable to check for updates"
 
 
 def load_tests(loader, tests, pattern):

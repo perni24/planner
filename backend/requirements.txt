@@ -2,3 +2,8 @@ starlette==1.0.0
 uvicorn==0.43.0
 mcp
 pywebview==6.2.1
+# Su Linux pywebview non include un motore web: si usa Qt (QtWebEngine), incluso
+# nel pacchetto portable. Sono le dipendenze dell'extra pywebview[qt].
+QtPy==2.4.3; sys_platform == "linux"
+PyQt6==6.11.0; sys_platform == "linux"
+PyQt6-WebEngine==6.11.0; sys_platform == "linux"

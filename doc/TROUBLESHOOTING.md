@@ -135,6 +135,17 @@ E che il JSON sia valido. I file JSON non supportano commenti.
 
 ## macOS blocca l'app
 
-Le build PyInstaller non firmate possono essere bloccate da Gatekeeper. Per i test
-locali apri l'app dal menu contestuale con `Apri`. Per una distribuzione pubblica
-senza avvisi servono firma e notarizzazione Apple.
+Le release attuali non includono macOS. Il pacchetto macOS della `v0.1.0` non e
+firmato ne notarizzato e Gatekeeper lo blocca; da macOS 15 il tasto destro ->
+`Apri` non basta piu. Per una prova, dal Terminale nella cartella estratta:
+
+```bash
+xattr -dr com.apple.quarantine .
+chmod +x PlannerApp
+./PlannerApp
+```
+
+Il primo comando toglie la quarantena anche alle librerie in `_internal/`, il
+secondo ripristina il permesso di esecuzione perso nello zip. Il pacchetto contiene
+solo codice arm64: su un Mac Intel non parte ("Bad CPU type in executable").
+Dettagli e lavoro necessario per il supporto in `SVILUPPI_FUTURI.md`.

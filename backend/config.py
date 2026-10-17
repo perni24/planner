@@ -35,7 +35,9 @@ PORT = int(os.getenv("PORT", "8000"))
 
 APP_HOST = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
 APP_URL = f"http://{APP_HOST}:{PORT}"
-WEBVIEW_GUI = "edgechromium" if sys.platform == "win32" else None
+# Su Linux si forza Qt: senza indicazione pywebview prova prima GTK, che usa il
+# WebKitGTK di sistema invece del motore incluso nel pacchetto portable.
+WEBVIEW_GUI = {"win32": "edgechromium", "linux": "qt"}.get(sys.platform)
 SERVER_STARTUP_TIMEOUT_SECONDS = 15
 SERVER_GRACEFUL_SHUTDOWN_SECONDS = 5
 SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10

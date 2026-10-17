@@ -1,5 +1,4 @@
 import json
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from config import APP_VERSION, GITHUB_LATEST_RELEASE_API, GITHUB_RELEASES_URL
@@ -40,11 +39,14 @@ def check_update():
             "release_url": release_url,
             "error": None,
         }
-    except (HTTPError, URLError, KeyError, ValueError):
+    # OSError comprende URLError, HTTPError e gli errori di rete che urlopen non
+    # converte, come TimeoutError durante la lettura. Gli altri coprono una risposta
+    # di GitHub con un formato inatteso.
+    except (OSError, KeyError, TypeError, AttributeError, ValueError):
         return {
             "current_version": APP_VERSION,
             "latest_version": None,
             "update_available": False,
             "release_url": GITHUB_RELEASES_URL,
-            "error": "Impossibile controllare aggiornamenti",
+            "error": "Unable to check for updates",
         }

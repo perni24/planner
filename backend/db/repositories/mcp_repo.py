@@ -204,7 +204,7 @@ def bulk_update_project(project_ids, names, descriptions):
                 """
                 UPDATE projects
                 SET name = ?,
-                    description = ?,
+                    description = COALESCE(?, description),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
@@ -232,7 +232,7 @@ def bulk_update_task(ids, titles, descriptions):
                 """
                 UPDATE tasks
                 SET title = ?,
-                    description = ?,
+                    description = COALESCE(?, description),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,

@@ -8,7 +8,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `backend/`: backend Python, API, server MCP, database SQLite, build portable.
 - `frontend/`: applicazione React/Vite.
 - `doc/`: documentazione tecnica e note di progetto.
-- `.github/workflows/release-build.yml`: build Windows, Linux e macOS e creazione della GitHub Release quando viene pubblicato un tag `v*`.
+- `.github/workflows/release-build.yml`: build Windows e Linux e creazione della GitHub Release quando viene pubblicato un tag `v*`.
 - `AGENTS.md`: istruzioni per gli agenti AI che lavorano sul progetto.
 - `THIRD_PARTY_NOTICES.md`: licenze di terze parti (icone). Viene copiato nella build portable.
 - `LICENSE`: licenza GNU GPL v3.

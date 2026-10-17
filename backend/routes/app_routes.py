@@ -1,3 +1,4 @@
+from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
@@ -16,7 +17,9 @@ async def version(request):
 
 
 async def check_app_update(request):
-    return JSONResponse(check_update())
+    # La richiesta a GitHub e bloccante: eseguita sul loop eventi fermerebbe tutte
+    # le altre richieste (frontend, MCP, chiusura) finche GitHub non risponde.
+    return JSONResponse(await run_in_threadpool(check_update))
 
 
 routes = [

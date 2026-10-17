@@ -3,9 +3,23 @@
 L'app puo essere eseguita come cartella portable generata con PyInstaller in modalita `--onedir`.
 
 Il codice usa ora l'avvio desktop PyWebView, ancora in fase di integrazione:
-packaging e funzionamento nativo sui tre sistemi devono essere verificati prima
+packaging e funzionamento nativo su Windows e Linux devono essere verificati prima
 della distribuzione. Le vecchie release gia pubblicate mantengono il precedente
 avvio nel browser.
+
+Il motore della finestra dipende dal sistema:
+
+| Sistema | Renderer | Origine |
+|---|---|---|
+| Windows | WebView2 (Chromium di Edge) | Sistema operativo, aggiornato da Windows |
+| Linux | Qt WebEngine (Chromium) | Incluso nel pacchetto (PyQt6-WebEngine), aggiornato solo con le release di Planner |
+
+macOS non e distribuito per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS");
+avviando il codice su un Mac pywebview usa il WebKit di sistema.
+
+Su Linux il pacchetto non richiede WebKitGTK o altri motori installati, ma e piu
+grande. Il Chromium incluso carica solo l'interfaccia locale: i link esterni si
+aprono nel browser di sistema.
 
 ## Struttura dell'output
 
@@ -29,7 +43,7 @@ PlannerApp/
     en.json
 ```
 
-Su Linux e macOS il file eseguibile non avra estensione `.exe`, ma la logica resta la stessa.
+Su Linux il file eseguibile non avra estensione `.exe`, ma la logica resta la stessa.
 
 ## Cartelle tecniche
 

@@ -47,13 +47,19 @@ def register_mcp_tools(mcp):
 
     @mcp.tool()
     def bulk_update_project(projects: list[UpdateProject]) -> dict:
-        """Update multiple projects in a single operation."""
+        """Update multiple projects in a single operation.
+
+        Omit `description` to keep the current one; an empty string clears it.
+        """
         project_data = [project.model_dump() for project in projects]
         return mcpService.bulk_update_project(project_data)
 
     @mcp.tool()
     def bulk_update_task(tasks: list[UpdateTask]) -> dict:
-        """Update multiple tasks in a single operation."""
+        """Update multiple tasks in a single operation.
+
+        Omit `description` to keep the current one; an empty string clears it.
+        """
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_update_task(task_data)
 

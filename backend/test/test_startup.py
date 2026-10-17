@@ -369,6 +369,54 @@ def test_runtime_backend_failure_is_reported_once_and_closes_window():
             assert call_args.args[0].__cause__ is failure
 
 
+def test_closing_window_while_crash_dialog_is_open_reports_only_once():
+    with mocked_desktop() as mocks, patch.object(application, "configure_desktop_logging"), patch.object(
+        application, "initialize_runtime"
+    ):
+        crash = threading.Event()
+        dialog_open = threading.Event()
+        dialog_dismissed = threading.Event()
+        watchers = []
+
+        def crash_backend():
+            mocks["threads"].append(threading.current_thread())
+            mocks["server"].started = True
+            assert crash.wait(timeout=2)
+            raise RuntimeError("Simulated backend crash")
+
+        def blocking_dialog(*args, **kwargs):
+            # Il messaggio resta aperto finche l'utente non lo chiude.
+            if kwargs.get("window") is not None:
+                dialog_open.set()
+                assert dialog_dismissed.wait(timeout=5)
+
+        def close_window_while_dialog_is_open(monitor, **kwargs):
+            mocks["shown"].__iadd__.call_args.args[0]()
+            watcher = threading.Thread(target=monitor)
+            watchers.append(watcher)
+            watcher.start()
+            crash.set()
+            assert dialog_open.wait(timeout=2)
+            # L'utente chiude la finestra principale invece di premere OK.
+            mocks["closed"].__iadd__.call_args.args[0]()
+
+        mocks["server"].run.side_effect = crash_backend
+        mocks["webview"].start.side_effect = close_window_while_dialog_is_open
+        mocks["report"].side_effect = blocking_dialog
+        try:
+            assert application.main() == 1
+            assert dialog_open.is_set() and not dialog_dismissed.is_set()
+        finally:
+            dialog_dismissed.set()
+            for watcher in watchers:
+                watcher.join(timeout=2)
+                assert not watcher.is_alive()
+
+        # Un solo messaggio, di tipo runtime: nessun secondo "errore di avvio" da main().
+        mocks["report"].assert_called_once()
+        assert mocks["report"].call_args.kwargs == {"kind": "runtime", "window": mocks["window"]}
+
+
 def test_renderer_failure_cancels_monitor_before_window_is_shown():
     with mocked_desktop() as mocks:
         watchers = []

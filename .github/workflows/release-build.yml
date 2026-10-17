@@ -22,8 +22,8 @@ jobs:
             artifact_name: PlannerApp-windows
           - os: ubuntu-latest
             artifact_name: PlannerApp-linux
-          - os: macos-latest
-            artifact_name: PlannerApp-macos
+          # macOS escluso per ora: senza firma, notarizzazione e bundle .app il pacchetto
+          # non si avvia (vedi doc/SVILUPPI_FUTURI.md, "Supporto macOS").
 
     steps:
       - name: Checkout

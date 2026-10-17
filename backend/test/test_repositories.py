@@ -273,6 +273,43 @@ def test_mcp_mismatched_bulk_lengths_roll_back_and_close():
             assert_connections_closed(connections)
 
 
+def test_mcp_bulk_updates_keep_description_when_omitted():
+    with isolated_database():
+        projects, tasks = seed_projects_and_tasks()
+
+        mcp_repo.bulk_update_project(projects, ["Kept", "Cleared"], [None, ""])
+        mcp_repo.bulk_update_task(tasks, ["Kept", "Cleared"], [None, ""])
+
+        assert project_repo.get_project(projects[0])["description"] == "First description"
+        assert project_repo.get_project(projects[1])["description"] == ""
+        descriptions = {task["id"]: task["description"] for task in task_repo.get_all_tasks()}
+        assert descriptions == {tasks[0]: "Description", tasks[1]: ""}
+
+
+def test_mcp_update_tools_keep_description_when_omitted():
+    from integration.mcp.models import UpdateProject, UpdateTask
+    from services import mcp_service
+
+    with isolated_database():
+        projects, tasks = seed_projects_and_tasks()
+
+        # Stesso percorso dei tool: modello Pydantic, model_dump(), service, repository.
+        mcp_service.bulk_update_project([
+            UpdateProject(id=projects[0], name="Renamed").model_dump(),
+            UpdateProject(id=projects[1], name="Changed", description="  New text ").model_dump(),
+        ])
+        mcp_service.bulk_update_task([
+            UpdateTask(id=tasks[0], title="Renamed").model_dump(),
+            UpdateTask(id=tasks[1], title="Cleared", description="").model_dump(),
+        ])
+
+        first, second = (project_repo.get_project(project_id) for project_id in projects)
+        assert (first["name"], first["description"]) == ("Renamed", "First description")
+        assert (second["name"], second["description"]) == ("Changed", "New text")
+        stored = {task["id"]: (task["title"], task["description"]) for task in task_repo.get_all_tasks()}
+        assert stored == {tasks[0]: ("Renamed", "Description"), tasks[1]: ("Cleared", "")}
+
+
 def load_tests(loader, tests, pattern):
     return unittest.TestSuite(
         unittest.FunctionTestCase(function)

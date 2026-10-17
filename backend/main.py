@@ -169,13 +169,16 @@ def start_server():
         if unexpected_stop.is_set():
             error = RuntimeError("Backend stopped unexpectedly.")
             error.__cause__ = errors[0] if errors else None
-            report_desktop_error(error, kind="runtime", window=window)
+            # Segnato prima del dialogo, che resta aperto finche l'utente non lo
+            # chiude: se intanto la finestra viene chiusa, il thread principale non
+            # deve segnalare di nuovo lo stesso errore come errore di avvio.
             failure_reported.set()
+            report_desktop_error(error, kind="runtime", window=window)
         try:
             window.destroy()
         except Exception as error:
-            report_desktop_error(error, kind="runtime")
             failure_reported.set()
+            report_desktop_error(error, kind="runtime")
 
     backend_thread = threading.Thread(target=run_backend, name="planner-backend", daemon=False)
     set_shutdown_callback(request_stop)

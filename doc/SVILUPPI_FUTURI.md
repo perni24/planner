@@ -12,6 +12,41 @@ Il frontend React verra mostrato in una finestra dedicata: backend e MCP restera
 attivi anche con la finestra minimizzata e verranno arrestati alla sua chiusura,
 senza heartbeat. Per la portable non e prevista una modalita solo backend.
 
+## Supporto macOS
+
+macOS e escluso dalle release (ottobre 2026): il pacchetto della `v0.1.0` non si
+avviava. Il codice resta compatibile (pywebview usa il WebKit di sistema,
+`WEBVIEW_GUI = None`), ma la distribuzione richiede un lavoro dedicato.
+
+Cause probabili del mancato avvio, non verificate su un Mac:
+
+- Gatekeeper: l'eseguibile non e firmato ne notarizzato. Da macOS 15 il tasto
+  destro -> Apri non basta piu: serve "Apri comunque" in Privacy e sicurezza. Con
+  `--onedir` anche ogni libreria in `_internal/` resta in quarantena e viene
+  bloccata al caricamento;
+- `Compress-Archive` non conserva il permesso di esecuzione Unix;
+- `macos-latest` produce solo codice arm64, che non parte sui Mac Intel;
+- il pacchetto e una cartella con un eseguibile Unix, non un bundle `.app`.
+
+Per un uso di prova bastano `xattr -dr com.apple.quarantine .` e
+`chmod +x PlannerApp` nella cartella estratta (vedi `TROUBLESHOOTING.md`).
+
+Lavoro necessario per distribuirlo:
+
+- scegliere il formato: bundle `.app` (PyInstaller `--windowed`) con `APP_DIR`
+  adattato, perche `data/` e `locales/` non possono stare dentro il bundle;
+- firma con un certificato Developer ID e notarizzazione (account Apple Developer);
+- archivio che conservi permessi e firma (es. `.dmg` o `ditto`), per arm64 ed
+  eventualmente Intel (build separate o universal2);
+- verificare renderer, download, link esterni e dialoghi di errore con la finestra
+  reale, anche prima dell'apertura della finestra;
+- verificare la chiusura della finestra nello stesso istante in cui compare il
+  messaggio di crash del backend: pywebview affida il dialogo al ciclo della
+  finestra principale e, se questo e gia terminato, il thread di controllo di
+  `main.py` potrebbe restare in attesa e il processo non terminare (ricavato dal
+  codice di pywebview, non riprodotto);
+- riaggiungere `macos-latest` (o le versioni scelte) al workflow di release.
+
 ## Distribuzione server con Docker o Podman
 
 Valutare un'immagine container per eseguire Planner su un server personale,

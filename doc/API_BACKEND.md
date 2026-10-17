@@ -153,6 +153,10 @@ errore; una risposta gia in streaming puo invece essere interrotta.
 `version` restituisce `APP_VERSION` definita in `backend/config.py`.
 
 `check_update` confronta la versione corrente con l'ultima GitHub Release pubblicata.
+La richiesta a GitHub viene eseguita in un thread separato, quindi non blocca le
+altre richieste. Se GitHub non e raggiungibile o risponde in un formato inatteso,
+la risposta ha comunque stato `200`, con `update_available: false` ed
+`error: "Unable to check for updates"`.
 
 ## Backup
 
@@ -211,8 +215,8 @@ Tool disponibili:
 | `bulk_insert_area` | Crea piu aree (nomi non duplicati nella richiesta). |
 | `bulk_insert_project` | Crea piu progetti in aree esistenti. |
 | `bulk_insert_task` | Crea piu task o subtask. Il parent deve appartenere allo stesso progetto e non essere a sua volta una subtask. |
-| `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. |
-| `bulk_update_task` | Aggiorna titolo e descrizione di piu task. |
+| `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
+| `bulk_update_task` | Aggiorna titolo e descrizione di piu task. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
 | `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. Rifiuta le task che hanno subtask, il cui stato e calcolato dalle subtask. |
 
 Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per

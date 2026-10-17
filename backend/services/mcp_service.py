@@ -10,6 +10,15 @@ MAX_BULK_PROJECTS = 50
 MAX_BULK_TASKS = 50
 
 
+def validate_optional_description(description):
+    # Negli update None significa "lasciare invariata la descrizione": non va
+    # passato a validate_text, che lo convertirebbe in "" svuotando il campo.
+    if description is None:
+        return None, None
+
+    return validate_text(description, "description", required=False)
+
+
 def get_all_areas() -> dict:
     areas = mcp_repo.get_all_areas()
 
@@ -262,11 +271,7 @@ def bulk_update_project(projects: list[dict]) -> dict:
         if error:
             raise ToolError(error)
 
-        description, error = validate_text(
-            project.get("description"),
-            "description",
-            required=False,
-        )
+        description, error = validate_optional_description(project.get("description"))
         if error:
             raise ToolError(error)
 
@@ -327,11 +332,7 @@ def bulk_update_task(tasks: list[dict]) -> dict:
         if error:
             raise ToolError(error)
 
-        description, error = validate_text(
-            task.get("description"),
-            "description",
-            required=False,
-        )
+        description, error = validate_optional_description(task.get("description"))
         if error:
             raise ToolError(error)
 

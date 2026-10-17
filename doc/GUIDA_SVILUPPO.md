@@ -8,7 +8,7 @@ Il backend gestisce il database SQLite e le API.
 ### Prima configurazione
 
 Usa Python 3.14, aggiornato a una patch recente della serie `3.14.x`.
-GitHub Actions compila le release Windows, Linux e macOS con la serie `3.14`;
+GitHub Actions compila le release Windows e Linux con la serie `3.14`;
 sviluppo locale e dipendenze devono restare compatibili con questa serie.
 
 Prima di creare il venv, verifica che `python --version` mostri `3.14.x`.
@@ -49,7 +49,10 @@ python -m pip install -r requirements-dev.txt
 ```
 
 `requirements.txt` contiene solo le dipendenze di runtime (Starlette, Uvicorn,
-MCP e PyWebView).
+MCP e PyWebView). Su Linux installa anche Qt (QtPy, PyQt6 e PyQt6-WebEngine), il
+motore della finestra desktop: il download e di alcune centinaia di MB e la cartella
+`PyQt6` occupa circa 500 MB nell'ambiente virtuale. Su Windows e macOS queste righe
+vengono ignorate.
 `requirements-dev.txt` lo include tramite `-r requirements.txt` e aggiunge
 PyInstaller e Ruff. Per avviare l'app senza gli strumenti di lint o build, usa
 `python -m pip install -r requirements.txt`.
@@ -255,7 +258,7 @@ backend/dist/PlannerApp/PlannerApp.exe
 Con la modalita `--onedir` devi copiare tutta la cartella `PlannerApp`, non solo il file eseguibile.
 
 ## 6. Release e GitHub Actions
-La build portable per Windows, Linux e macOS viene eseguita automaticamente da GitHub Actions solo quando viene pubblicato un tag di versione.
+La build portable per Windows e Linux viene eseguita automaticamente da GitHub Actions solo quando viene pubblicato un tag di versione.
 
 Il workflow si trova in:
 
@@ -294,15 +297,16 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Quando il tag viene pubblicato, GitHub Actions avvia la build sui tre sistemi:
+Quando il tag viene pubblicato, GitHub Actions avvia la build su Windows e Linux:
 
 ```text
 PlannerApp-windows
 PlannerApp-linux
-PlannerApp-macos
 ```
 
-Al termine, il workflow crea automaticamente la GitHub Release e allega i tre
+macOS e escluso per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS").
+
+Al termine, il workflow crea automaticamente la GitHub Release e allega i due
 archivi ZIP. Gli stessi artifact restano disponibili anche nella pagina del
 workflow.
 
