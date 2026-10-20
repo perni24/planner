@@ -37,7 +37,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `main.py`: unico entry point. `main()` prepara cartelle, lingue e database con `initialize_runtime()`, poi `start_server()` avvia Uvicorn in un thread e PyWebView nel thread principale. Attende il nostro server prima di aprire la finestra, ne richiede l'arresto alla chiusura e mantiene API REST, MCP e frontend compilato. Importare il modulo non avvia server o finestra.
 - `config.py`: ambiente (sviluppo/produzione), percorsi incluso il profilo persistente WebView, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
-- `build_portable.py`: build del frontend e della cartella portable con PyInstaller.
+- `build_portable.py`: build frontend e PyInstaller, opzioni Windows/WebView2, verifica dei contenuti e protezione dei dati nelle cartelle portable gia usate; `--dist-dir` seleziona un output alternativo.
 - `requirements.txt`: dipendenze Python di runtime (Starlette, Uvicorn, MCP e PyWebView).
 - `requirements-dev.txt`: include le dipendenze di runtime e aggiunge PyInstaller e Ruff per sviluppo e build.
 - `db/db.py`: connessione SQLite, creazione del DB, migrazioni all'avvio e copie consistenti per il download backup.
@@ -65,6 +65,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/test_startup.py`: test dell'inizializzazione, della finestra simulata, dei thread, dei timeout e degli errori di avvio; include prove con Uvicorn e porte locali temporanee, senza aprire finestre native.
 - `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
 - `test/test_app_routes.py`: test di shutdown, versione e controllo aggiornamenti e rimozione del vecchio endpoint heartbeat.
+- `test/test_build_portable.py`: test degli argomenti PyInstaller Windows, dei file richiesti nel pacchetto e della protezione dei dati runtime.
 - `test/test_desktop_errors.py`: test di rotazione log, errori di scrittura, dizionari e dialoghi simulati.
 - `test/test_operation_control.py`: test di scadenze, cancellazione SQLite e bulk, timeout dei lock, pulizia dei backup e rollback delle migrazioni.
 

@@ -40,6 +40,11 @@ npm run build
 Build portable: `python build_portable.py` da `backend/` (output in
 `backend/dist/PlannerApp/`).
 
+Su Windows la build mantiene la console, raccoglie le risorse PyWebView ed
+esclude i renderer non usati. `--dist-dir dist/windows` sceglie un output
+alternativo; se la destinazione contiene dati runtime, lo script si ferma senza
+cancellarli. Non aggirare questa protezione per ricompilare una portable gia usata.
+
 `backend/requirements.txt` contiene solo le dipendenze di runtime;
 `backend/requirements-dev.txt` lo include e aggiunge PyInstaller e Ruff.
 Per sviluppo e build (anche in CI) installa il secondo file.
@@ -112,6 +117,11 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   macOS. Su Linux `qt` e forzato, altrimenti pywebview proverebbe prima GTK. I
   pacchetti Qt sono in `requirements.txt` con il marcatore `sys_platform == "linux"`:
   aggiornali insieme, mantenendo le versioni fissate.
+- Su Windows si usa WebView2 Runtime Evergreen, preinstallato in Windows 11:
+  normalmente non serve un'installazione aggiuntiva. Non includere il motore
+  completo o un installer nella portable. Il download Microsoft per runtime
+  mancante o danneggiato e in `doc/TROUBLESHOOTING.md`; il browser Edge non lo
+  sostituisce. La prova senza runtime e aggiuntiva, non un requisito d'uso normale.
 - Il profilo desktop usa `WEBVIEW_STORAGE_DIR` (`DATA_DIR/webview/`) e
   `private_mode=False`; e creato all'avvio e non va committato. Download abilitati
   e link esterni nel browser sono impostati in `main.py`. Clipboard e download

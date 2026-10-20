@@ -1,60 +1,13 @@
 # TODO
 
-Attivita aperte, ordinate per priorita. Le attivita completate vengono rimosse: lo
-storico resta nella cronologia Git. Le idee non ancora pianificate stanno in
-`SVILUPPI_FUTURI.md`.
-
 ## 1. Critico
-
-Da risolvere prima della prossima release.
 
 ### Bug emersi dalla revisione del codice (2026-10-17)
 - [ ] Release Linux: finche build, CI e prove del renderer Qt non sono completate (vedi "Renderer Linux: Qt" sotto), escludere Linux dalla release o bloccarne la pubblicazione
 
-### Interfaccia desktop e spegnimento (PyWebView)
+### Build e distribuzione desktop (PyWebView)
 
-Decisione: nell'app portable backend e MCP restano attivi finche la finestra di
-Planner e aperta, anche se minimizzata. Chiudendo la finestra si arresta tutto.
-Non sono previste una modalita solo backend o un'icona nell'area di notifica.
-PyWebView gestisce il ciclo di vita dell'app senza heartbeat dal frontend;
-React, API REST, MCP, SQLite ed eventi SSE restano invariati.
-
-Sistemi supportati: Windows e Linux. macOS e escluso per ora (niente build in CI);
-cause e lavoro necessario sono in `SVILUPPI_FUTURI.md`, "Supporto macOS".
-
-`backend/main.py` resta l'unico punto di ingresso, anche per PyInstaller:
-prepara l'ambiente, avvia Uvicorn in un thread separato, attende che sia pronto
-e apre PyWebView nel thread principale. Non e previsto `backend/desktop.py`
-ne un secondo avvio portable basato sul browser.
-
-#### Verifiche native ancora aperte
-
-L'avvio della finestra e stato verificato manualmente su Windows. I test
-automatici simulano la GUI: non sostituiscono le prove seguenti. I dettagli delle
-funzioni implementate sono in `ARCHITETTURA_PORTABLE.md`; la procedura di prova
-e in `GUIDA_SVILUPPO.md`.
-
-- [ ] Verificare lettura e salvataggio di progetti/task, MCP durante la minimizzazione e chiusura durante salvataggi REST/MCP e download; controllare che processo e porta vengano rilasciati
-- [ ] Verificare i messaggi nativi Windows per errori di avvio e crash e la chiusura della finestra dopo lo shutdown via API
-- [ ] Verificare che cookie e `localStorage` persistano dopo chiusura e riavvio; tema e lingua sono salvati nel DB e non dimostrano da soli la persistenza del profilo
-- [ ] Verificare download del backup con scelta della destinazione e annullamento del dialogo, link GitHub nel browser esterno e copia dell'indirizzo MCP; adeguare solo se necessario
-- [ ] Testare temi, lingue, aggiornamenti SSE e uso MCP dopo riavvio e sospensione/ripresa del PC
-
-#### Build e distribuzione desktop
-
-Queste attivita sostituiscono il vecchio passaggio 8. Procedere nell'ordine
-seguente, prima di distribuire il nuovo avvio desktop.
-
-**1. Renderer e dipendenze**
-
-- [ ] Confermare i requisiti WebView2 su Windows
-
-**Renderer Linux: Qt**
-
-Scelto Qt (PyQt6 + QtWebEngine): il pacchetto e autosufficiente, a differenza di GTK
-che richiede WebKitGTK installato. Fatto: dipendenze in `requirements.txt` e
-`WEBVIEW_GUI = "qt"`; verificato in modalita offscreen che l'app completa si carica
-nella finestra Qt (Chromium 140) e si chiude con `/app/shutdown`. Restano:
+**1. Renderer Linux: Qt**
 
 - [ ] `build_portable.py`: verificare con una build reale il rilevamento di `qtpy` (eventuale `QT_API=pyqt6` o `--hidden-import`), escludere `gi` (GTK) e valutare l'esclusione dei moduli Qt inutilizzati
 - [ ] CI: compilare su `ubuntu-22.04` (compatibilita glibc), installare le librerie di sistema richieste da Qt (`libxcb-cursor0`, `libxkbcommon-x11-0`, `libegl1`, `libnss3`...) e creare un `.tar.gz` che conservi i permessi
@@ -63,17 +16,12 @@ nella finestra Qt (Chromium 140) e si chiude con `/app/shutdown`. Restano:
 - [ ] `TROUBLESHOOTING.md`: errore Qt "Could not load the Qt platform plugin xcb" (libreria di sistema mancante)
 - [ ] Definire il fallback grafico degli errori prima dell'apertura della finestra su Linux, per esempio con Qt: oggi restano log e console
 
-**2. Script PyInstaller**
-
-- [ ] Adeguare `build_portable.py` ai renderer scelti: verificare hook/import necessari ed escludere eventuali renderer inutilizzati, mantenendo `main.py` e inizialmente la console Windows
-- [ ] Verificare i contenuti del pacchetto: frontend, schema, migrazioni, lingue e licenze; non includere database, log o profili WebView personali
-
-**3. GitHub Actions e archivi**
+**2. GitHub Actions e archivi**
 
 - [ ] Installare nel workflow le dipendenze specifiche dei renderer per ciascun sistema, mantenendo gli avvii su tag `v*` e manuale
 - [ ] Adeguare il confezionamento degli archivi e verificare su Linux la conservazione dei permessi di esecuzione dopo l'estrazione
 
-**4. Verifica dei pacchetti e documentazione**
+**3. Verifica dei pacchetti e documentazione**
 
 - [ ] Provare i pacchetti estratti su macchine pulite Windows e Linux, senza Python, Node o Vite installati: avvio, salvataggi, backup, MCP, persistenza e chiusura completa
 - [ ] Allineare guide, istruzioni per gli agenti e documentazione portable ai renderer, ai prerequisiti e ai pacchetti effettivamente verificati
@@ -149,8 +97,5 @@ nella finestra Qt (Chromium 140) e si chiude con `/app/shutdown`. Restano:
 - [ ] MCP: dichiarare il limite di 50 elementi nello schema dei tool (`Field(max_length=50)`) e limitare la lunghezza dei testi
 
 ### Automazione facoltativa
-
-I lint vengono eseguiti manualmente in locale; automatizzarli non e un requisito
-per la release.
 
 - [ ] Valutare, se desiderato, l'esecuzione di `npm run lint` e `ruff check` nel workflow CI

@@ -25,6 +25,14 @@ Il progetto e diviso in due parti principali:
 La documentazione tecnica si trova nella cartella `doc/`. Il punto di partenza e
 `doc/STRUTTURA_PROGETTO.md`.
 
+## Requisiti Windows
+
+Planner usa Microsoft Edge WebView2 Runtime Evergreen, preinstallato in Windows 11:
+su una normale installazione non occorre installare componenti aggiuntivi.
+Il runtime non e incluso nella cartella portable. Se risulta mancante o danneggiato,
+usa il [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+e consulta `doc/TROUBLESHOOTING.md`. Il solo browser Edge non sostituisce il runtime.
+
 ## Avvio in sviluppo
 
 Riepilogo rapido. I passaggi completi, compresa la creazione dell'ambiente virtuale
@@ -71,7 +79,7 @@ python main.py
 e build. Per il solo backend basta `requirements.txt`.
 
 `python main.py` apre Planner in una finestra PyWebView e avvia il backend senza
-reload. Su Windows serve WebView2. Chiudendo la finestra si richiede l'arresto
+reload. Su Windows usa WebView2, come indicato nei requisiti. Chiudendo la finestra si richiede l'arresto
 del backend; minimizzandola resta attivo.
 
 Per sviluppare il frontend con Vite, in un terminale separato:

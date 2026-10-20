@@ -77,7 +77,9 @@ disponibile su:
 http://127.0.0.1:8000
 ```
 
-Su Windows e richiesto WebView2. Uvicorn lavora in un thread separato senza
+Su Windows e richiesto WebView2 Runtime Evergreen, preinstallato in Windows 11
+(vedi `TROUBLESHOOTING.md` se manca o non funziona).
+Uvicorn lavora in un thread separato senza
 reload, anche se `RELOAD` e impostato nell'ambiente. Le modifiche Python
 richiedono di chiudere e riavviare l'app; per vedere quelle React nella finestra
 occorre una nuova build e un ricaricamento della pagina o un riavvio dell'app.
@@ -220,6 +222,9 @@ il mantenimento di shutdown, versione e controllo aggiornamenti, senza rete este
 aprire dialoghi nativi; i file di log di prova sono temporanei.
 `test/test_operation_control.py` verifica cancellazione cooperativa, timeout dei
 lock SQLite, backup bloccati, rollback e ripetizione delle richieste di stop.
+`test/test_build_portable.py` verifica le opzioni Windows, le risorse richieste,
+le licenze e il rifiuto di sovrascrivere cartelle con dati runtime. Questi test
+simulano la compilazione e non avviano l'eseguibile.
 Non vengono aperte finestre native: la prova manuale di PyWebView resta necessaria.
 I linter e i test backend restano manuali. GitHub Actions esegue il controllo
 TypeScript come parte della build frontend.
@@ -256,6 +261,37 @@ backend/dist/PlannerApp/PlannerApp.exe
 ```
 
 Con la modalita `--onedir` devi copiare tutta la cartella `PlannerApp`, non solo il file eseguibile.
+
+### Build Windows desktop
+
+Su Windows lo script mantiene la console diagnostica, disabilita UPX e raccoglie
+esplicitamente le risorse di `webview`, inclusi i JavaScript del bridge. Le DLL
+WebView2 e Python.NET sono raccolte dagli hook installati. Qt, GTK, CEF e i
+backend per gli altri sistemi vengono esclusi soltanto dalla build Windows.
+Il runtime WebView2 Evergreen e preinstallato in Windows 11: normalmente non
+richiede interventi dell'utente. Resta un componente di sistema e non viene
+incluso come motore completo o installer nella portable. Il collegamento al
+download Microsoft in `TROUBLESHOOTING.md` serve per i casi di runtime mancante
+o danneggiato. Il browser Edge da solo non sostituisce il runtime.
+La prova con runtime assente e una verifica aggiuntiva di robustezza da svolgere
+in un ambiente isolato, non un prerequisito per l'uso normale su Windows 11.
+
+Prima della compilazione vengono controllate le licenze. Al termine vengono
+verificati frontend, schema, migrazioni, lingue, licenze e, su Windows, i
+JavaScript e le DLL principali di WebView2/Python.NET. Un pacchetto incompleto
+fa fallire la build: questi controlli non sostituiscono la prova di avvio su un
+PC pulito.
+
+Se la cartella di destinazione contiene `data/`, `locales/` esterne o database
+alla radice, la build si ferma senza cancellarli. Non compilare sopra una
+portable gia usata. Per scegliere un'altra cartella di output, da `backend/`:
+
+```bash
+python build_portable.py --dist-dir dist/windows
+```
+
+In questo caso il risultato e `backend/dist/windows/PlannerApp/`.
+Le opzioni di esclusione Windows non vengono applicate a Linux.
 
 ## 6. Release e GitHub Actions
 La build portable per Windows e Linux viene eseguita automaticamente da GitHub Actions solo quando viene pubblicato un tag di versione.

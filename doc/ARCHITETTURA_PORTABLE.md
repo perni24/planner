@@ -11,8 +11,15 @@ Il motore della finestra dipende dal sistema:
 
 | Sistema | Renderer | Origine |
 |---|---|---|
-| Windows | WebView2 (Chromium di Edge) | Sistema operativo, aggiornato da Windows |
+| Windows | WebView2 Runtime Evergreen (Chromium) | Preinstallato in Windows 11, aggiornato automaticamente da Microsoft |
 | Linux | Qt WebEngine (Chromium) | Incluso nel pacchetto (PyQt6-WebEngine), aggiornato solo con le release di Planner |
+
+Su Windows 11 il runtime e normalmente gia disponibile. Non viene incluso un
+motore WebView2 completo o un installer nella portable; se manca o e danneggiato,
+il download ufficiale per l'installazione o il ripristino e indicato in
+`TROUBLESHOOTING.md`. Il solo browser Edge non sostituisce il runtime.
+Questo prerequisito non sostituisce la verifica del pacchetto su un PC pulito.
+Riferimento: [distribuzione WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
 
 macOS non e distribuito per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS");
 avviando il codice su un Mac pywebview usa il WebKit di sistema.

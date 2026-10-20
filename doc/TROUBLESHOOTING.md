@@ -15,6 +15,24 @@ salvano i dettagli in `PlannerApp/data/logs/planner.log` (in sviluppo
 Gli errori del bootloader PyInstaller, precedenti all'avvio Python, richiedono
 ancora l'avvio da terminale e non passano dal gestore desktop.
 
+## WebView2 mancante o non funzionante su Windows
+
+Planner usa Microsoft Edge WebView2 Runtime Evergreen, preinstallato in Windows 11.
+Su una normale installazione di Windows 11 non occorre installarlo separatamente.
+La portable non include il motore completo ne un installer del runtime; il solo
+browser Microsoft Edge non lo sostituisce.
+
+Se l'errore di avvio o il log indica un problema WebView2:
+
+1. Chiudi Planner e leggi i dettagli in `data/logs/planner.log` nella cartella portable.
+2. Se il runtime manca o e danneggiato, usa il [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/): il bootstrapper Evergreen scarica il runtime adatto al PC; lo standalone installer permette l'installazione offline.
+3. Completa l'installazione o il ripristino e riavvia Planner, senza ricompilarlo.
+
+Non disinstallare WebView2 dal PC principale per provarne l'assenza: altre app
+potrebbero dipenderne. Un eventuale test senza runtime va eseguito su una macchina
+virtuale o un PC di prova ed e una verifica aggiuntiva di robustezza.
+Riferimento: [distribuzione WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
+
 ## Errore `Failed to load Python DLL`
 
 Succede quando viene copiato solo `PlannerApp.exe` senza la cartella `_internal`.
