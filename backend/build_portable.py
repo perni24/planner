@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from build_licenses import LINUX_QT_DISTRIBUTIONS, collect_linux_licenses, validate_linux_licenses
+
 
 APP_NAME = "PlannerApp"
 WINDOWS_EXCLUDED_MODULES = (
@@ -21,10 +23,48 @@ WINDOWS_EXCLUDED_MODULES = (
     "gi",
     "cefpython3",
 )
+LINUX_EXCLUDED_MODULES = (
+    "webview.platforms.gtk",
+    "webview.platforms.winforms",
+    "webview.platforms.edgechromium",
+    "webview.platforms.mshtml",
+    "webview.platforms.cocoa",
+    "webview.platforms.android",
+    "webview.platforms.cef",
+    "PyQt5",
+    "PySide2",
+    "PySide6",
+    "gi",
+    "clr",
+    "cefpython3",
+)
+LINUX_HIDDEN_IMPORTS = (
+    "webview.platforms.qt",
+    "qtpy",
+    "PyQt6.QtWebEngineCore",
+    "PyQt6.QtWebEngineWidgets",
+    "PyQt6.QtWebChannel",
+)
+LINUX_QT_REQUIRED_FILES = (
+    "PyQt6/Qt6/libexec/QtWebEngineProcess",
+    "PyQt6/Qt6/lib/libQt6WebEngineCore.so.6",
+    "PyQt6/Qt6/plugins/platforms/libqxcb.so",
+    "PyQt6/Qt6/resources/qtwebengine_resources.pak",
+    "PyQt6/Qt6/resources/icudtl.dat",
+    "PyQt6/Qt6/translations/qtwebengine_locales/en-US.pak",
+)
 
 
-def run(command, cwd):
-    subprocess.run(command, cwd=cwd, check=True)
+def run(command, cwd, env=None):
+    subprocess.run(command, cwd=cwd, check=True, env=env)
+
+
+def get_build_environment(platform=None):
+    platform = sys.platform if platform is None else platform
+    environment = os.environ.copy()
+    if platform == "linux":
+        environment["QT_API"] = "pyqt6"
+    return environment
 
 
 def get_pyinstaller_command(backend_dir):
@@ -58,6 +98,15 @@ def get_pyinstaller_arguments(backend_dir, dist_dir, platform=None):
         arguments.extend(["--console", "--noupx", "--collect-data", "webview"])
         for module in WINDOWS_EXCLUDED_MODULES:
             arguments.extend(["--exclude-module", module])
+    elif platform == "linux":
+        # Gli hook Qt raccolgono librerie, plugin e risorse del processo Chromium.
+        arguments.extend(["--noupx", "--collect-data", "webview"])
+        for module in LINUX_HIDDEN_IMPORTS:
+            arguments.extend(["--hidden-import", module])
+        for module in LINUX_EXCLUDED_MODULES:
+            arguments.extend(["--exclude-module", module])
+        for distribution in LINUX_QT_DISTRIBUTIONS:
+            arguments.extend(["--copy-metadata", distribution])
 
     resources = (
         (backend_dir / "schema.sql", "."),
@@ -114,11 +163,21 @@ def validate_bundle(portable_dir, platform=None):
             missing.append("webview/js/*.js")
         if not any((internal / "webview" / "lib" / "runtimes").rglob("WebView2Loader.dll")):
             missing.append("webview/lib/runtimes/**/WebView2Loader.dll")
+    elif platform == "linux":
+        missing.extend(relative for relative in LINUX_QT_REQUIRED_FILES if not (internal / relative).is_file())
+        if not any((internal / "webview" / "js").rglob("*.js")):
+            missing.append("webview/js/*.js")
+        if sys.platform == "linux":
+            for path in (portable_dir / executable, internal / LINUX_QT_REQUIRED_FILES[0]):
+                if path.is_file() and not os.access(path, os.X_OK):
+                    raise RuntimeError(f"Bundle executable permission missing: {path}")
     for relative in ("data", "db/planner.db", "db/logs", "db/webview"):
         if (internal / relative).exists():
             raise RuntimeError(f"Runtime data must not be included in the bundle: {relative}")
     if missing:
         raise RuntimeError("Incomplete portable bundle: " + ", ".join(missing))
+    if platform == "linux":
+        validate_linux_licenses(portable_dir)
     validate_destination(portable_dir)
 
 
@@ -142,6 +201,7 @@ def build_app(backend_dir, dist_dir):
     run(
         [*get_pyinstaller_command(backend_dir), *get_pyinstaller_arguments(backend_dir, dist_dir)],
         cwd=backend_dir,
+        env=get_build_environment(),
     )
 
     shutil.copy2(
@@ -153,6 +213,8 @@ def build_app(backend_dir, dist_dir):
         third_party_notices_path,
         portable_dir / "THIRD_PARTY_NOTICES.md",
     )
+    if sys.platform == "linux":
+        collect_linux_licenses(portable_dir)
     validate_bundle(portable_dir)
     print(f"Portable build ready: {portable_dir}")
 

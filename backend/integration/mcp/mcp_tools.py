@@ -5,6 +5,7 @@ from .models import (
     CreateArea,
     CreateProject,
     CreateTask,
+    EntityId,
     SetTaskCompleted,
     UpdateProject,
     UpdateTask,
@@ -23,7 +24,7 @@ def register_mcp_tools(mcp):
         return mcp_repo.get_all_projects()
 
     @mcp.tool()
-    def get_project_tasks(project_id: int) -> dict:
+    def get_project_tasks(project_id: EntityId) -> dict:
         """Return all tasks and subtasks belonging to a project."""
         return mcpService.get_project_tasks(project_id)
 

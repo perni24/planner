@@ -1,3 +1,5 @@
+import os
+import runpy
 import subprocess
 import unittest
 from contextlib import redirect_stdout
@@ -34,10 +36,25 @@ def make_bundle(root, platform="win32"):
             "_internal/webview/js/api.js",
             "_internal/pythonnet/runtime/Python.Runtime.dll",
         ])
+    elif platform == "linux":
+        files.extend(f"_internal/{relative}" for relative in build.LINUX_QT_REQUIRED_FILES)
+        files.append("_internal/webview/js/api.js")
     for relative in files:
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("fixture", encoding="utf-8")
+    if platform == "linux" and os.name != "nt":
+        (root / "PlannerApp").chmod(0o755)
+        (root / "_internal" / build.LINUX_QT_REQUIRED_FILES[0]).chmod(0o755)
+    if platform == "linux":
+        for name in build.LINUX_QT_DISTRIBUTIONS:
+            relative = f"{name.lower().replace('-', '_')}-1.0.dist-info"
+            info = root / "_internal" / relative
+            info.mkdir(parents=True)
+            (info / "METADATA").write_text(f"Name: {name}\nVersion: 1.0\n", encoding="utf-8")
+            (info / "LICENSE").write_text("upstream license fixture", encoding="utf-8")
+            (info / "RECORD").write_text(f"{relative}/LICENSE,,\n", encoding="utf-8")
+        build.collect_linux_licenses(root)
     return root
 
 
@@ -68,9 +85,38 @@ def test_windows_resources_do_not_include_database_or_profile_directory():
 def test_linux_does_not_receive_windows_renderer_exclusions():
     root = Path(__file__).resolve().parents[1]
     arguments = build.get_pyinstaller_arguments(root, root / "dist", "linux")
-    assert "--exclude-module" not in arguments
+    excluded = [arguments[index + 1] for index, value in enumerate(arguments) if value == "--exclude-module"]
+    assert set(excluded) == set(build.LINUX_EXCLUDED_MODULES)
+    assert not {"PyQt6", "qtpy", "webview.platforms.qt", "PyQt6.QtQuick", "PyQt6.QtQml"} & set(excluded)
     assert "--console" not in arguments
     assert f"{root / 'db' / 'migrations'}:db/migrations" in arguments
+
+
+def test_linux_arguments_collect_webengine_and_bridge():
+    root = Path(__file__).resolve().parents[1]
+    arguments = build.get_pyinstaller_arguments(root, root / "dist", "linux")
+    hidden = [arguments[index + 1] for index, value in enumerate(arguments) if value == "--hidden-import"]
+    assert set(hidden) == set(build.LINUX_HIDDEN_IMPORTS)
+    assert arguments[arguments.index("--collect-data") + 1] == "webview"
+    assert "--noupx" in arguments
+    copied = [arguments[index + 1] for index, value in enumerate(arguments) if value == "--copy-metadata"]
+    assert set(copied) == set(build.LINUX_QT_DISTRIBUTIONS)
+
+
+def test_build_environment_selects_pyqt6_only_for_linux_without_mutating_parent():
+    with patch.dict(os.environ, {"QT_API": "pyside6", "PLANNER_BUILD_TEST": "keep"}):
+        environment = build.get_build_environment("linux")
+        assert environment["QT_API"] == "pyqt6"
+        assert environment["PLANNER_BUILD_TEST"] == "keep"
+        assert os.environ["QT_API"] == "pyside6"
+        assert build.get_build_environment("win32")["QT_API"] == "pyside6"
+
+
+def test_linux_runtime_config_selects_same_qt_binding_as_build():
+    with patch.dict(os.environ, {"QT_API": "pyside6"}), patch.object(build.sys, "platform", "linux"):
+        config = runpy.run_path(str(Path(__file__).resolve().parents[1] / "config.py"))
+        assert config["WEBVIEW_GUI"] == "qt"
+        assert os.environ["QT_API"] == "pyqt6"
 
 
 def test_destination_with_runtime_data_is_rejected_without_deleting_anything():
@@ -108,6 +154,31 @@ def test_bundle_validation_checks_javascript_and_native_dependencies():
             path.unlink()
             expect_error(RuntimeError, lambda: build.validate_bundle(root, "win32"))
             path.write_text("fixture", encoding="utf-8")
+
+
+def test_linux_bundle_validation_checks_webengine_resources_and_bridge():
+    with TemporaryDirectory(prefix="planner-build-qt-") as directory:
+        root = make_bundle(Path(directory), "linux")
+        build.validate_bundle(root, "linux")
+        for relative in (*build.LINUX_QT_REQUIRED_FILES, "webview/js/api.js"):
+            path = root / "_internal" / relative
+            path.unlink()
+            error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "linux"))
+            assert relative in str(error) or "webview/js/*.js" in str(error)
+            path.write_text("fixture", encoding="utf-8")
+            if relative == build.LINUX_QT_REQUIRED_FILES[0] and os.name != "nt":
+                path.chmod(0o755)
+
+
+@unittest.skipIf(os.name == "nt", "Executable permissions require a POSIX filesystem")
+def test_linux_bundle_rejects_non_executable_app_and_helper():
+    with TemporaryDirectory(prefix="planner-build-permissions-") as directory:
+        root = make_bundle(Path(directory), "linux")
+        for path in (root / "PlannerApp", root / "_internal" / build.LINUX_QT_REQUIRED_FILES[0]):
+            path.chmod(0o644)
+            error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "linux"))
+            assert "permission" in str(error)
+            path.chmod(0o755)
 
 
 def test_bundle_validation_checks_resources_licenses_and_migrations():
@@ -165,7 +236,7 @@ def test_build_copies_notices_and_validates_selected_destination():
         (root / "THIRD_PARTY_NOTICES.md").write_text("notices", encoding="utf-8")
         output = root / "output"
 
-        def run(command, cwd):
+        def run(command, cwd, env=None):
             if command[-1] == str(backend / "main.py"):
                 make_bundle(output / build.APP_NAME)
 
@@ -177,6 +248,28 @@ def test_build_copies_notices_and_validates_selected_destination():
         assert commands.call_args_list[0].kwargs["cwd"] == root / "frontend"
         assert (output / build.APP_NAME / "LICENSE").read_text(encoding="utf-8") == "license"
         assert (output / build.APP_NAME / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8") == "notices"
+
+
+def test_linux_build_passes_binding_environment_and_validates_bundle():
+    with TemporaryDirectory(prefix="planner-build-linux-flow-") as directory:
+        root = Path(directory)
+        backend = root / "backend"
+        backend.mkdir()
+        (root / "LICENSE").write_text("license", encoding="utf-8")
+        (root / "THIRD_PARTY_NOTICES.md").write_text("notices", encoding="utf-8")
+        output = root / "output"
+
+        def run(command, cwd, env=None):
+            if command[-1] == str(backend / "main.py"):
+                assert env["QT_API"] == "pyqt6"
+                make_bundle(output / build.APP_NAME, "linux")
+
+        with patch.object(build, "run", side_effect=run) as commands, patch.object(
+            build, "get_pyinstaller_command", return_value=["pyinstaller"]
+        ), patch.object(build.sys, "platform", "linux"), patch.object(build.os, "access", return_value=True), redirect_stdout(StringIO()):
+            build.build_app(backend, output)
+        assert commands.call_count == 2
+        assert (output / build.APP_NAME / "PlannerApp").is_file()
 
 
 def test_frontend_build_error_prevents_pyinstaller_and_copying():

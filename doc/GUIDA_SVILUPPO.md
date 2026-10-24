@@ -204,6 +204,12 @@ python -m unittest discover -s test -p test_*.py -v
 ```
 
 I test usano database temporanei: non modificano `backend/db/planner.db`.
+`test/test_id_validation.py` verifica la validazione condivisa degli ID, le
+route REST e gli schemi MCP strict: booleani, float e interi fuori intervallo
+sono rifiutati prima delle query. Le chiamate ai repository sono simulate.
+`test/test_settings_validation.py` verifica tema, colori, JSON delle impostazioni
+e dizionari lingua, anche mancanti o corrotti, con fallback senza sovrascritture;
+una prova su DB temporaneo conferma che le richieste non valide non lo cambiano.
 Coprono creazione, aggiornamento delle vecchie release, comportamento dei trigger,
 rollback e riavvio dopo errori. I test del backup simulano richieste ASGI e
 verificano integrita della copia, WAL, modifiche durante l'invio, download
@@ -222,9 +228,13 @@ il mantenimento di shutdown, versione e controllo aggiornamenti, senza rete este
 aprire dialoghi nativi; i file di log di prova sono temporanei.
 `test/test_operation_control.py` verifica cancellazione cooperativa, timeout dei
 lock SQLite, backup bloccati, rollback e ripetizione delle richieste di stop.
-`test/test_build_portable.py` verifica le opzioni Windows, le risorse richieste,
-le licenze e il rifiuto di sovrascrivere cartelle con dati runtime. Questi test
-simulano la compilazione e non avviano l'eseguibile.
+`test/test_build_portable.py` verifica le opzioni Windows/Linux, la selezione di
+PyQt6, le risorse richieste, le licenze e il rifiuto di sovrascrivere cartelle con
+dati runtime. Questi test simulano la compilazione e non avviano l'eseguibile.
+`test/test_release_workflow.py` esegue il codice Python del controllo versione e
+dei permessi nell'archivio TAR.GZ su file temporanei; non esegue GitHub Actions.
+`test/test_build_licenses.py` verifica copia byte per byte dei testi upstream,
+versioni registrate e rifiuto di materiali mancanti, vuoti o modificati.
 Non vengono aperte finestre native: la prova manuale di PyWebView resta necessaria.
 I linter e i test backend restano manuali. GitHub Actions esegue il controllo
 TypeScript come parte della build frontend.
@@ -293,8 +303,73 @@ python build_portable.py --dist-dir dist/windows
 In questo caso il risultato e `backend/dist/windows/PlannerApp/`.
 Le opzioni di esclusione Windows non vengono applicate a Linux.
 
+### Build Linux desktop
+
+Compila su Linux: la build Windows non puo generare l'eseguibile Linux.
+Il workflow usa `ubuntu-22.04` x64 come base e installa prima le librerie di
+sistema X11/XCB, OpenGL/EGL, NSS, audio e D-Bus necessarie a Qt. L'elenco e nello
+step `Install Linux desktop dependencies`; per una build locale su Ubuntu 22.04
+prepara le stesse dipendenze oltre a quelle di `requirements-dev.txt`.
+Non occorre installare WebKitGTK o un secondo binding Qt.
+
+Lo script imposta `QT_API=pyqt6` per PyInstaller e include esplicitamente il
+renderer Qt, QtPy, QtWebEngine e QtWebChannel; anche `config.py` seleziona PyQt6
+all'avvio Linux. Vengono esclusi GTK, gli altri binding Qt e i renderer di altri
+sistemi, senza escludere moduli QtQuick/QML che QtWebEngine potrebbe richiedere.
+Gli hook PyInstaller raccolgono librerie, plugin, processo Chromium e risorse.
+La verifica finale richiede `QtWebEngineProcess`, `libQt6WebEngineCore.so.6`,
+plugin XCB, risorse Chromium, ICU, dizionario en-US e JavaScript PyWebView; su
+Linux controlla inoltre i permessi di esecuzione dell'app e del processo helper.
+
+### Materiali di licenza Linux
+
+`THIRD_PARTY_NOTICES.md` distingue le icone, QtPy (MIT), i binding
+PyQt6/PyQt6-WebEngine (GPLv3) e le librerie native Qt delle wheel (LGPLv3).
+QtWebEngine incorpora anche Chromium e altri componenti con licenze proprie:
+questa sintesi non ne sostituisce gli avvisi individuali.
+
+La build Linux passa `--copy-metadata` per QtPy, PyQt6, PyQt6-sip,
+PyQt6-WebEngine, PyQt6-Qt6 e PyQt6-WebEngine-Qt6. Dopo PyInstaller,
+`build_licenses.py` legge questi metadati dal bundle e copia senza modifiche
+i file LICENSE, COPYING, NOTICE e COPYRIGHT presenti in `licenses/<pacchetto>/`.
+Non usa le versioni dell'interprete esterno che avvia lo script, che potrebbero
+essere diverse da quelle del venv usato per PyInstaller.
+
+`licenses/manifest.json` registra per ogni componente versione effettiva,
+collegamento alla release upstream, percorsi e hash SHA-256 dei testi copiati.
+La build fallisce se manca un componente, un testo principale di licenza o se
+il controllo finale trova file mancanti o alterati. Windows non raccoglie Qt
+e non richiede questa cartella. Il TAR.GZ include automaticamente `licenses/`.
+
+Il manifest non e un inventario completo di tutte le dipendenze e non e una
+distribuzione dei sorgenti. In particolare, i LICENSE delle wheel non
+comprendono tutti gli avvisi delle componenti Chromium. Prima della pubblicazione
+Linux occorre ancora raccogliere e verificare gli avvisi Qt/Chromium e l'accesso
+ai sorgenti corrispondenti per le versioni effettive. Queste verifiche restano
+in `TODO.md`, insieme al controllo dei materiali nel pacchetto Linux reale.
+Non abilitare l'allegato Linux alla release sulla sola base del manifest.
+
+### Archivio e verifica Linux
+
+La CI crea `PlannerApp-linux.tar.gz` con l'intera cartella `PlannerApp/`,
+preservando i permessi e i collegamenti simbolici, e controlla nel TAR i bit
+di esecuzione dell'app e del processo helper. Per estrarlo e avviarlo:
+
+```bash
+tar -xzf PlannerApp-linux.tar.gz
+./PlannerApp/PlannerApp
+```
+
+Le wheel x64 di [PyQt6-Qt6](https://pypi.org/project/PyQt6-Qt6/6.11.0/) e
+[QtWebEngine](https://pypi.org/project/PyQt6-WebEngine-Qt6/6.11.0/) della serie
+impostata richiedono glibc 2.34 o successiva. La base Ubuntu 22.04 non garantisce
+da sola la compatibilita con tutte le distribuzioni: build reale e prove su
+desktop puliti, Wayland e X11 restano in `TODO.md`. Vedi anche
+`TROUBLESHOOTING.md` per gli errori del plugin XCB.
+
 ## 6. Release e GitHub Actions
-La build portable per Windows e Linux viene eseguita automaticamente da GitHub Actions solo quando viene pubblicato un tag di versione.
+La build portable per Windows e Linux viene eseguita da GitHub Actions alla
+pubblicazione di un tag di versione o tramite avvio manuale `workflow_dispatch`.
 
 Il workflow si trova in:
 
@@ -319,6 +394,11 @@ APP_VERSION = "0.1.0"
 tag GitHub = v0.1.0
 ```
 
+Il workflow verifica questa corrispondenza dopo il setup di Python, prima di
+installare le dipendenze. Se le versioni differiscono, il job fallisce e la
+release non viene pubblicata. Il controllo si applica ai riferimenti tag,
+anche se selezionati per un avvio manuale; gli avvii manuali su un branch lo saltano.
+
 ```bash
 git status
 git add .
@@ -342,9 +422,13 @@ PlannerApp-linux
 
 macOS e escluso per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS").
 
-Al termine, il workflow crea automaticamente la GitHub Release e allega i due
-archivi ZIP. Gli stessi artifact restano disponibili anche nella pagina del
-workflow.
+Al termine delle build su tag, il workflow crea automaticamente la GitHub
+Release e allega lo ZIP Windows. Il TAR.GZ Linux resta soltanto un artifact di
+prova nella pagina del workflow finche licenze, build reale e prove native non
+sono completate. Il download degli allegati release e limitato da
+`pattern: PlannerApp-windows`: rimuovere o ampliare il filtro e aggiungere il
+TAR.GZ a `files` solo dopo queste verifiche. Entrambe le build devono riuscire
+per avviare il job release. Gli avvii manuali producono artifact, non release.
 
 ### Regole per i tag versione
 Usa tag che iniziano con `v`, per esempio:
@@ -355,7 +439,8 @@ v0.2.0
 v1.0.0
 ```
 
-Il workflow non parte sui normali push: parte solo con tag compatibili con `v*`.
+Il workflow non parte sui normali push: parte con tag compatibili con `v*` o
+con l'avvio manuale.
 
 ### Aggiornare una versione gia pubblicata
 Se hai creato un tag sbagliato e non lo hai ancora usato come release ufficiale, puoi eliminarlo e ricrearlo:

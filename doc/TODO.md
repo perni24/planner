@@ -2,26 +2,20 @@
 
 ## 1. Critico
 
-### Bug emersi dalla revisione del codice (2026-10-17)
-- [ ] Release Linux: finche build, CI e prove del renderer Qt non sono completate (vedi "Renderer Linux: Qt" sotto), escludere Linux dalla release o bloccarne la pubblicazione
-
 ### Build e distribuzione desktop (PyWebView)
 
 **1. Renderer Linux: Qt**
 
-- [ ] `build_portable.py`: verificare con una build reale il rilevamento di `qtpy` (eventuale `QT_API=pyqt6` o `--hidden-import`), escludere `gi` (GTK) e valutare l'esclusione dei moduli Qt inutilizzati
-- [ ] CI: compilare su `ubuntu-22.04` (compatibilita glibc), installare le librerie di sistema richieste da Qt (`libxcb-cursor0`, `libxkbcommon-x11-0`, `libegl1`, `libnss3`...) e creare un `.tar.gz` che conservi i permessi
-- [ ] Licenze: aggiungere Qt, PyQt6 (GPL v3) e QtWebEngine a `THIRD_PARTY_NOTICES.md` e verificare che le note di licenza di Chromium siano incluse nel pacchetto
+- [ ] Eseguire il workflow Linux configurato su `ubuntu-22.04` x64: confermare build reale, rilevamento PyQt6, risorse QtWebEngine e controlli del pacchetto; i test locali simulano la build
+- [ ] Estrarre il `.tar.gz` prodotto dalla CI su Linux e verificare avvio, collegamenti simbolici e permessi dell'app e di `QtWebEngineProcess`
+- [ ] Verificare nella build Linux reale `licenses/manifest.json` e i testi copiati dalle wheel QtPy/PyQt6/PyQt6-sip/Qt6/QtWebEngine; controllare che le versioni corrispondano alle librerie nel TAR.GZ
+- [ ] Completare gli avvisi di terze parti Qt/Chromium per la versione QtWebEngine effettivamente inclusa: le licenze principali delle wheel non contengono tutti gli avvisi Chromium
+- [ ] Prima della release Linux, predisporre e verificare l'accesso ai sorgenti corrispondenti delle componenti GPL/LGPL distribuite; il manifest e i collegamenti agli upstream non sostituiscono questa verifica
 - [ ] Prove con la finestra reale: download del backup, link esterni, copia indirizzo MCP, chiusura, Wayland e X11; pacchetto estratto su Ubuntu 22.04 e su una distribuzione diversa (es. Fedora o KDE)
-- [ ] `TROUBLESHOOTING.md`: errore Qt "Could not load the Qt platform plugin xcb" (libreria di sistema mancante)
 - [ ] Definire il fallback grafico degli errori prima dell'apertura della finestra su Linux, per esempio con Qt: oggi restano log e console
+- [ ] Dopo build reale, licenze e prove native, abilitare l'allegato Linux nelle release: il filtro `pattern: PlannerApp-windows` lo esclude finche non e verificato
 
-**2. GitHub Actions e archivi**
-
-- [ ] Installare nel workflow le dipendenze specifiche dei renderer per ciascun sistema, mantenendo gli avvii su tag `v*` e manuale
-- [ ] Adeguare il confezionamento degli archivi e verificare su Linux la conservazione dei permessi di esecuzione dopo l'estrazione
-
-**3. Verifica dei pacchetti e documentazione**
+**2. Verifica dei pacchetti e documentazione**
 
 - [ ] Provare i pacchetti estratti su macchine pulite Windows e Linux, senza Python, Node o Vite installati: avvio, salvataggi, backup, MCP, persistenza e chiusura completa
 - [ ] Allineare guide, istruzioni per gli agenti e documentazione portable ai renderer, ai prerequisiti e ai pacchetti effettivamente verificati
@@ -30,7 +24,6 @@
 
 ### Dipendenze e build
 - [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer` e `ToolError` dell'SDK 2.x)
-- [ ] CI: verificare che `APP_VERSION` corrisponda al tag della release
 
 ### Database e migrazioni
 - [ ] `migration_runner.py`: le migrazioni girano con `foreign_keys = ON` dentro la transazione, dove `PRAGMA foreign_keys = OFF` viene ignorato. Una migrazione che ricostruisce una tabella cancellerebbe a cascata le righe collegate. Disattivare le foreign key prima di `BEGIN IMMEDIATE`, eseguire `PRAGMA foreign_key_check` prima del commit e documentarlo in `DATABASE.md`. Da fare prima di qualsiasi migrazione che ricostruisce tabelle
@@ -40,15 +33,11 @@
 - [ ] Il controllo di annullamento SQLite ogni 1000 passi (`DATABASE_PROGRESS_STEPS`) rallenta molto le query quando un altro thread esegue codice Python (misurato: da 0,06 a 17,8 secondi). Portarlo a 50.000-100.000
 
 ### Validazione input
-- [ ] `validate_int`: id oltre il limite SQLite (es. `10**30`) causano `500` in REST ed errori generici in MCP; `true` e `1.9` vengono accettati come `1`. Rifiutare `bool`, float non interi e valori oltre `2**63-1`
 - [ ] MCP: Pydantic converte `"yes"` e `1` in `True`, quindi il controllo `isinstance(completed, bool)` in `mcp_service` non scatta mai. Usare tipi strict nei modelli
 
 ### Gestione errori
-- [ ] Aggiungere un gestore globale degli errori nel backend (JSON non valido, `IntegrityError`, chiavi mancanti in `custom_colors`)
-- [ ] Allineare `apiCore.ts`, che legge `detail`/`message`, al campo `error` restituito dal backend
+- [ ] Aggiungere un gestore globale degli errori nel backend (JSON non valido nelle altre route, `IntegrityError`)
 - [ ] `get_project`: restituire `404` se il progetto non esiste (oggi `200` con `null`) e gestirlo in `Tasks.jsx`
-- [ ] Validare la lingua in `update_language` e usare una lingua di fallback se il file manca
-- [ ] Validare in `update_theme` i valori ammessi per `theme`, il tipo e le chiavi di `custom_colors` e il formato dei colori prima di scrivere nel DB
 
 ### Interfaccia
 - [ ] Il toast "aggiornamento disponibile" in `AppProviders.jsx` e sempre in italiano: il controllo parte prima che il dizionario lingua sia caricato, quindi viene usato il testo di riserva. Attendere il dizionario o leggere la chiave quando arriva la risposta

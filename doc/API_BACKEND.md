@@ -18,6 +18,14 @@ stato `400` e la forma:
 {"error": "project_id must be a valid integer"}
 ```
 
+Gli ID (`id`, `area_id`, `project_id`, `task_id` e `parent_id` quando presente)
+devono essere interi positivi tra `1` e `9223372036854775807`, il massimo intero
+SQLite con segno a 64 bit. REST accetta anche stringhe convertibili in interi,
+come i parametri degli URL. Booleani, numeri JSON con parte decimale (anche
+`1.0`), valori null per ID obbligatori e interi fuori intervallo vengono rifiutati
+con `400`, prima di interrogare il repository. `parent_id` omesso o null resta
+valido e indica una task principale.
+
 Gli update e i delete restituiscono `404` se l'elemento non esiste. Gli errori non
 gestiti (JSON non valido, foreign key inesistente) restituiscono `500`.
 
@@ -118,6 +126,14 @@ POST /api/settings/update_theme      {theme, custom_colors}
 `custom_colors` deve contenere le chiavi `background`, `foreground`, `card`,
 `border`, `hover` e `hoverText`.
 
+Entrambi gli aggiornamenti richiedono un oggetto JSON. JSON non valido, tipi
+errati o valori non ammessi restituiscono `400` con `{"error": "..."}` prima
+di chiamare il repository; i dati salvati restano invariati.
+
+- `language`: codice valido (es. `it` o `pt-BR`) con un file esterno disponibile e leggibile in `LOCALES_DIR`; il JSON deve essere un dizionario piatto non vuoto, con chiavi non vuote e valori stringa. Sono ammesse anche lingue aggiunte dall'utente.
+- `theme`: solo `light`, `dark`, `system` o `custom`.
+- `custom_colors`: oggetto con esattamente le sei chiavi indicate, tutte obbligatorie anche per i temi non custom. Ogni valore deve essere una stringa esadecimale `#RRGGBB`, senza spazi; sono accettate lettere maiuscole e minuscole. Gli aggiornamenti parziali dei colori non sono previsti.
+
 ## Locales
 
 ```text
@@ -127,6 +143,13 @@ GET /api/locales/load_language
 
 `load_language` restituisce il dizionario della lingua salvata nelle settings. Le
 lingue vengono lette dalla cartella configurata in `LOCALES_DIR` (vedi `I18N.md`).
+
+`get_available_languages` elenca solo i dizionari esterni validi e leggibili.
+Se il file scelto non e piu utilizzabile, `load_language` prova la stessa lingua
+inclusa nell'app, poi italiano e inglese (prima esterni, poi inclusi per ciascuna
+lingua). Non modifica il DB o i file dell'utente e restituisce sempre soltanto
+il dizionario, mantenendo il contratto frontend. Se nessun file e utilizzabile,
+restituisce `503`, `{"error": "No usable language dictionary is available"}`.
 
 ## App lifecycle
 
@@ -222,6 +245,11 @@ Tool disponibili:
 Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per
 intero se un elemento non e valido o se un id non esiste. Non esistono tool di
 eliminazione.
+
+I tool MCP richiedono ID come interi JSON, nello stesso intervallo di REST:
+gli schemi Pydantic usano `EntityId` con validazione strict per evitare che
+booleani, float o stringhe siano convertiti prima del service. Il vincolo vale
+anche per `get_project_tasks` e per il parent facoltativo delle subtask.
 
 Quando una richiesta non e valida, il tool restituisce un errore con il motivo
 (per esempio `Tasks not found: 99.`), cosi il client AI puo correggerla.

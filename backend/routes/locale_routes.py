@@ -7,7 +7,10 @@ async def get_available_languages(request):
     return JSONResponse(languages)
 
 async def load_language(request):
-    language = localeService.load_language()
+    try:
+        language = localeService.load_language()
+    except (OSError, ValueError):
+        return JSONResponse({"error": "No usable language dictionary is available"}, status_code=503)
     return JSONResponse(language)
 
 routes = [

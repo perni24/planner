@@ -38,6 +38,9 @@ APP_URL = f"http://{APP_HOST}:{PORT}"
 # Su Linux si forza Qt: senza indicazione pywebview prova prima GTK, che usa il
 # WebKitGTK di sistema invece del motore incluso nel pacchetto portable.
 WEBVIEW_GUI = {"win32": "edgechromium", "linux": "qt"}.get(sys.platform)
+if sys.platform == "linux":
+    # Mantiene il binding usato nella build anche con QT_API esterno differente.
+    os.environ["QT_API"] = "pyqt6"
 SERVER_STARTUP_TIMEOUT_SECONDS = 15
 SERVER_GRACEFUL_SHUTDOWN_SECONDS = 5
 SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10

@@ -2,6 +2,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from validators.request_validator import SQLITE_MAX_INTEGER
+
+
+EntityId = Annotated[int, Field(strict=True, gt=0, le=SQLITE_MAX_INTEGER)]
+
 # None significa "non modificare": distinto da "" che svuota la descrizione.
 OptionalDescription = Annotated[
     str | None,
@@ -9,29 +14,29 @@ OptionalDescription = Annotated[
 ]
 
 class CreateTask(BaseModel):
-    project_id: int
+    project_id: EntityId
     title: str
     description: str = ""
-    parent_id: int | None = None
+    parent_id: EntityId | None = None
 
 class CreateArea(BaseModel):
     name: str
 
 class CreateProject(BaseModel):
-    area_id: int
+    area_id: EntityId
     name: str
     description: str = ""
 
 class UpdateProject(BaseModel):
-    id: int
+    id: EntityId
     name: str
     description: OptionalDescription = None
 
 class UpdateTask(BaseModel):
-    id: int
+    id: EntityId
     title: str
     description: OptionalDescription = None
 
 class SetTaskCompleted(BaseModel):
-    id: int
+    id: EntityId
     completed: bool

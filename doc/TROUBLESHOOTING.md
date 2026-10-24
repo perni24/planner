@@ -151,6 +151,45 @@ PlannerApp/locales/
 
 E che il JSON sia valido. I file JSON non supportano commenti.
 
+Il dizionario deve essere un oggetto piatto non vuoto con valori stringa. I
+codici ammessi sono, per esempio, `it`, `en` e `pt-BR`. File malformati o
+illeggibili non compaiono nella lista; un cambio verso una lingua non
+disponibile viene rifiutato con `400`, senza modificare la preferenza salvata.
+
+Se la lingua gia scelta non e piu utilizzabile, il backend prova la sua copia
+inclusa nell'app, poi italiano e inglese. Questo fallback non ripara i file e
+non cambia la preferenza nel DB: per recuperare la lingua personalizzata occorre
+correggere il relativo JSON. Se mancano tutte le copie utilizzabili, il
+caricamento restituisce `503`; conserva una copia dei file personalizzati prima
+di ripristinare quelli di default. Per dettagli vedi `I18N.md`.
+
+## Linux: impossibile caricare il plugin Qt `xcb`
+
+Se compare `Could not load the Qt platform plugin "xcb"`, il plugin puo essere
+presente ma una sua libreria di sistema puo mancare. La portable include Qt e
+QtWebEngine, non tutte le librerie del sistema operativo.
+
+Avvia Planner da un terminale nella cartella estratta:
+
+```bash
+QT_DEBUG_PLUGINS=1 ./PlannerApp
+ldd _internal/PyQt6/Qt6/plugins/platforms/libqxcb.so
+```
+
+Cerca `not found` nell'output e installa la libreria indicata usando il gestore
+pacchetti della distribuzione. Su Ubuntu 22.04, per esempio, `libxcb-cursor.so.0`
+corrisponde a `libxcb-cursor0` e `libxkbcommon-x11.so.0` a `libxkbcommon-x11-0`.
+Lo step `Install Linux desktop dependencies` nel workflow elenca i pacchetti
+previsti per quella base; i nomi possono differire sulle altre distribuzioni.
+Non installare GTK/WebKit per aggirare l'errore: Planner usa Qt/PyQt6.
+
+Estrai l'archivio TAR.GZ mantenendo tutta la cartella, inclusi `_internal/`,
+permessi e collegamenti simbolici. Esegui l'app come utente normale in una
+sessione desktop, non con `sudo`; non disabilitare la sandbox Chromium per
+risolvere un errore di dipendenze. La verifica con Wayland e X11 resta distinta
+dal controllo dei file della build.
+Riferimento: [dipendenze dei plugin Qt su Linux](https://doc.qt.io/qt-6/linux-requirements.html).
+
 ## macOS blocca l'app
 
 Le release attuali non includono macOS. Il pacchetto macOS della `v0.1.0` non e

@@ -1,4 +1,10 @@
+SQLITE_MAX_INTEGER = 2**63 - 1
+
+
 def validate_int(value, field_name):
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        return None, f"{field_name} must be a valid integer"
+
     try:
         value = int(value)
     except (TypeError, ValueError):
@@ -6,6 +12,9 @@ def validate_int(value, field_name):
 
     if value <= 0:
         return None, f"{field_name} must be greater than 0"
+
+    if value > SQLITE_MAX_INTEGER:
+        return None, f"{field_name} must be less than or equal to {SQLITE_MAX_INTEGER}"
 
     return value, None
 

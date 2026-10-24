@@ -10,7 +10,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `doc/`: documentazione tecnica e note di progetto.
 - `.github/workflows/release-build.yml`: build Windows e Linux e creazione della GitHub Release quando viene pubblicato un tag `v*`.
 - `AGENTS.md`: istruzioni per gli agenti AI che lavorano sul progetto.
-- `THIRD_PARTY_NOTICES.md`: licenze di terze parti (icone). Viene copiato nella build portable.
+- `THIRD_PARTY_NOTICES.md`: avvisi per icone e componenti Qt/PyQt6 Linux, con riferimenti agli upstream e limiti dell'inventario raccolto. Viene copiato nella build portable.
 - `LICENSE`: licenza GNU GPL v3.
 
 ## Documentazione
@@ -37,7 +37,8 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `main.py`: unico entry point. `main()` prepara cartelle, lingue e database con `initialize_runtime()`, poi `start_server()` avvia Uvicorn in un thread e PyWebView nel thread principale. Attende il nostro server prima di aprire la finestra, ne richiede l'arresto alla chiusura e mantiene API REST, MCP e frontend compilato. Importare il modulo non avvia server o finestra.
 - `config.py`: ambiente (sviluppo/produzione), percorsi incluso il profilo persistente WebView, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
-- `build_portable.py`: build frontend e PyInstaller, opzioni Windows/WebView2, verifica dei contenuti e protezione dei dati nelle cartelle portable gia usate; `--dist-dir` seleziona un output alternativo.
+- `build_portable.py`: build frontend e PyInstaller, opzioni Windows/WebView2 e Linux/PyQt6, verifica dei contenuti e protezione dei dati nelle cartelle portable gia usate; `--dist-dir` seleziona un output alternativo.
+- `build_licenses.py`: copia i testi di licenza dai metadati Qt effettivamente inclusi nel bundle Linux e genera/verifica `licenses/manifest.json` con versioni e hash.
 - `requirements.txt`: dipendenze Python di runtime (Starlette, Uvicorn, MCP e PyWebView).
 - `requirements-dev.txt`: include le dipendenze di runtime e aggiunge PyInstaller e Ruff per sviluppo e build.
 - `db/db.py`: connessione SQLite, creazione del DB, migrazioni all'avvio e copie consistenti per il download backup.
@@ -51,10 +52,11 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
   - `app_lifecycle.py`: registrazione e invocazione della callback per lo shutdown REST, senza terminazioni forzate o monitor di presenza del frontend;
   - `operation_control.py`: stop idempotente, scadenze ereditabili e controlli cooperativi condivisi da richieste, SQLite, backup e migrazioni;
   - `desktop_error_service.py`: log desktop rotanti, messaggi localizzati senza accesso al DB e dialoghi con fallback;
-  - `locale_service.py`: lettura dei file lingua;
+  - `locale_service.py`: lettura e verifica dei dizionari lingua, elenco dei file utilizzabili e fallback in sola lettura;
   - `update_service.py`: controllo dell'ultima release su GitHub.
 - `integration/mcp/`: server MCP (`server.py`), registrazione dei tool (`mcp_tools.py`) e modelli Pydantic dei parametri (`models.py`).
 - `validators/request_validator.py`: validazione di id e testi, usata da route e service.
+- `validators/settings_validator.py`: validazione di lingua, tema e sei colori personalizzati prima del salvataggio.
 - `middleware/origin_guard.py`: blocca le richieste di modifica inviate da pagine di altri siti (CSRF).
 - `middleware/shutdown_guard.py`: rifiuta le nuove richieste durante l'arresto e restituisce errori JSON per annullamento e timeout del database, se la risposta non e ancora iniziata.
 - `locales/`: file lingua JSON di default.
@@ -62,10 +64,14 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
 - `test/test_backup.py`: test automatici del download backup, consistenza delle copie e pulizia dei temporanei, senza avviare il server.
 - `test/test_repositories.py`: test automatici di letture e scritture REST/MCP, commit/rollback e chiusura delle connessioni SQLite.
+- `test/test_id_validation.py`: test di ID REST/MCP, limiti SQLite, rifiuto delle conversioni implicite e assenza di chiamate ai repository per richieste non valide.
+- `test/test_settings_validation.py`: test di payload impostazioni, colori, dizionari personalizzati e fallback, con verifica che gli errori non modifichino il DB.
 - `test/test_startup.py`: test dell'inizializzazione, della finestra simulata, dei thread, dei timeout e degli errori di avvio; include prove con Uvicorn e porte locali temporanee, senza aprire finestre native.
 - `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
 - `test/test_app_routes.py`: test di shutdown, versione e controllo aggiornamenti e rimozione del vecchio endpoint heartbeat.
-- `test/test_build_portable.py`: test degli argomenti PyInstaller Windows, dei file richiesti nel pacchetto e della protezione dei dati runtime.
+- `test/test_build_portable.py`: test degli argomenti PyInstaller Windows/Linux, della selezione PyQt6, dei file richiesti nel pacchetto e della protezione dei dati runtime.
+- `test/test_build_licenses.py`: test di raccolta e integrita dei materiali upstream Linux e del rifiuto di licenze mancanti o vuote.
+- `test/test_release_workflow.py`: test dei controlli Python del workflow su versione release e permessi TAR.GZ e del filtro che esclude gli artifact Linux non verificati dalle release.
 - `test/test_desktop_errors.py`: test di rotazione log, errori di scrittura, dizionari e dialoghi simulati.
 - `test/test_operation_control.py`: test di scadenze, cancellazione SQLite e bulk, timeout dei lock, pulizia dei backup e rollback delle migrazioni.
 

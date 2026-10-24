@@ -45,6 +45,19 @@ esclude i renderer non usati. `--dist-dir dist/windows` sceglie un output
 alternativo; se la destinazione contiene dati runtime, lo script si ferma senza
 cancellarli. Non aggirare questa protezione per ricompilare una portable gia usata.
 
+Su Linux build e runtime selezionano `QT_API=pyqt6`. La build include QtWebEngine
+e controlla risorse, plugin XCB e permessi del processo helper. La CI usa
+`ubuntu-22.04` x64 con le dipendenze di sistema Qt e produce TAR.GZ; Windows resta
+in ZIP. Linux resta un artifact di prova: il job release scarica solo
+`PlannerApp-windows` finche build reale, licenze e prove native non sono completate.
+Non rimuovere questo filtro prima delle verifiche in `doc/TODO.md`.
+
+La build Linux conserva i metadati dei pacchetti Qt e usa `build_licenses.py`
+per copiarne i testi upstream in `licenses/`, con versioni e hash in
+`manifest.json`. Non considerare il manifest una raccolta completa di avvisi
+Chromium o sorgenti corrispondenti: la revisione per la release resta nella TODO.
+Non rimuovere i testi di licenza dai pacchetti distribuiti.
+
 `backend/requirements.txt` contiene solo le dipendenze di runtime;
 `backend/requirements-dev.txt` lo include e aggiunge PyInstaller e Ruff.
 Per sviluppo e build (anche in CI) installa il secondo file.
@@ -88,6 +101,15 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   nomi di campo previsti nel suo `match` (`id`, `area_id`, `project_id`, `task_id`,
   `name`, `title`, `description`, `parent_id`): per un campo nuovo va aggiunto un
   `case`, altrimenti restituisce `Unknown field`.
+- Gli ID sono interi positivi fino a `SQLITE_MAX_INTEGER` (`2**63 - 1`).
+  `validate_int` accetta anche stringhe convertibili in interi per REST, ma non
+  booleani o float. MCP usa `EntityId` strict nei modelli e nella firma del tool
+  `get_project_tasks`, prima del service; non tornare a `int` permissivi.
+- Le route settings usano `validators/settings_validator.py`: lingua esterna
+  valida e leggibile, tema in `light/dark/system/custom`, oggetto con tutte e sole
+  le sei chiavi colore e valori `#RRGGBB`. Payload errati restituiscono `400`
+  prima delle scritture; non introdurre aggiornamenti parziali senza cambiare il
+  contratto documentato in `doc/API_BACKEND.md`.
 - I tool MCP sono funzioni sincrone registrate in `register_mcp_tools`, con
   parametri definiti come modelli Pydantic in `integration/mcp/models.py`. Le
   operazioni bulk validano tutto prima di scrivere e accettano al massimo 50
@@ -227,6 +249,11 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   `useLanguage()`.
 - Le chiavi sono piatte, con punti (`"taskModal.actions.create"`), e vanno aggiunte
   a **tutti** i file in `backend/locales/` (oggi `it.json` e `en.json`).
+- I dizionari devono essere oggetti non vuoti con chiavi non vuote e valori
+  stringa. Il service elenca solo file esterni validi; al caricamento prova la
+  lingua salvata, poi it/en, per ciascuna prima esterna e poi inclusa nel bundle.
+  Il fallback non modifica file o DB e non integra le singole chiavi mancanti.
+  Senza dizionari utilizzabili `/locales/load_language` restituisce `503` JSON.
 - L'app portable copia i file lingua accanto all'eseguibile solo se mancano: le
   chiavi nuove non arrivano a chi ha gia quei file.
 

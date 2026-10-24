@@ -27,6 +27,15 @@ avviando il codice su un Mac pywebview usa il WebKit di sistema.
 Su Linux il pacchetto non richiede WebKitGTK o altri motori installati, ma e piu
 grande. Il Chromium incluso carica solo l'interfaccia locale: i link esterni si
 aprono nel browser di sistema.
+Build e avvio Linux selezionano il binding PyQt6 tramite `QT_API=pyqt6`.
+Il workflow usa Ubuntu 22.04 x64 e crea un TAR.GZ con permessi e collegamenti
+simbolici preservati. Restano necessarie librerie di sistema e una sessione
+desktop: vedi `GUIDA_SVILUPPO.md` e `TROUBLESHOOTING.md`.
+Nel pacchetto Linux `licenses/` contiene copie dei testi di licenza disponibili
+nelle wheel Qt e un manifest con versioni e hash; questi materiali non
+sostituiscono la revisione degli avvisi Qt/Chromium e dei sorgenti corrispondenti.
+Finche le verifiche e le licenze Linux sono aperte, il pacchetto e disponibile
+solo come artifact di prova del workflow e non come allegato della release.
 
 ## Struttura dell'output
 
@@ -59,6 +68,7 @@ Su Linux il file eseguibile non avra estensione `.exe`, ma la logica resta la st
 - `data/logs/`: log degli errori desktop e di Uvicorn. `planner.log` arriva a circa 1 MB, con al massimo tre copie ruotate; se la cartella non e scrivibile resta la console.
 - `data/webview/`: profilo della finestra (cookie, dati web e cache gestiti dal renderer), separato dal profilo del browser dell'utente.
 - `locales/`: contiene i file lingua esterni copiati al primo avvio e modificabili dall'utente.
+- `licenses/`: solo nel pacchetto Linux, testi upstream dei pacchetti Qt e `manifest.json` generato durante la build; va conservata nella distribuzione, non e una cartella di dati utente.
 
 ## Percorsi principali
 

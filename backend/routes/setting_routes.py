@@ -1,28 +1,34 @@
+import json
+
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 import db.repositories.setting_repo as settingRepo
+from validators.settings_validator import validate_language_settings, validate_theme_settings
 
 async def get_all_settings(request):
     settings = settingRepo.get_all_settings()
     return JSONResponse(settings)
 
 async def update_language(request):
-    data = await request.json()
-    language = data.get("language")
-    if not language:
-        return JSONResponse({"error": "language obbligatoria"}, status_code=400)
-    settingRepo.update_language(language)
+    try:
+        data = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JSONResponse({"error": "Request body must contain valid JSON"}, status_code=400)
+    values, error = validate_language_settings(data)
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    settingRepo.update_language(values["language"])
     return JSONResponse({"message": "Language update successful"})
 
 async def update_theme(request):
-    data = await request.json()
-    theme = data.get("theme")
-    custom_colors = data.get("custom_colors")
-    if not theme:
-        return JSONResponse({"error": "theme obbligatorio"}, status_code=400)
-    if not custom_colors:
-        return JSONResponse({"error": "custom_colors obbligatorio"}, status_code=400)
-    settingRepo.update_theme(theme, custom_colors)
+    try:
+        data = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JSONResponse({"error": "Request body must contain valid JSON"}, status_code=400)
+    values, error = validate_theme_settings(data)
+    if error:
+        return JSONResponse({"error": error}, status_code=400)
+    settingRepo.update_theme(values["theme"], values["custom_colors"])
     return JSONResponse({"message": "theme update successful"})
 
 routes = [

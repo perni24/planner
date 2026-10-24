@@ -42,7 +42,7 @@ export async function apiCore<T>(
     if (!response.ok) {
       // Proviamo a estrarre il messaggio di errore dal server se presente
       const errorBody = await response.json().catch(() => ({}));
-      const errorMessage = errorBody.detail || errorBody.message || `Errore ${response.status}: ${response.statusText}`;
+      const errorMessage = errorBody.error || errorBody.detail || errorBody.message || `Errore ${response.status}: ${response.statusText}`;
       throw new Error(errorMessage);
     }
 
