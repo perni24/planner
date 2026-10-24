@@ -102,8 +102,8 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   `name`, `title`, `description`, `parent_id`): per un campo nuovo va aggiunto un
   `case`, altrimenti restituisce `Unknown field`.
 - Gli ID sono interi positivi fino a `SQLITE_MAX_INTEGER` (`2**63 - 1`).
-  `validate_int` accetta anche stringhe convertibili in interi per REST, ma non
-  booleani o float. MCP usa `EntityId` strict nei modelli e nella firma del tool
+  `validate_int` accetta per REST anche stringhe di sole cifre ASCII (non spazi,
+  segni, `_` o cifre di altri alfabeti), ma non booleani o float. MCP usa `EntityId` strict nei modelli e nella firma del tool
   `get_project_tasks`, prima del service; non tornare a `int` permissivi.
 - Le route settings usano `validators/settings_validator.py`: lingua esterna
   valida e leggibile, tema in `light/dark/system/custom`, oggetto con tutte e sole

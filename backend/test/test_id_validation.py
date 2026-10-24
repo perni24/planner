@@ -39,7 +39,7 @@ async def invoke_route(endpoint, payload=None, query=None):
 
 
 def test_validate_int_accepts_integer_ids_and_rest_numeric_strings():
-    for value in (1, 7, SQLITE_MAX_INTEGER, "1", "7", " 7 ", str(SQLITE_MAX_INTEGER)):
+    for value in (1, 7, SQLITE_MAX_INTEGER, "1", "7", "007", str(SQLITE_MAX_INTEGER)):
         result, error = validate_int(value, "project_id")
         assert error is None
         assert type(result) is int
@@ -47,7 +47,10 @@ def test_validate_int_accepts_integer_ids_and_rest_numeric_strings():
 
 
 def test_validate_int_rejects_coercions_missing_values_and_out_of_range_ids():
-    for value in (*INVALID_IDS, "", "1.9", "1.0", "true", "abc", "0", "-1", str(10**30)):
+    for value in (
+        *INVALID_IDS, "", "1.9", "1.0", "true", "abc", "0", "-1", str(10**30),
+        " 7 ", "7\n", "+5", "1_000", "1e3", "0x10", "٣", "７", "0" * 5000, "9" * 5000,
+    ):
         result, error = validate_int(value, "task_id")
         assert result is None, repr(value)
         assert error and "task_id" in error, repr(value)

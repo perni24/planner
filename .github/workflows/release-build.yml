@@ -45,6 +45,11 @@ jobs:
         run: |
           import os
           import sys
+
+          # GitHub esegue lo script da un file temporaneo: Python cerca i moduli nella
+          # cartella di quel file, non in working-directory. Senza questa riga
+          # "import config" fallisce e il job si ferma prima della build.
+          sys.path.insert(0, os.getcwd())
           from config import APP_VERSION
 
           expected = os.environ["RELEASE_TAG"].removeprefix("v")

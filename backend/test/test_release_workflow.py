@@ -1,17 +1,17 @@
 import os
+import subprocess
+import sys
 import tarfile
 import textwrap
 import unittest
-from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
 from config import APP_VERSION
 
 
 WORKFLOW_PATH = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "release-build.yml"
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 def get_python_step(name):
@@ -20,21 +20,40 @@ def get_python_step(name):
     return step, textwrap.dedent(step.split("        run: |\n", 1)[1]).rstrip()
 
 
-def run_step(code, environment):
-    with patch.dict(os.environ, environment), redirect_stdout(StringIO()):
-        exec(compile(code, str(WORKFLOW_PATH), "exec"), {})
+def run_step(code, environment, cwd=BACKEND_DIR):
+    # Come "shell: python" di GitHub Actions: lo script viene salvato in un file
+    # temporaneo ed eseguito con "python <file>" dalla working-directory dello step.
+    # Python cerca quindi i moduli nella cartella del file, non in cwd.
+    with TemporaryDirectory(prefix="planner-runner-temp-") as runner_temp:
+        script = Path(runner_temp) / "step.py"
+        script.write_text(code, encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, str(script)],
+            cwd=cwd,
+            # Senza PYTHONPATH ereditato: il runner di GitHub non lo imposta.
+            env={
+                **{key: value for key, value in os.environ.items() if key != "PYTHONPATH"},
+                "PYTHONDONTWRITEBYTECODE": "1",
+                **environment,
+            },
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
 
 
 def test_release_version_matches_tag_and_rejects_mismatch():
     step, code = get_python_step("Check release version")
     assert "if: startsWith(github.ref, 'refs/tags/')" in step
-    run_step(code, {"RELEASE_TAG": f"v{APP_VERSION}"})
-    try:
-        run_step(code, {"RELEASE_TAG": "v999.999.999-test-mismatch"})
-    except SystemExit as error:
-        assert "Version mismatch" in str(error)
-    else:
-        raise AssertionError("An inconsistent release tag must stop the job")
+    assert "working-directory: backend" in step
+    result = run_step(code, {"RELEASE_TAG": f"v{APP_VERSION}"})
+    assert result.returncode == 0, result.stderr
+    assert f"Release version verified: {APP_VERSION}" in result.stdout
+
+    result = run_step(code, {"RELEASE_TAG": "v999.999.999-test-mismatch"})
+    assert result.returncode != 0, "An inconsistent release tag must stop the job"
+    assert "Version mismatch" in result.stderr
 
 
 def make_archive(path, helper_mode=0o755, helper_type=tarfile.REGTYPE):
@@ -55,7 +74,8 @@ def test_linux_archive_check_accepts_executable_app_and_helper():
     with TemporaryDirectory(prefix="planner-release-archive-") as directory:
         archive = Path(directory) / "linux.tar.gz"
         make_archive(archive)
-        run_step(code, {"ARCHIVE_PATH": str(archive)})
+        result = run_step(code, {"ARCHIVE_PATH": str(archive)})
+        assert result.returncode == 0, result.stderr
 
 
 def test_linux_archive_check_rejects_non_executable_helper_and_directory():
@@ -64,12 +84,9 @@ def test_linux_archive_check_rejects_non_executable_helper_and_directory():
         archive = Path(directory) / "linux.tar.gz"
         for mode, kind in ((0o644, tarfile.REGTYPE), (0o755, tarfile.DIRTYPE)):
             make_archive(archive, mode, kind)
-            try:
-                run_step(code, {"ARCHIVE_PATH": str(archive)})
-            except SystemExit as error:
-                assert "Executable permission missing" in str(error)
-            else:
-                raise AssertionError("Invalid helper permissions or type must stop packaging")
+            result = run_step(code, {"ARCHIVE_PATH": str(archive)})
+            assert result.returncode != 0, "Invalid helper permissions or type must stop packaging"
+            assert "Executable permission missing" in result.stderr
 
 
 def test_unverified_linux_artifact_is_not_downloaded_for_public_release():
