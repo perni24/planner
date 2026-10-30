@@ -1,4 +1,5 @@
 import errno
+import hashlib
 import os
 import sys
 import threading
@@ -63,10 +64,19 @@ async def serve_frontend(request):
         and os.path.isfile(requested_path)
     )
 
-    if is_frontend_file:
-        return FileResponse(requested_path)
+    index_path = os.path.join(frontend_dir, "index.html")
+    if not is_frontend_file:
+        requested_path = index_path
 
-    return FileResponse(os.path.join(frontend_dir, "index.html"))
+    headers = {"Cache-Control": "no-store"} if requested_path == index_path else None
+    return FileResponse(requested_path, headers=headers)
+
+
+def get_frontend_url(index_path):
+    # Un URL diverso per ogni build evita anche le vecchie copie HTML gia in cache.
+    with open(index_path, "rb") as index_file:
+        build_id = hashlib.sha256(index_file.read()).hexdigest()[:16]
+    return f"{APP_URL.rstrip('/')}/?frontend={build_id}"
 
 
 def create_routes():
@@ -74,6 +84,8 @@ def create_routes():
     index_path = os.path.join(FRONTEND_DIST_DIR, "index.html")
 
     if os.path.isfile(index_path):
+        # La pagina React non deve essere intercettata dal mount REST /tasks.
+        routes.insert(0, Route("/tasks/{project_id:int}", endpoint=serve_frontend))
         routes.append(Route("/{path:path}", endpoint=serve_frontend))
 
     return routes
@@ -112,6 +124,7 @@ def start_server():
             "Frontend build not found. Run 'npm run build' in frontend first.",
             index_path,
         )
+    frontend_url = get_frontend_url(index_path)
 
     import webview
 
@@ -186,7 +199,7 @@ def start_server():
         backend_thread.start()
         wait_for_server(server, backend_thread, errors)
         window = webview.create_window(
-            "Planner", APP_URL, width=1280, height=800, min_size=(800, 600)
+            "Planner", frontend_url, width=1280, height=800, min_size=(800, 600)
         )
         window.events.shown += window_shown.set
         window.events.closed += on_window_closed

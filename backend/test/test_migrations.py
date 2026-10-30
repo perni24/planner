@@ -39,6 +39,9 @@ def seed_legacy_database(with_subtasks=True):
         schema,
         flags=re.DOTALL,
     )
+    schema = re.sub(
+        r"CREATE TRIGGER trg_subtask_after_move\b.*?END;", "", schema, flags=re.DOTALL,
+    )
     schema = schema.replace(
         "AND EXISTS (SELECT 1 FROM tasks WHERE parent_id = OLD.parent_id)\n", ""
     )
@@ -455,6 +458,40 @@ def test_failed_second_migration_rolls_back_default_area_and_trigger():
                 assert conn.execute(
                     "SELECT 1 FROM sqlite_master WHERE name = 'trg_recreate_last_area'"
                 ).fetchone() is None
+
+
+def test_version_two_database_gets_move_trigger_without_data_changes():
+    with isolated_database() as root:
+        seed_version_one_database()
+        with closing(database.get_db_connection()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            migration_runner.execute_script(
+                conn,
+                (MIGRATIONS_DIR / "002_recreate_last_area.sql").read_text(encoding="utf-8"),
+            )
+            conn.execute("PRAGMA user_version = 2")
+            before = snapshot(conn)
+        database.init_db()
+        with closing(database.get_db_connection()) as conn, conn:
+            assert snapshot(conn) == before
+            assert migration_runner.get_schema_version(conn) == 3
+            installed = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE name = 'trg_subtask_after_move'"
+            ).fetchone()[0]
+            expected = (MIGRATIONS_DIR / "003_subtask_parent_change.sql").read_text(encoding="utf-8")
+            assert installed.strip().rstrip(";") == expected.strip().rstrip(";")
+            destination = conn.execute(
+                "INSERT INTO tasks (project_id, title, completed) VALUES (3, 'Destination', 1)"
+            ).lastrowid
+            conn.execute("UPDATE tasks SET parent_id = ? WHERE id = 42", (destination,))
+            assert conn.execute("SELECT completed FROM tasks WHERE id = ?", (destination,)).fetchone()[0] == 0
+            assert conn.execute("SELECT completed FROM tasks WHERE id = 41").fetchone()[0] == 0
+            assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+        backups = list((root / "migration_backups").glob("*.db"))
+        assert len(backups) == 1
+        with closing(sqlite3.connect(backups[0])) as conn:
+            assert migration_runner.get_schema_version(conn) == 2
+            assert snapshot(conn) == before
 
 
 def load_tests(loader, tests, pattern):

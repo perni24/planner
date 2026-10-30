@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from pydantic import Field, StrictBool
+
 from db.repositories import mcp_repo
 import services.mcp_service as mcpService
 
@@ -5,7 +9,9 @@ from .models import (
     CreateArea,
     CreateProject,
     CreateTask,
+    DeleteTask,
     EntityId,
+    MoveSubtask,
     SetTaskCompleted,
     UpdateProject,
     UpdateTask,
@@ -73,3 +79,32 @@ def register_mcp_tools(mcp):
         """
         task_data = [task.model_dump() for task in tasks]
         return mcpService.bulk_set_task_completed(task_data)
+
+    @mcp.tool()
+    def bulk_delete_task(
+        tasks: Annotated[list[DeleteTask], Field(min_length=1, max_length=50)],
+        include_subtasks: StrictBool = False,
+    ) -> dict:
+        """Delete up to 50 tasks or subtasks atomically.
+
+        Tasks with subtasks are rejected unless include_subtasks is explicitly
+        true. When true, their subtasks are deleted too. Returns all deleted IDs,
+        including cascaded subtasks. Duplicate or missing requested IDs fail
+        the entire batch.
+        """
+        return mcpService.bulk_delete_task(
+            [task.model_dump() for task in tasks], include_subtasks
+        )
+
+    @mcp.tool()
+    def bulk_move_subtask(
+        subtasks: Annotated[list[MoveSubtask], Field(min_length=1, max_length=50)],
+    ) -> dict:
+        """Move up to 50 subtasks to other top-level tasks in the same project.
+
+        Each item supplies the subtask id and destination parent_id. Main tasks,
+        cross-project moves, nested subtasks, duplicate IDs and missing tasks
+        are rejected atomically. Content and completion are preserved. Moving
+        to the current parent is reported as unchanged.
+        """
+        return mcpService.bulk_move_subtask([task.model_dump() for task in subtasks])

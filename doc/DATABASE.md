@@ -75,7 +75,7 @@ subtask. Il database verifica l'esistenza tramite foreign key, ma non impone
 le altre due regole.
 
 Lo stato di una task che ha subtask e derivato da quello delle subtask tramite
-quattro trigger:
+cinque trigger:
 
 - `trg_subtask_after_insert`, `trg_subtask_after_update`, `trg_subtask_after_delete`:
   dopo ogni modifica di una subtask ricalcolano il parent, che risulta completato
@@ -83,6 +83,14 @@ quattro trigger:
   parent resta invariato e la task torna modificabile a mano;
 - `trg_parent_derived`: se si modifica direttamente lo stato di una task che ha
   subtask, lo ricalcola dalle subtask, annullando la modifica manuale.
+- `trg_subtask_after_move`: dopo una modifica di `parent_id` ricalcola il vecchio
+  e il nuovo parent. Se il vecchio parent rimane senza subtask, conserva lo stato
+  attuale e torna modificabile a mano. Lo stato della subtask non viene cambiato.
+
+Il tool MCP `bulk_move_subtask` consente solo spostamenti tra task principali
+dello stesso progetto. Il repository ricontrolla questi vincoli dentro una
+transazione `BEGIN IMMEDIATE`; lo schema non impedisce da solo annidamenti o
+spostamenti tra progetti con SQL diretto.
 
 Una modifica diretta dello stato di un parent con subtask verrebbe annullata da
 `trg_parent_derived`. Per questo l'API REST (`update_status_task`) e il tool MCP
@@ -124,7 +132,7 @@ impostazioni.
 - per un database esistente legge `PRAGMA user_version` e applica soltanto le migrazioni mancanti;
 - se la versione del database e superiore a quella supportata, interrompe l'avvio senza modificarlo: non esiste un downgrade automatico.
 
-La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `2`.
+La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `3`.
 I database delle release precedenti, senza versione, vengono riconosciuti come `0`.
 Le migrazioni sono file SQL in `backend/db/migrations/`, registrati in ordine nella
 tupla `MIGRATION_FILES` di `backend/db/migration_runner.py`.
@@ -155,19 +163,27 @@ una chiamata I/O bloccata internamente dal sistema operativo.
 `legacy_add_subtasks.sql` nella stessa transazione: aggiunge `parent_id`, i trigger
 di completamento e aggiorna la vista progetti. I dati e gli id esistenti vengono
 conservati. I database di `v0.1.0` hanno gia questi elementi e ricevono soltanto la
-correzione del trigger. Successivamente viene applicata anche la migrazione `002`.
+correzione del trigger. Successivamente vengono applicate le migrazioni mancanti.
 
 ### Seconda migrazione
 
 `002_recreate_last_area.sql` installa `trg_recreate_last_area`. Se non esistono
 aree, inserisce `utente`; altrimenti conserva tutte le aree esistenti. Non modifica
-gli id o i dati presenti. I database allo schema `1` ricevono solo questa
-migrazione, quelli senza versione ricevono prima la `001`.
+gli id o i dati presenti. I database allo schema `1` ricevono questa migrazione
+e poi la `003`; quelli senza versione ricevono prima la `001`.
+
+### Terza migrazione
+
+`003_subtask_parent_change.sql` installa `trg_subtask_after_move` senza modificare
+le righe esistenti. Il trigger aggiorna entrambi i parent dopo uno spostamento di
+subtask. La migrazione viene eseguita automaticamente all'avvio sui database
+allo schema `2`, con il consueto backup preventivo; quelli nuovi includono gia
+il trigger in `schema.sql`.
 
 ### Aggiungere una modifica allo schema
 
 1. Aggiorna `backend/schema.sql`, che deve rappresentare lo schema finale per le nuove installazioni.
-2. Crea lo script successivo, per esempio `backend/db/migrations/003_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
+2. Crea lo script successivo, per esempio `backend/db/migrations/004_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
 3. Aggiungi il nome del file in fondo a `MIGRATION_FILES`, senza saltare numeri.
 4. Verifica sia un database nuovo sia l'aggiornamento di un database precedente, anche in caso di errore e riavvio.
 

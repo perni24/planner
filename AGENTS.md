@@ -64,7 +64,9 @@ Per sviluppo e build (anche in CI) installa il secondo file.
 
 Esistono test automatici di migrazioni, download backup e repository in
 `backend/test/test_migrations.py`, `backend/test/test_backup.py` e
-`backend/test/test_repositories.py`, su database temporanei. `test_startup.py` e
+`backend/test/test_repositories.py`, su database temporanei.
+`test_mcp_task_operations.py` copre cancellazioni e spostamenti bulk, consenso per
+la cascata, validazione SDK, eventi dopo il commit e rollback. `test_startup.py` e
 `test_events.py` verificano l'avvio desktop e la chiusura SSE; la finestra e simulata
 e i test di integrazione usano porte TCP locali temporanee. `test_operation_control.py`
 copre cancellazione cooperativa, lock SQLite, backup e rollback. `test_desktop_errors.py`
@@ -114,6 +116,11 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   parametri definiti come modelli Pydantic in `integration/mcp/models.py`. Le
   operazioni bulk validano tutto prima di scrivere e accettano al massimo 50
   elementi.
+- `bulk_delete_task` richiede `include_subtasks: true` (booleano strict) per
+  eliminare task con subtask; restituisce anche gli ID eliminati a cascata.
+  `bulk_move_subtask` sposta solo subtask senza figli tra task principali dello
+  stesso progetto. Entrambi ricontrollano i vincoli sotto `BEGIN IMMEDIATE`,
+  annullano l'intero batch se non valido e pubblicano eventi dopo il commit.
 - In `mcp_service.py` gli errori di validazione si sollevano con `ToolError`
   (`mcp.server.mcpserver.exceptions`): l'SDK mostra al client AI il messaggio solo
   per questa eccezione. Qualsiasi altra eccezione arriva come un generico
@@ -132,6 +139,12 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   dopo la preparazione del runtime e la verifica del frontend compilato. La
   finestra si apre solo quando quel server risulta avviato, non dopo una risposta
   di un servizio qualsiasi sulla stessa porta. Il reload e sempre disattivato.
+- L'HTML frontend usa `Cache-Control: no-store` e la finestra si apre con un
+  parametro `frontend` derivato dall'hash di `index.html`, per evitare build
+  precedenti nella cache persistente senza cancellare profilo o localStorage.
+  La route React `/tasks/{project_id:int}` precede il mount REST `/tasks`, cosi
+  funziona anche la ricarica diretta; non sovrapporla agli endpoint REST.
+  `test_frontend_delivery.py` verifica cache, URL e separazione delle route.
 - Sistemi supportati: Windows e Linux. macOS non e distribuito (niente build in
   CI, vedi `doc/SVILUPPI_FUTURI.md`), ma non rimuovere il codice compatibile.
 - Renderer della finestra (`WEBVIEW_GUI` in `config.py`): WebView2 su Windows,
@@ -183,7 +196,7 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 
 - Schema in `backend/schema.sql`: tabelle `areas`, `projects`, `tasks`, `settings`
   (una sola riga), `calendar` (vuota, inutilizzata), vista `v_projects_status`,
-  quattro trigger sul completamento delle task.
+  cinque trigger sul completamento delle task.
 - `schema.sql` viene applicato ai database nuovi o vuoti. Quelli esistenti vengono
   aggiornati all'avvio con `PRAGMA user_version` e gli script in `db/migrations/`,
   registrati in ordine in `MIGRATION_FILES` (`db/migration_runner.py`). Ogni modifica
@@ -202,6 +215,9 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   al termine della risposta ASGI, anche in caso di errore o cancellazione.
 - Un solo livello di subtask (`tasks.parent_id`). Lo stato di una task con subtask
   e calcolato dai trigger: non va impostato dal codice applicativo.
+- La migrazione `003` aggiunge `trg_subtask_after_move`: ricalcola vecchio e nuovo
+  parent quando cambia `parent_id`. Se il vecchio parent rimane senza subtask,
+  conserva lo stato, come dopo l'eliminazione dell'ultima subtask.
 - `completed` e un intero `0`/`1`: il frontend confronta con `=== 1`, non con
   booleani.
 - La vista conta solo le task di primo livello.

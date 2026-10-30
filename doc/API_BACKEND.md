@@ -211,7 +211,7 @@ ricaricare i dati quando cambiano. Ogni evento ha la forma:
 ```
 
 - `entity`: `area`, `project` o `task`;
-- `action`: `created` o `updated`.
+- `action`: `created`, `updated` o `deleted`.
 
 Se non ci sono eventi, il server invia un commento `: heartbeat` ogni 30 secondi.
 
@@ -241,10 +241,57 @@ Tool disponibili:
 | `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
 | `bulk_update_task` | Aggiorna titolo e descrizione di piu task. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
 | `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. Rifiuta le task che hanno subtask, il cui stato e calcolato dalle subtask. |
+| `bulk_delete_task` | Elimina task o subtask. Per eliminare una task con subtask richiede il consenso esplicito `include_subtasks: true`. |
+| `bulk_move_subtask` | Sposta subtask sotto altre task principali dello stesso progetto, senza modificarne contenuto o stato. |
 
 Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per
-intero se un elemento non e valido o se un id non esiste. Non esistono tool di
-eliminazione.
+intero se un elemento non e valido o se un id non esiste.
+
+### Eliminazione task tramite MCP
+
+Argomenti di `bulk_delete_task`:
+
+```json
+{"tasks": [{"id": 15}], "include_subtasks": false}
+```
+
+La lista deve contenere da 1 a 50 ID distinti. `include_subtasks` e un booleano
+strict, facoltativo e falso per default. Se anche una sola task richiesta ha
+subtask, il batch viene rifiutato senza questo consenso, anche quando le subtask
+sono elencate nella stessa richiesta. Con `true` vengono eliminate anche le
+subtask tramite cascata, nella stessa transazione.
+
+La risposta contiene `requested` (numero di ID richiesti), `deleted` (numero di
+righe eliminate, incluse le subtask), `requested_task_ids`, `task_ids` (tutti gli
+ID eliminati, senza duplicati) e `parent_ids` (parent sopravvissuti interessati).
+Elencare insieme parent e subtask e consentito con `include_subtasks: true`;
+gli ID eliminati vengono contati una sola volta.
+
+### Spostamento subtask tramite MCP
+
+Argomenti di `bulk_move_subtask`:
+
+```json
+{"subtasks": [{"id": 21, "parent_id": 8}]}
+```
+
+Ogni sorgente deve essere gia una subtask senza figli; la destinazione deve
+essere una task principale dello stesso progetto. ID duplicati, sorgenti o
+destinazioni mancanti, auto-parent e annidamenti ulteriori vengono rifiutati.
+Non si spostano task tra progetti o aree e non si trasformano task principali
+in subtask. Titolo, descrizione e stato della subtask restano invariati.
+
+La risposta contiene `requested`, `moved`, `task_ids` (subtask spostate),
+`unchanged_ids` (subtask gia sotto il parent richiesto) e `parent_ids` (parent
+interessati). Un batch interamente invariato non scrive e non pubblica eventi.
+Il trigger ricalcola lo stato di entrambi i parent; se quello precedente rimane
+senza subtask, ne conserva lo stato, come per l'eliminazione dell'ultima subtask.
+
+Entrambe le operazioni ricontrollano i vincoli sotto `BEGIN IMMEDIATE` prima
+delle scritture e annullano tutto il batch in caso di errore o cancellazione.
+Gli eventi SSE partono solo dopo il commit: `deleted` con tutti gli ID eliminati
+oppure `updated` con le subtask spostate e i parent interessati. Il frontend
+ricarica gia task e avanzamento dei progetti per gli eventi di entita `task`.
 
 I tool MCP richiedono ID come interi JSON, nello stesso intervallo di REST:
 gli schemi Pydantic usano `EntityId` con validazione strict per evitare che

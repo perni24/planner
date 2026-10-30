@@ -10,6 +10,7 @@ from services.operation_control import check_operation, operation_deadline
 MIGRATION_FILES = (
     "001_fix_subtask_delete.sql",
     "002_recreate_last_area.sql",
+    "003_subtask_parent_change.sql",
 )
 
 

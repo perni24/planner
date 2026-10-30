@@ -64,9 +64,11 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/test_migrations.py`: test automatici con `unittest`, su database temporanei, per inizializzazione, migrazioni e rollback.
 - `test/test_backup.py`: test automatici del download backup, consistenza delle copie e pulizia dei temporanei, senza avviare il server.
 - `test/test_repositories.py`: test automatici di letture e scritture REST/MCP, commit/rollback e chiusura delle connessioni SQLite.
+- `test/test_mcp_task_operations.py`: eliminazioni e spostamenti bulk MCP su database temporanei, consenso per la cascata, validazione SDK, eventi dopo il commit e rollback.
 - `test/test_id_validation.py`: test di ID REST/MCP, limiti SQLite, rifiuto delle conversioni implicite e assenza di chiamate ai repository per richieste non valide.
 - `test/test_settings_validation.py`: test di payload impostazioni, colori, dizionari personalizzati e fallback, con verifica che gli errori non modifichino il DB.
 - `test/test_startup.py`: test dell'inizializzazione, della finestra simulata, dei thread, dei timeout e degli errori di avvio; include prove con Uvicorn e porte locali temporanee, senza aprire finestre native.
+- `test/test_frontend_delivery.py`: test dell'HTML senza cache, dell'URL di avvio legato alla build e del caricamento diretto delle pagine React senza interferire con le API REST.
 - `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
 - `test/test_app_routes.py`: test di shutdown, versione e controllo aggiornamenti e rimozione del vecchio endpoint heartbeat.
 - `test/test_build_portable.py`: test degli argomenti PyInstaller Windows/Linux, della selezione PyQt6, dei file richiesti nel pacchetto e della protezione dei dati runtime.
@@ -101,6 +103,7 @@ campi, validazione, conferme e blocco dei pulsanti durante l'attesa.
 - `AreaProvider`: espone `createArea`, `editArea` e `removeArea`, esegue le API e ricarica le aree; mantiene l'area corrente allineata ai dati ricevuti. `AreaSwitcher` passa le callback al modale e coordina toast e navigazione.
 - `Project.jsx`: crea i progetti e aggiorna l'elenco dopo il salvataggio.
 - `Tasks.jsx`: gestisce creazione, modifica, eliminazione e completamento delle task, incluse le subtask, e modifica/eliminazione del progetto aperto.
+- `TaskCard.jsx`: il contatore delle subtask permette di mostrare o nascondere l'elenco, inizialmente nascosto. Conteggio e avanzamento restano visibili. Lo stato e locale alla card, non viene salvato e si ripristina quando la card viene rimontata.
 
 `onSave` e `onDelete` restituiscono Promise: il modale resta aperto se vengono
 rifiutate. Anche `onToggle` viene attesa dalla card; i toast relativi alle API

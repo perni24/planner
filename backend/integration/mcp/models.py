@@ -40,3 +40,12 @@ class UpdateTask(BaseModel):
 class SetTaskCompleted(BaseModel):
     id: EntityId
     completed: bool
+
+
+class DeleteTask(BaseModel):
+    id: EntityId
+
+
+class MoveSubtask(BaseModel):
+    id: EntityId
+    parent_id: EntityId

@@ -83,7 +83,7 @@
 - [ ] Aggiornare in `AGENTS.md` e `API_BACKEND.md` l'elenco dei codici di errore: oltre a 400/404 esistono 403, 409, 503, 504, il 400 in testo semplice di `TrustedHostMiddleware` e il 421 di `/mcp`
 - [ ] Aggiungere a `.gitignore` i file `*.db-journal`, `*-wal` e `*-shm`
 - [ ] Messaggio di errore nativo Windows: aggiungere `MB_SETFOREGROUND`/`MB_TOPMOST`, altrimenti dopo la chiusura della finestra puo apparire dietro le altre
-- [ ] MCP: dichiarare il limite di 50 elementi nello schema dei tool (`Field(max_length=50)`) e limitare la lunghezza dei testi
+- [ ] MCP: dichiarare il limite di 50 elementi anche negli schemi dei tool bulk preesistenti (gia presente per `bulk_delete_task` e `bulk_move_subtask`) e limitare la lunghezza dei testi
 
 ### Automazione facoltativa
 

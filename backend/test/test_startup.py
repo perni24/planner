@@ -64,6 +64,8 @@ def mocked_desktop():
     with ExitStack() as patches:
         patches.enter_context(patch.dict(sys.modules, webview=webview))
         patches.enter_context(patch.object(application.os.path, "isfile", return_value=True))
+        frontend_url = application.APP_URL + "/?frontend=test-build"
+        patches.enter_context(patch.object(application, "get_frontend_url", return_value=frontend_url))
         configuration = patches.enter_context(patch.object(application.uvicorn, "Config"))
         patches.enter_context(patch.object(application.uvicorn, "Server", return_value=server))
         shutdown = patches.enter_context(patch.object(application, "set_shutdown_callback"))
@@ -79,6 +81,7 @@ def mocked_desktop():
                 "report": report,
                 "shutdown": shutdown,
                 "threads": backend_threads,
+                "frontend_url": frontend_url,
             }
         finally:
             server.should_exit = True
@@ -142,7 +145,7 @@ def test_desktop_runs_backend_in_thread_and_stops_it_after_window_closes():
             timeout_graceful_shutdown=application.SERVER_GRACEFUL_SHUTDOWN_SECONDS,
         )
         mocks["webview"].create_window.assert_called_once_with(
-            "Planner", application.APP_URL, width=1280, height=800, min_size=(800, 600)
+            "Planner", mocks["frontend_url"], width=1280, height=800, min_size=(800, 600)
         )
         mocks["webview"].start.assert_called_once()
         assert callable(mocks["webview"].start.call_args.args[0])

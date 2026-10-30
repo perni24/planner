@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useLanguage } from "../context/useLanguage";
 import { useToast } from "../context/useToast";
 import settingsIcon from '../assets/icons/settings.svg?no-inline';
@@ -7,6 +7,8 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, onToggle }) {
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [areSubtasksVisible, setAreSubtasksVisible] = useState(false);
+  const subtasksId = useId();
 
   const isCompleted = task.completed === 1;
   const children = subtasks ?? [];
@@ -58,9 +60,28 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, onToggle }) {
               {task.title}
             </h3>
             {hasSubtasks && (
-              <span className="rounded-full border border-main-border px-2 py-0.5 text-xs text-main-text/70">
+              <button
+                type="button"
+                onClick={() => setAreSubtasksVisible((visible) => !visible)}
+                aria-expanded={areSubtasksVisible}
+                aria-controls={subtasksId}
+                aria-label={`${jsonLanguage[areSubtasksVisible ? 'taskCard.subtasks.hide' : 'taskCard.subtasks.show']} ${task.title}`}
+                className="inline-flex items-center gap-1 rounded-full border border-main-border px-2 py-0.5 text-xs text-main-text/70 transition-colors hover:bg-main-card hover:text-main-hover-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform motion-reduce:transition-none ${areSubtasksVisible ? '' : '-rotate-90'}`}
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
                 {children.length} {jsonLanguage['taskCard.subtasks.count']}
-              </span>
+              </button>
             )}
           </div>
 
@@ -122,7 +143,7 @@ function TaskCard({ task, subtasks = [], onEdit, onAddSubtask, onToggle }) {
       </article>
 
       {hasSubtasks && (
-        <div className="ml-8 mt-3 space-y-3 border-l-2 border-main-border pl-4">
+        <div id={subtasksId} hidden={!areSubtasksVisible} className="ml-8 mt-3 space-y-3 border-l-2 border-main-border pl-4">
           {children.map((subtask) => (
             <TaskCard
               key={subtask.id}

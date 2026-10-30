@@ -107,10 +107,18 @@ Quando l'eseguibile parte:
 3. crea il database SQLite se nuovo o vuoto, oppure applica le migrazioni mancanti dopo un backup automatico;
 4. verifica la presenza del frontend compilato e avvia Uvicorn in un thread separato su `127.0.0.1:8000`, senza reload (host e porta restano configurabili);
 5. attende che quel server sia pronto, con un timeout di 15 secondi, senza interrogare altri servizi eventualmente presenti sulla stessa porta;
-6. apre PyWebView nel thread principale all'URL configurato in `APP_URL`; su Windows usa WebView2;
+6. apre PyWebView nel thread principale all'origine configurata in `APP_URL`, con un parametro `frontend` derivato dall'hash di `index.html` per evitare vecchie copie in cache; su Windows usa WebView2;
 7. serve il frontend React buildato, le API sotto `/api` e il server MCP sotto `/mcp` finche la finestra resta aperta.
 
 L'importazione di `main.py` non prepara il runtime e non avvia server o finestra.
+L'HTML del frontend viene servito con `Cache-Control: no-store`; i file statici
+con nome generato da Vite mantengono la normale cache del renderer. Il parametro
+di avvio cambia quando cambia la build, non l'origine: il profilo WebView e il
+`localStorage` restano gli stessi e non vengono cancellati. Il percorso React
+`/tasks/<id numerico>` viene registrato prima del mount REST `/tasks`, cosi una
+ricarica diretta della pagina del progetto restituisce il frontend invece di
+un `404`. Gli endpoint REST esistenti, anche sotto `/api/tasks`, restano invariati.
+
 Frontend mancante, porta occupata, timeout ed errori del renderer impediscono
 l'avvio o richiedono lo stop del backend. Il coordinatore registra il traceback
 e mostra un messaggio breve, con il percorso del log; l'uscita ha codice 1.

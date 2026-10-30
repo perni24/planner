@@ -105,25 +105,28 @@ def get_task_ids_with_subtasks(task_ids):
 
     return {row["parent_id"] for row in rows}
 
-def get_parent_tasks(parent_ids):
-    unique_parent_ids = tuple(set(parent_ids))
-
-    if not unique_parent_ids:
+def _get_tasks_by_ids(conn, task_ids):
+    unique_ids = tuple(set(task_ids))
+    if not unique_ids:
         return []
-
-    placeholders = ", ".join("?" for _ in unique_parent_ids)
-
-    with closing(get_db_connection()) as conn, conn:
-        rows = conn.execute(
-            f"""
-            SELECT id, project_id, parent_id
-            FROM tasks
-            WHERE id IN ({placeholders})
-            """,
-            unique_parent_ids,
-        ).fetchall()
-
+    placeholders = ", ".join("?" for _ in unique_ids)
+    rows = conn.execute(
+        f"SELECT id, project_id, parent_id FROM tasks WHERE id IN ({placeholders})",
+        unique_ids,
+    ).fetchall()
     return [dict(row) for row in rows]
+
+
+def get_tasks_by_ids(task_ids):
+    task_ids = tuple(task_ids)
+    if not task_ids:
+        return []
+    with closing(get_db_connection()) as conn, conn:
+        return _get_tasks_by_ids(conn, task_ids)
+
+
+def get_parent_tasks(parent_ids):
+    return get_tasks_by_ids(parent_ids)
 
 def bulk_insert_area(names):
 
@@ -270,3 +273,91 @@ def bulk_set_task_completed(ids, completeds):
         check_operation()
 
     return updated_ids
+
+
+def bulk_delete_task(ids, include_subtasks=False):
+    if not ids:
+        return {"deleted_ids": [], "parent_ids": []}
+
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
+        # I controlli sotto lock impediscono che una nuova subtask aggiri il consenso.
+        conn.execute("BEGIN IMMEDIATE")
+        requested = _get_tasks_by_ids(conn, ids)
+        if {row["id"] for row in requested} != set(ids):
+            raise ValueError("Some requested tasks no longer exist. Reload tasks and retry.")
+
+        placeholders = ", ".join("?" for _ in ids)
+        if not include_subtasks:
+            parents = conn.execute(
+                f"SELECT DISTINCT parent_id FROM tasks WHERE parent_id IN ({placeholders})",
+                tuple(ids),
+            ).fetchall()
+            if parents:
+                raise ValueError("Tasks with subtasks require include_subtasks=true. Reload tasks and retry.")
+
+        deleted_rows = conn.execute(
+            f"""
+            WITH RECURSIVE removed(id, parent_id) AS (
+                SELECT id, parent_id FROM tasks WHERE id IN ({placeholders})
+                UNION
+                SELECT child.id, child.parent_id
+                FROM tasks AS child JOIN removed ON child.parent_id = removed.id
+            )
+            SELECT id, parent_id FROM removed
+            """,
+            tuple(ids),
+        ).fetchall()
+        deleted_ids = {row["id"] for row in deleted_rows}
+        parent_ids = {
+            row["parent_id"] for row in deleted_rows
+            if row["parent_id"] is not None and row["parent_id"] not in deleted_ids
+        }
+        for task_id in ids:
+            check_operation()
+            # Un ID richiesto puo essere gia stato eliminato dalla cascata del parent.
+            conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        check_operation()
+
+    return {"deleted_ids": sorted(deleted_ids), "parent_ids": sorted(parent_ids)}
+
+
+def bulk_move_subtask(ids, parent_ids):
+    moved_ids = []
+    unchanged_ids = []
+    affected_parents = set()
+
+    with operation_scope(DATABASE_OPERATION_TIMEOUT_SECONDS), closing(get_db_connection()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        for task_id, parent_id in zip(ids, parent_ids, strict=True):
+            check_operation()
+            source = conn.execute(
+                """
+                SELECT source.parent_id
+                FROM tasks AS source JOIN tasks AS target ON target.id = ?
+                WHERE source.id = ? AND source.parent_id IS NOT NULL
+                  AND source.id != target.id AND target.parent_id IS NULL
+                  AND source.project_id = target.project_id
+                  AND NOT EXISTS (SELECT 1 FROM tasks WHERE parent_id = source.id)
+                """,
+                (parent_id, task_id),
+            ).fetchone()
+            if source is None:
+                raise ValueError("Subtask or destination is no longer valid. Reload tasks and retry.")
+            old_parent_id = source["parent_id"]
+            if old_parent_id == parent_id:
+                unchanged_ids.append(task_id)
+                continue
+            cursor = conn.execute(
+                "UPDATE tasks SET parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (parent_id, task_id),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Subtask could not be moved. Reload tasks and retry.")
+            moved_ids.append(task_id)
+            affected_parents.update((old_parent_id, parent_id))
+        check_operation()
+
+    return {
+        "moved_ids": moved_ids, "unchanged_ids": unchanged_ids,
+        "parent_ids": sorted(affected_parents),
+    }

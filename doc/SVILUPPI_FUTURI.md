@@ -90,7 +90,8 @@ dai tool MCP (`GET /api/events`, vedi `API_BACKEND.md`). Restano da valutare:
   ogni modifica), cosi piu schede aperte restano allineate. Le route REST e i tool
   MCP restano separati: le prime lavorano su un elemento alla volta, i secondi in
   blocco, con validazioni e messaggi diversi;
-- aggiungere eventi di eliminazione (`deleted`) e di cambio stato;
+- valutare eventi specifici di cambio stato; `deleted` e gia pubblicato da
+  `bulk_delete_task`, mentre il completamento MCP usa `updated`;
 - includere negli eventi gli identificatori utili a ricaricare solo i dati
   interessati (per esempio `project_id` per le task);
 - ricaricare i dati dopo una riconnessione SSE, perche gli eventi persi mentre la

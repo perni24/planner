@@ -133,6 +133,8 @@
   "taskCard.createdAt": "Created on",
   "taskCard.settings": "Task settings",
   "taskCard.subtasks.count": "subtasks",
+  "taskCard.subtasks.show": "Show subtasks of",
+  "taskCard.subtasks.hide": "Hide subtasks of",
   "taskCard.subtasks.add": "+ Subtask",
   "taskCard.toast.invalidData": "Missing or invalid task data",
   "taskCard.toast.errorUpdateStatus": "Error while updating the task status",

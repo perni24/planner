@@ -141,6 +141,19 @@ le migrazioni mancanti: occorre prima risolvere la causa dell'errore.
 Se compare `Unsupported database schema version`, usa una versione dell'app che
 supporti quello schema. Non e disponibile un downgrade automatico.
 
+## Le modifiche al frontend non compaiono
+
+La finestra avviata da `python main.py` usa `frontend/dist`, non i file JSX e
+non il server Vite. Dopo una modifica esegui `npm run build` dalla cartella
+`frontend/`, poi riavvia Planner. Una portable gia compilata continua a usare
+il frontend incluso nel suo `_internal/`: per aggiornarlo occorre una nuova build.
+Non sovrascrivere una portable in uso o cancellarne `data/`.
+
+L'avvio usa un parametro `frontend` legato alla build e le risposte HTML hanno
+`Cache-Control: no-store`, per evitare che il profilo persistente carichi una
+vecchia interfaccia. Non e necessario cancellare `webview/` o il `localStorage`.
+Un processo Python gia attivo deve essere riavviato per applicare queste regole.
+
 ## Le lingue non cambiano
 
 Controlla che i file lingua siano presenti in:

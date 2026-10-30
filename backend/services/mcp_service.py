@@ -430,3 +430,87 @@ def bulk_set_task_completed(tasks: list[dict]) -> dict:
         "updated": len(updated_ids),
         "task_ids": updated_ids,
     }
+
+
+def validate_task_batch(tasks, label):
+    if not isinstance(tasks, list) or not tasks:
+        raise ToolError(f"{label} must be a non-empty list.")
+    if len(tasks) > MAX_BULK_TASKS:
+        raise ToolError(f"A maximum of {MAX_BULK_TASKS} {label} can be processed at once.")
+    ids = []
+    for task in tasks:
+        if not isinstance(task, dict):
+            raise ToolError(f"Each item in {label} must be an object.")
+        task_id, error = validate_int(task.get("id"), "id")
+        if error:
+            raise ToolError(error)
+        ids.append(task_id)
+    if len(ids) != len(set(ids)):
+        raise ToolError("The request contains duplicate task IDs.")
+    return ids
+
+
+def bulk_delete_task(tasks: list[dict], include_subtasks=False) -> dict:
+    if not isinstance(include_subtasks, bool):
+        raise ToolError("include_subtasks must be a boolean.")
+    ids = validate_task_batch(tasks, "tasks")
+    missing = sorted(set(ids) - mcp_repo.get_existing_task_ids(ids))
+    if missing:
+        raise ToolError("Tasks not found: " + ", ".join(map(str, missing)) + ".")
+    if not include_subtasks:
+        parents = sorted(mcp_repo.get_task_ids_with_subtasks(ids))
+        if parents:
+            raise ToolError(
+                "Tasks with subtasks require include_subtasks=true: "
+                + ", ".join(map(str, parents)) + "."
+            )
+    try:
+        result = mcp_repo.bulk_delete_task(ids, include_subtasks)
+    except ValueError as error:
+        raise ToolError(str(error)) from error
+    event_service.publish({"entity": "task", "action": "deleted", "ids": result["deleted_ids"]})
+    return {
+        "requested": len(ids), "deleted": len(result["deleted_ids"]),
+        "requested_task_ids": ids, "task_ids": result["deleted_ids"],
+        "parent_ids": result["parent_ids"],
+    }
+
+
+def bulk_move_subtask(subtasks: list[dict]) -> dict:
+    ids = validate_task_batch(subtasks, "subtasks")
+    parent_ids = []
+    for task in subtasks:
+        parent_id, error = validate_int(task.get("parent_id"), "parent_id")
+        if error:
+            raise ToolError(error)
+        parent_ids.append(parent_id)
+    rows = mcp_repo.get_tasks_by_ids(set(ids) | set(parent_ids))
+    by_id = {row["id"]: row for row in rows}
+    missing = sorted((set(ids) | set(parent_ids)) - set(by_id))
+    if missing:
+        raise ToolError("Tasks not found: " + ", ".join(map(str, missing)) + ".")
+    nested_sources = mcp_repo.get_task_ids_with_subtasks(ids)
+    for task_id, parent_id in zip(ids, parent_ids, strict=True):
+        source, target = by_id[task_id], by_id[parent_id]
+        if task_id == parent_id:
+            raise ToolError("A subtask cannot be its own parent.")
+        if source["parent_id"] is None or task_id in nested_sources:
+            raise ToolError(f"Task {task_id} must be a subtask without children.")
+        if target["parent_id"] is not None:
+            raise ToolError(f"Destination task {parent_id} must be a top-level task.")
+        if source["project_id"] != target["project_id"]:
+            raise ToolError("Subtask and destination must belong to the same project.")
+    try:
+        result = mcp_repo.bulk_move_subtask(ids, parent_ids)
+    except ValueError as error:
+        raise ToolError(str(error)) from error
+    if result["moved_ids"]:
+        event_service.publish({
+            "entity": "task", "action": "updated",
+            "ids": sorted(set(result["moved_ids"]) | set(result["parent_ids"])),
+        })
+    return {
+        "requested": len(ids), "moved": len(result["moved_ids"]),
+        "task_ids": result["moved_ids"], "unchanged_ids": result["unchanged_ids"],
+        "parent_ids": result["parent_ids"],
+    }
