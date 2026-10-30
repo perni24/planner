@@ -20,8 +20,10 @@ stato `400` e la forma:
 
 Gli ID (`id`, `area_id`, `project_id`, `task_id` e `parent_id` quando presente)
 devono essere interi positivi tra `1` e `9223372036854775807`, il massimo intero
-SQLite con segno a 64 bit. REST accetta anche stringhe convertibili in interi,
-come i parametri degli URL. Booleani, numeri JSON con parte decimale (anche
+SQLite con segno a 64 bit. REST accetta anche stringhe composte solo da cifre
+ASCII, come i parametri degli URL (`"7"`, `"007"`); sono rifiutate stringhe con
+spazi, segni, separatori o cifre di altri alfabeti (`" 7 "`, `"+5"`, `"1_000"`,
+`"٣"`). Booleani, numeri JSON con parte decimale (anche
 `1.0`), valori null per ID obbligatori e interi fuori intervallo vengono rifiutati
 con `400`, prima di interrogare il repository. `parent_id` omesso o null resta
 valido e indica una task principale.
