@@ -1,244 +1,125 @@
 # Troubleshooting
 
-## L'eseguibile si apre e si chiude subito
+Il primo posto dove guardare e il log: `PlannerApp/data/logs/planner.log` nella
+portable, `backend/db/logs/planner.log` in sviluppo. Gli errori che avvengono prima
+dell'avvio di Python si vedono solo avviando l'eseguibile da un terminale.
 
-Avvialo da terminale per leggere l'errore:
+## L'app si apre e si chiude subito
 
-```powershell
-cd backend\dist\PlannerApp
-.\PlannerApp.exe
-```
+Avviala da terminale per leggere l'errore (`.\PlannerApp.exe` su Windows,
+`./PlannerApp` su Linux) e controlla il log.
 
-Gli errori gestiti dal coordinatore desktop mostrano un dialogo su Windows e
-salvano i dettagli in `PlannerApp/data/logs/planner.log` (in sviluppo
-`backend/db/logs/planner.log`). Se la cartella non e scrivibile resta la console.
-Gli errori del bootloader PyInstaller, precedenti all'avvio Python, richiedono
-ancora l'avvio da terminale e non passano dal gestore desktop.
+`Failed to load Python DLL` indica che e stato copiato solo l'eseguibile: serve
+l'intera cartella `PlannerApp`, compresa `_internal/`.
 
-## WebView2 mancante o non funzionante su Windows
+## Windows: `Failed to resolve Python.Runtime.Loader.Initialize`
 
-Planner usa Microsoft Edge WebView2 Runtime Evergreen, preinstallato in Windows 11.
-Su una normale installazione di Windows 11 non occorre installarlo separatamente.
-La portable non include il motore completo ne un installer del runtime; il solo
-browser Microsoft Edge non lo sostituisce.
-
-Se l'errore di avvio o il log indica un problema WebView2:
-
-1. Chiudi Planner e leggi i dettagli in `data/logs/planner.log` nella cartella portable.
-2. Se il runtime manca o e danneggiato, usa il [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/): il bootstrapper Evergreen scarica il runtime adatto al PC; lo standalone installer permette l'installazione offline.
-3. Completa l'installazione o il ripristino e riavvia Planner, senza ricompilarlo.
-
-Non disinstallare WebView2 dal PC principale per provarne l'assenza: altre app
-potrebbero dipenderne. Un eventuale test senza runtime va eseguito su una macchina
-virtuale o un PC di prova ed e una verifica aggiuntiva di robustezza.
-Riferimento: [distribuzione WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
-
-## Errore `Failed to load Python DLL`
-
-Succede quando viene copiato solo `PlannerApp.exe` senza la cartella `_internal`.
-
-Con PyInstaller `--onedir` devi copiare tutta la cartella:
-
-```text
-PlannerApp/
-  PlannerApp.exe
-  _internal/
-```
-
-## Porta 8000 gia occupata
-
-Se Planner segnala che lo spegnimento sta impiegando troppo tempo, attende ancora
-la pulizia sicura del backend: non aprire una seconda istanza e non sostituire il
-DB in uso. Controlla il log. I timeout interrompono cooperativamente SQLite e i
-backup, ma non possono sbloccare I/O nativo fermo nel sistema operativo.
-
-Chiudi eventuali server gia avviati:
-
-```text
-python main.py
-npm run dev
-PlannerApp.exe
-```
-
-Il backend usa:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Errore `Invalid host header`
-
-Il backend accetta solo richieste rivolte a `127.0.0.1` o `localhost` (protezione
-contro il DNS rebinding). Apri l'app da:
-
-```text
-http://127.0.0.1:8000
-http://localhost:8000
-```
-
-Se hai impostato la variabile `HOST` con un nome o un IP specifico, quel valore
-viene accettato. Con `HOST=0.0.0.0` restano accettati solo i nomi locali, quindi
-l'app non e raggiungibile da altri dispositivi della rete. Anche `HOST=::1` (IPv6)
-non e supportato.
-
-## `npm` non trovato durante la build
-
-Verifica che Node.js sia installato e disponibile nel PATH:
+.NET Framework non carica le DLL della portable perche lo ZIP scaricato ha il segno
+"proveniente da Internet". Le build attuali lo risolvono con `PlannerApp.exe.config`
+accanto all'eseguibile. Se il file manca (build precedenti), sblocca i file dalla
+cartella estratta e riavvia:
 
 ```powershell
-npm --version
+Get-ChildItem -Recurse | Unblock-File
 ```
 
-Su Windows lo script usa `npm.cmd` automaticamente.
+oppure, prima di estrarre: tasto destro sullo ZIP -> Proprieta -> "Annulla blocco".
+Al primo avvio SmartScreen puo bloccare l'eseguibile non firmato: "Ulteriori
+informazioni" -> "Esegui comunque".
 
-## PyInstaller non trovato
+## Windows: WebView2 mancante o danneggiato
 
-Attiva l'ambiente virtuale e installa le dipendenze di sviluppo e build:
+WebView2 Runtime e preinstallato in Windows 11 e non e incluso nella portable; il
+browser Edge non lo sostituisce. Se il log indica un problema WebView2, installalo
+o ripristinalo dal [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+e riavvia Planner.
 
-```powershell
-cd backend
-python -m pip install -r requirements-dev.txt
-```
+## Linux: l'app si chiude con `GLIBCXX_... not found`
 
-Poi rilancia:
-
-```powershell
-python build_portable.py
-```
-
-## Il DB non viene creato
-
-Controlla che l'app abbia permessi di scrittura nella cartella dove si trova l'eseguibile.
-
-In modalita portable il DB viene creato qui:
-
-```text
-PlannerApp/data/planner.db
-```
-
-## Errore durante una migrazione del database
-
-Avvia l'app da terminale per leggere il nome dello script e la causa dell'errore.
-L'avvio si interrompe e la migrazione corrente viene annullata; quelle precedenti
-gia confermate non vengono ripetute al prossimo avvio.
-
-Conserva il database originale e controlla permessi di scrittura e spazio libero.
-Se manca uno script, ricopia l'intera cartella `_internal/` dalla build: include
-anche `db/migrations/`. Non eliminare il DB e non modificare manualmente
-`PRAGMA user_version` per aggirare l'errore.
-
-Prima dell'aggiornamento viene salvato un backup in:
-
-```text
-PlannerApp/data/migration_backups/
-```
-
-In sviluppo si trova in `backend/db/migration_backups/`. Per un ripristino manuale
-chiudi prima tutti i processi dell'app, conserva una copia del DB attuale e copia
-il backup scelto al posto di `planner.db`. Il prossimo avvio tentera nuovamente
-le migrazioni mancanti: occorre prima risolvere la causa dell'errore.
-
-Se compare `Unsupported database schema version`, usa una versione dell'app che
-supporti quello schema. Non e disponibile un downgrade automatico.
-
-## Le modifiche al frontend non compaiono
-
-La finestra avviata da `python main.py` usa `frontend/dist`, non i file JSX e
-non il server Vite. Dopo una modifica esegui `npm run build` dalla cartella
-`frontend/`, poi riavvia Planner. `frontend/dist/` non e versionato: anche dopo
-un `git pull` va ricompilato su ogni PC. Se `npm run build` fallisce perche manca
-`tsc` o TypeScript, esegui prima `npm ci`. Una portable gia compilata continua a usare
-il frontend incluso nel suo `_internal/`: per aggiornarlo occorre una nuova build.
-Non sovrascrivere una portable in uso o cancellarne `data/`.
-
-L'avvio usa un parametro `frontend` legato alla build e le risposte HTML hanno
-`Cache-Control: no-store`, per evitare che il profilo persistente carichi una
-vecchia interfaccia. Non e necessario cancellare `webview/` o il `localStorage`.
-Un processo Python gia attivo deve essere riavviato per applicare queste regole.
-
-## Finestra bianca in sviluppo
-
-Con `DEBUG` attivo (default con `python main.py`) l'app non apre piu da sola gli
-strumenti per sviluppatori. Se una finestra bianca intitolata
-`Web Inspector - Planner` compare comunque, per esempio dal menu `Inspect` del
-tasto destro su Linux, e l'inspector Qt e non Planner: chiudila. La finestra
-dell'app resta funzionante.
-
-Su Linux l'inspector integrato di Qt rimane bianco. Per il debug apri
-`http://127.0.0.1:8228` da un browser basato su Chromium mentre l'app e avviata;
-se la porta e occupata pywebview ne sceglie un'altra, indicata nel terminale
-(`Remote debugging server started`).
-La porta e aperta solo con `DEBUG` attivo: in questo caso pywebview aggiunge
-anche `--remote-allow-origins=*`, quindi non usare `DEBUG=1` nelle build
-distribuite. Su Windows i DevTools di WebView2 si aprono con il tasto destro e
-`Ispeziona`. Per avviare senza debug usa `DEBUG=0 python main.py`.
-
-Se invece e bianca la finestra `Planner`, controlla che `frontend/dist` esista e
-che il terminale non mostri errori del backend.
-
-## Le lingue non cambiano
-
-Controlla che i file lingua siano presenti in:
-
-```text
-PlannerApp/locales/
-```
-
-E che il JSON sia valido. I file JSON non supportano commenti.
-
-Il dizionario deve essere un oggetto piatto non vuoto con valori stringa. I
-codici ammessi sono, per esempio, `it`, `en` e `pt-BR`. File malformati o
-illeggibili non compaiono nella lista; un cambio verso una lingua non
-disponibile viene rifiutato con `400`, senza modificare la preferenza salvata.
-
-Se la lingua gia scelta non e piu utilizzabile, il backend prova la sua copia
-inclusa nell'app, poi italiano e inglese. Questo fallback non ripara i file e
-non cambia la preferenza nel DB: per recuperare la lingua personalizzata occorre
-correggere il relativo JSON. Se mancano tutte le copie utilizzabili, il
-caricamento restituisce `503`; conserva una copia dei file personalizzati prima
-di ripristinare quelli di default. Per dettagli vedi `I18N.md`.
-
-## Linux: l'app si chiude subito con `GLIBCXX_... not found`
-
-Se il terminale mostra errori EGL/OpenGL seguiti da `libstdc++.so.6: version
-GLIBCXX_3.4.31 not found` e l'app si chiude, il pacchetto contiene il runtime C++
-del sistema di build, piu vecchio di quello richiesto dai driver grafici. Le build
-attuali lo rimuovono; per una build precedente usa la versione nuova, oppure
-elimina `_internal/libstdc++.so.6` e `_internal/libgcc_s.so.1` dalla cartella
-estratta per usare quelli del sistema.
+Errori EGL/OpenGL seguiti da `libstdc++.so.6: version GLIBCXX_3.4.31 not found`:
+il pacchetto contiene il runtime C++ di Ubuntu 22.04, piu vecchio di quello
+richiesto dai driver grafici. Le build attuali lo rimuovono; con una build
+precedente elimina `_internal/libstdc++.so.6` e `_internal/libgcc_s.so.1`.
 
 ## Linux: impossibile caricare il plugin Qt `xcb`
 
-Se compare `Could not load the Qt platform plugin "xcb"`, il plugin puo essere
-presente ma una sua libreria di sistema puo mancare. La portable include Qt e
-QtWebEngine, non tutte le librerie del sistema operativo.
-
-Avvia Planner da un terminale nella cartella estratta:
+Manca una libreria di sistema del plugin. Dalla cartella estratta:
 
 ```bash
 QT_DEBUG_PLUGINS=1 ./PlannerApp
-ldd _internal/PyQt6/Qt6/plugins/platforms/libqxcb.so
+ldd _internal/PyQt6/Qt6/plugins/platforms/libqxcb.so | grep "not found"
 ```
 
-Cerca `not found` nell'output e installa la libreria indicata usando il gestore
-pacchetti della distribuzione. Su Ubuntu 22.04, per esempio, `libxcb-cursor.so.0`
-corrisponde a `libxcb-cursor0` e `libxkbcommon-x11.so.0` a `libxkbcommon-x11-0`.
-Lo step `Install Linux desktop dependencies` nel workflow elenca i pacchetti
-previsti per quella base; i nomi possono differire sulle altre distribuzioni.
-Non installare GTK/WebKit per aggirare l'errore: Planner usa Qt/PyQt6.
+e installa le librerie indicate (su Ubuntu, per esempio, `libxcb-cursor0` e
+`libxkbcommon-x11-0`; l'elenco della CI e nello step `Install Linux desktop
+dependencies`). Estrai il TAR.GZ completo, mantenendo permessi e collegamenti, ed
+esegui l'app come utente normale, non con `sudo`.
+Riferimento: [requisiti di Qt su Linux](https://doc.qt.io/qt-6/linux-requirements.html).
 
-Estrai l'archivio TAR.GZ mantenendo tutta la cartella, inclusi `_internal/`,
-permessi e collegamenti simbolici. Esegui l'app come utente normale in una
-sessione desktop, non con `sudo`; non disabilitare la sandbox Chromium per
-risolvere un errore di dipendenze. La verifica con Wayland e X11 resta distinta
-dal controllo dei file della build.
-Riferimento: [dipendenze dei plugin Qt su Linux](https://doc.qt.io/qt-6/linux-requirements.html).
+## Porta 8000 gia occupata
+
+E aperta un'altra istanza o un server di sviluppo (`python main.py`,
+`PlannerApp`). Chiudila; se Planner segnala che l'arresto precedente e lento,
+attendi che il processo termini prima di riavviare.
+
+## Errore `Invalid host header`
+
+Il backend accetta solo `127.0.0.1` e `localhost` (protezione contro il DNS
+rebinding). Con la variabile `HOST` impostata a un nome o IP specifico viene
+accettato anche quello; `0.0.0.0` non rende l'app raggiungibile dalla rete e IPv6
+non e supportato.
+
+## Errore durante una migrazione del database
+
+L'avvio si interrompe e la migrazione corrente viene annullata; il log indica lo
+script e la causa. Controlla permessi di scrittura e spazio libero; se manca uno
+script, ricopia `_internal/` dalla build. Non eliminare il DB e non modificare
+`PRAGMA user_version`.
+
+Prima di migrare viene salvato un backup in `data/migration_backups/`. Per
+ripristinarlo chiudi l'app, conserva una copia del DB attuale e copia il backup al
+posto di `planner.db`. `Unsupported database schema version` indica un database
+creato da una versione piu recente dell'app: usa quella versione.
+
+## Il DB non viene creato
+
+L'app deve poter scrivere nella propria cartella: il DB e
+`PlannerApp/data/planner.db`.
+
+## Le modifiche al frontend non compaiono
+
+`python main.py` usa la build in `frontend/dist`, che non e versionata: dopo una
+modifica o un `git pull` esegui `npm run build` (prima `npm ci` se manca TypeScript
+o sono cambiate le dipendenze) e riavvia. Una portable usa il frontend incluso nel
+suo `_internal/`: serve una nuova build.
+
+## Finestra bianca in sviluppo
+
+Una finestra bianca intitolata `Web Inspector - Planner` e l'inspector di Qt, non
+Planner: chiudila. Con `DEBUG` attivo (default in sviluppo) puoi fare il debug da
+un browser Chromium su `http://127.0.0.1:8228` (la porta effettiva e nel terminale);
+su Windows con tasto destro -> Ispeziona. Quella porta accetta connessioni da
+qualsiasi origine: non usare `DEBUG=1` nelle build distribuite. Per avviare senza
+debug: `DEBUG=0 python main.py`.
+
+Se e bianca la finestra `Planner`, controlla che `frontend/dist` esista e il log.
+
+## Le lingue non cambiano
+
+I file in `PlannerApp/locales/` devono essere JSON validi (oggetto piatto con valori
+stringa, senza commenti): quelli non validi non compaiono nell'elenco. Se la lingua
+scelta non e piu utilizzabile, il backend usa la copia inclusa o italiano/inglese,
+senza modificare file o preferenza. Dettagli in `I18N.md`.
+
+## `npm` o PyInstaller non trovati durante la build
+
+Verifica `npm --version` (Node.js nel PATH) e installa le dipendenze di build nel
+venv attivo con `python -m pip install -r requirements-dev.txt`.
 
 ## macOS blocca l'app
 
-Le release attuali non includono macOS. Il pacchetto macOS della `v0.1.0` non e
-firmato ne notarizzato e Gatekeeper lo blocca; da macOS 15 il tasto destro ->
-`Apri` non basta piu. Per una prova, dal Terminale nella cartella estratta:
+macOS non e distribuito. Per provare il pacchetto `v0.1.0`, non firmato, dalla
+cartella estratta:
 
 ```bash
 xattr -dr com.apple.quarantine .
@@ -246,7 +127,4 @@ chmod +x PlannerApp
 ./PlannerApp
 ```
 
-Il primo comando toglie la quarantena anche alle librerie in `_internal/`, il
-secondo ripristina il permesso di esecuzione perso nello zip. Il pacchetto contiene
-solo codice arm64: su un Mac Intel non parte ("Bad CPU type in executable").
-Dettagli e lavoro necessario per il supporto in `SVILUPPI_FUTURI.md`.
+Il pacchetto e solo arm64 (non parte sui Mac Intel). Vedi `SVILUPPI_FUTURI.md`.

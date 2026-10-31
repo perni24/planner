@@ -1,219 +1,81 @@
 # Database
 
-Il progetto usa SQLite come database locale. Lo schema e definito in:
+Planner usa SQLite. Lo schema per i database nuovi e in `backend/schema.sql`.
 
-```text
-backend/schema.sql
-```
+## Tabelle e relazioni
 
-## Tabelle
-
-- `areas`: aree di lavoro (`id`, `name`).
-- `projects`: progetti collegati a un'area (`area_id`, `name`, `description`, `created_at`, `updated_at`).
-- `tasks`: task e subtask collegate a un progetto (`project_id`, `parent_id`, `title`, `description`, `completed`, `created_at`, `updated_at`).
+- `areas` (`id`, `name`).
+- `projects` (`area_id`, `name`, `description`, `created_at`, `updated_at`).
+- `tasks` (`project_id`, `parent_id`, `title`, `description`, `completed`,
+  `created_at`, `updated_at`): task e subtask.
 - `settings`: una sola riga con lingua, tema e colori custom.
-- `calendar`: tabella vuota prevista per il calendario, non ancora usata.
-
-`completed` vale `0` o `1`. Le date sono testi nel formato di `CURRENT_TIMESTAMP`
-di SQLite (UTC, `YYYY-MM-DD HH:MM:SS`).
-
-## Relazioni
+- `calendar`: prevista per il calendario, non ancora usata.
 
 ```text
-areas 1 -> N projects
-projects 1 -> N tasks
-tasks 1 -> N tasks (subtask tramite parent_id)
+areas 1 -> N projects -> N tasks -> N subtask (tasks.parent_id)
 ```
 
-Foreign key:
+Tutte le foreign key hanno `ON DELETE CASCADE`. Sono attive solo con
+`PRAGMA foreign_keys = ON`, che imposta `get_db_connection()` (`backend/db/db.py`):
+usare sempre quella funzione, nella forma
+`with closing(get_db_connection()) as conn, conn:` (commit/rollback, poi chiusura).
 
-```sql
-projects.area_id -> areas.id
-tasks.project_id -> projects.id
-tasks.parent_id  -> tasks.id
-```
+`completed` vale `0` o `1`; le date sono testi UTC `YYYY-MM-DD HH:MM:SS`.
 
-Tutte usano `ON DELETE CASCADE`: eliminando un'area vengono eliminati i suoi
-progetti, eliminando un progetto le sue task, eliminando una task le sue subtask.
+## Regole gestite dal database
 
-Le foreign key in SQLite sono attive solo se la connessione esegue
-`PRAGMA foreign_keys = ON`, come fa `get_db_connection()` in `backend/db/db.py`.
-Usare sempre quella funzione per aprire connessioni.
+- **Ultima area**: il trigger `trg_recreate_last_area` crea una nuova area vuota
+  `utente` quando viene eliminata l'ultima. Non recupera progetti o task eliminati.
+- **Subtask**: un solo livello. REST e MCP verificano che il parent esista, sia
+  nello stesso progetto e sia una task principale; lo schema da solo non impone
+  queste ultime due regole.
+- **Stato delle task con subtask**: e calcolato dai trigger, che segnano il parent
+  completato solo se non ha subtask aperte.
+  - `trg_subtask_after_insert`, `trg_subtask_after_update`, `trg_subtask_after_delete`
+    ricalcolano il parent dopo ogni modifica di una subtask; se viene eliminata
+    l'ultima, il parent conserva lo stato e torna modificabile a mano.
+  - `trg_subtask_after_move` ricalcola vecchio e nuovo parent quando cambia
+    `parent_id`, con la stessa regola per il parent rimasto senza subtask.
+  - `trg_parent_derived` annulla una modifica manuale dello stato di un parent:
+    per questo `update_status_task` e `bulk_set_task_completed` la rifiutano.
+- **Vista `v_projects_status`**: progetti con nome area, task totali e completate e
+  percentuale, contando solo le task principali.
 
-Nei repository il pattern e:
+## Creazione e migrazioni
 
-```python
-with closing(get_db_connection()) as conn, conn:
-    ...
-```
+All'avvio `init_db()`:
 
-Il contesto `conn` gestisce commit e rollback; `closing()` chiude poi la
-connessione anche con return anticipati o eccezioni. Il solo `with conn` non
-chiude la connessione, mentre il solo `closing()` non conferma le scritture.
-I commit espliciti dei repository REST sono conservati; le operazioni bulk MCP
-continuano a usare il commit automatico al termine del blocco.
+- applica `schema.sql` a un database nuovo o vuoto;
+- per un database esistente legge `PRAGMA user_version` e applica solo le
+  migrazioni mancanti, elencate in `MIGRATION_FILES` (`db/migration_runner.py`);
+- rifiuta un database con versione piu recente di quella supportata.
 
-## Eliminazione dell'ultima area
+La versione dello schema (oggi `3`) e indipendente da `APP_VERSION`; i database
+delle prime release, senza versione, valgono `0`. Prima di migrare viene salvato un
+backup in `migration_backups/` (`backend/db/` in sviluppo, `PlannerApp/data/` nella
+portable). Ogni migrazione e una transazione insieme all'aggiornamento della
+versione: un errore la annulla e blocca l'avvio.
 
-Il trigger `trg_recreate_last_area` crea una nuova area vuota chiamata `utente`
-quando un'eliminazione lascia la tabella `areas` senza righe. La nuova area ha
-un nuovo id: non e un ripristino di quella eliminata e non recupera i suoi
-progetti o task, che vengono cancellati normalmente tramite le foreign key.
-Eliminazione e creazione avvengono nella stessa transazione.
-
-Se rimangono altre aree, non viene creata alcuna area aggiuntiva. La conferma
-di eliminazione nell'interfaccia esplicita questo comportamento; dopo
-`reloadAreas()` il context seleziona una delle aree presenti, inclusa quella
-ricreata. La migrazione `002` ripristina anche i database gia rimasti senza aree.
-
-## Subtask e trigger di completamento
-
-Il modello prevede un solo livello di subtask: una task con `parent_id` non
-puo avere a sua volta subtask. Sia i tool MCP sia l'API REST `insert_task`
-verificano che il parent esista, appartenga allo stesso progetto e non sia una
-subtask. Il database verifica l'esistenza tramite foreign key, ma non impone
-le altre due regole.
-
-Lo stato di una task che ha subtask e derivato da quello delle subtask tramite
-cinque trigger:
-
-- `trg_subtask_after_insert`, `trg_subtask_after_update`, `trg_subtask_after_delete`:
-  dopo ogni modifica di una subtask ricalcolano il parent, che risulta completato
-  solo se non ha subtask aperte. Se viene eliminata l'ultima subtask, lo stato del
-  parent resta invariato e la task torna modificabile a mano;
-- `trg_parent_derived`: se si modifica direttamente lo stato di una task che ha
-  subtask, lo ricalcola dalle subtask, annullando la modifica manuale.
-- `trg_subtask_after_move`: dopo una modifica di `parent_id` ricalcola il vecchio
-  e il nuovo parent. Se il vecchio parent rimane senza subtask, conserva lo stato
-  attuale e torna modificabile a mano. Lo stato della subtask non viene cambiato.
-
-Il tool MCP `bulk_move_subtask` consente solo spostamenti tra task principali
-dello stesso progetto. Il repository ricontrolla questi vincoli dentro una
-transazione `BEGIN IMMEDIATE`; lo schema non impedisce da solo annidamenti o
-spostamenti tra progetti con SQL diretto.
-
-Una modifica diretta dello stato di un parent con subtask verrebbe annullata da
-`trg_parent_derived`. Per questo l'API REST (`update_status_task`) e il tool MCP
-`bulk_set_task_completed` la rifiutano con un errore invece di eseguirla.
-
-La migrazione `001_fix_subtask_delete.sql` aggiorna anche i database esistenti:
-il vecchio trigger completava il parent eliminando l'ultima subtask aperta.
-La correzione non ricostruisce gli stati eventualmente alterati in passato.
-
-## Vista progetti
-
-La vista `v_projects_status` restituisce i dati dei progetti con:
-
-- nome area;
-- numero totale task;
-- numero task completate;
-- percentuale di completamento (arrotondata a due decimali).
-
-I conteggi includono solo le task di primo livello (`parent_id IS NULL`): le
-subtask contano attraverso lo stato del loro parent.
-
-## Dati iniziali
-
-Alla creazione del DB vengono inserite:
-
-```sql
-INSERT INTO areas DEFAULT VALUES;
-INSERT INTO settings DEFAULT VALUES;
-```
-
-Questo garantisce che l'app abbia una prima area (con nome `utente`) e una riga
-impostazioni.
-
-## Creazione e modifiche dello schema
-
-`init_db()` viene eseguita all'avvio, prima di rendere disponibili le API:
-
-- per un database nuovo o vuoto applica `schema.sql` e registra la versione corrente;
-- per un database esistente legge `PRAGMA user_version` e applica soltanto le migrazioni mancanti;
-- se la versione del database e superiore a quella supportata, interrompe l'avvio senza modificarlo: non esiste un downgrade automatico.
-
-La versione dello schema e un intero indipendente da `APP_VERSION`: oggi vale `3`.
-I database delle release precedenti, senza versione, vengono riconosciuti come `0`.
-Le migrazioni sono file SQL in `backend/db/migrations/`, registrati in ordine nella
-tupla `MIGRATION_FILES` di `backend/db/migration_runner.py`.
-
-Prima di aggiornare un database esistente viene creato un backup consistente con
-`sqlite3.backup()`. I backup hanno nome `planner_v<versione>_<data_ora>.db` e stanno
-in `backend/db/migration_backups/` in sviluppo, oppure in
-`PlannerApp/data/migration_backups/` nell'app portable. Non vengono creati per un
-database nuovo o gia aggiornato.
-
-Ogni migrazione e una transazione: script e incremento di `user_version` vengono
-confermati insieme. Un errore annulla la migrazione corrente e blocca l'avvio; le
-migrazioni precedenti gia confermate restano applicate. Al prossimo avvio si
-riparte da quelle mancanti.
-
-Query e backup hanno controlli cooperativi di avanzamento e limiti definiti in
-`config.py`; l'attesa di un lock SQLite e limitata a 1 secondo. I bulk MCP
-controllano l'annullamento tra gli elementi e prima del commit, mantenendo il
-rollback dell'intero batch. Un backup di migrazione incompleto viene rimosso;
-quelli completati restano disponibili anche se la migrazione successiva fallisce.
-L'inizializzazione ha un budget cooperativo di 120 secondi; non puo interrompere
-una chiamata I/O bloccata internamente dal sistema operativo.
-
-### Prima migrazione
-
-`001_fix_subtask_delete.sql` sostituisce il trigger difettoso. Per i database di
-`v0.0.1`, che non hanno ancora le subtask, il runner esegue prima
-`legacy_add_subtasks.sql` nella stessa transazione: aggiunge `parent_id`, i trigger
-di completamento e aggiorna la vista progetti. I dati e gli id esistenti vengono
-conservati. I database di `v0.1.0` hanno gia questi elementi e ricevono soltanto la
-correzione del trigger. Successivamente vengono applicate le migrazioni mancanti.
-
-### Seconda migrazione
-
-`002_recreate_last_area.sql` installa `trg_recreate_last_area`. Se non esistono
-aree, inserisce `utente`; altrimenti conserva tutte le aree esistenti. Non modifica
-gli id o i dati presenti. I database allo schema `1` ricevono questa migrazione
-e poi la `003`; quelli senza versione ricevono prima la `001`.
-
-### Terza migrazione
-
-`003_subtask_parent_change.sql` installa `trg_subtask_after_move` senza modificare
-le righe esistenti. Il trigger aggiorna entrambi i parent dopo uno spostamento di
-subtask. La migrazione viene eseguita automaticamente all'avvio sui database
-allo schema `2`, con il consueto backup preventivo; quelli nuovi includono gia
-il trigger in `schema.sql`.
+| Script | Contenuto |
+|---|---|
+| `001_fix_subtask_delete.sql` | corregge il trigger di eliminazione subtask; per i DB di `v0.0.1` esegue prima `legacy_add_subtasks.sql` (aggiunge `parent_id`, trigger e vista) |
+| `002_recreate_last_area.sql` | installa `trg_recreate_last_area` e ricrea un'area se non ce ne sono |
+| `003_subtask_parent_change.sql` | installa `trg_subtask_after_move` |
 
 ### Aggiungere una modifica allo schema
 
-1. Aggiorna `backend/schema.sql`, che deve rappresentare lo schema finale per le nuove installazioni.
-2. Crea lo script successivo, per esempio `backend/db/migrations/004_nome_modifica.sql`, per trasformare lo schema precedente in quello nuovo.
-3. Aggiungi il nome del file in fondo a `MIGRATION_FILES`, senza saltare numeri.
-4. Verifica sia un database nuovo sia l'aggiornamento di un database precedente, anche in caso di errore e riavvio.
+1. Aggiorna `backend/schema.sql` (schema finale per le nuove installazioni).
+2. Crea lo script successivo in `backend/db/migrations/` (es. `004_nome.sql`) e
+   aggiungilo in fondo a `MIGRATION_FILES`.
+3. Prova sia un database nuovo sia l'aggiornamento di uno precedente.
 
-Non modificare o rinumerare migrazioni gia distribuite: aggiungine una nuova.
-Gli script non devono contenere `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` o
-assegnazioni a `PRAGMA user_version`: transazioni e versione sono gestite dal
-runner, che rifiuta queste istruzioni. La build portable include automaticamente
-l'intera cartella delle migrazioni.
+Non modificare o rinumerare migrazioni gia distribuite. Gli script non devono
+contenere `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` o assegnazioni a
+`PRAGMA user_version`: il runner li rifiuta.
 
-## Backup scaricabili
+## Backup
 
-`GET /api/backup/download` genera una copia consistente tramite
-`backup_database()` (`backend/db/db.py`), che usa `Connection.backup()` e chiude
-esplicitamente entrambe le connessioni. Il file originale non viene inviato al
-browser: la copia viene creata in una cartella temporanea dentro `DATA_DIR`,
-eliminata dopo il trasferimento anche in caso di errore. Sono conservati anche
-schema, trigger e `user_version`; i file lingua esterni non sono inclusi.
-
-I backup delle migrazioni restano separati e vengono conservati in
-`MIGRATION_BACKUPS_DIR`. L'importazione da interfaccia non e ancora disponibile.
-
-## Accesso al DB
-
-Il flusso e:
-
-```text
-route HTTP -> repository -> SQLite
-tool MCP   -> services/mcp_service.py -> db/repositories/mcp_repo.py -> SQLite
-```
-
-I repository stanno in `backend/db/repositories/`. Le route e i service non
-contengono SQL diretto: validano la richiesta, chiamano il repository e
-restituiscono il risultato.
+`GET /api/backup/download` crea con `backup_database()` (`Connection.backup()`) una
+copia consistente in una cartella temporanea dentro `DATA_DIR`, la invia e la
+elimina. Contiene dati, schema e `user_version`, non i file lingua. I backup delle
+migrazioni restano separati. L'importazione non e ancora disponibile.

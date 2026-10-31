@@ -7,10 +7,11 @@ from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from xml.etree import ElementTree
 
 import build_portable as build
 from build_licenses import (
-    QTWEBENGINE_NOTICES_VERSION,
+    QT_NOTICES_VERSION,
     WEBVIEW2_SDK_VERSION,
     collect_runtime_licenses,
     collect_system_licenses,
@@ -56,6 +57,7 @@ def make_bundle(root, platform="win32"):
     ]
     if platform == "win32":
         files.extend([
+            build.WINDOWS_EXE_CONFIG.name,
             "_internal/webview/lib/Microsoft.Web.WebView2.Core.dll",
             "_internal/webview/lib/Microsoft.Web.WebView2.WinForms.dll",
             "_internal/webview/lib/runtimes/win-x64/native/WebView2Loader.dll",
@@ -70,6 +72,7 @@ def make_bundle(root, platform="win32"):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("fixture", encoding="utf-8")
     if platform == "win32":
+        (root / build.WINDOWS_EXE_CONFIG.name).write_bytes(build.WINDOWS_EXE_CONFIG.read_bytes())
         (root / "_internal/webview/lib/Microsoft.Web.WebView2.Core.dll").write_bytes(
             version_resource(WEBVIEW2_SDK_VERSION)
         )
@@ -78,7 +81,7 @@ def make_bundle(root, platform="win32"):
         (root / "_internal" / build.LINUX_QT_REQUIRED_FILES[0]).chmod(0o755)
     if platform == "linux":
         for name in build.LINUX_QT_DISTRIBUTIONS:
-            version = QTWEBENGINE_NOTICES_VERSION
+            version = QT_NOTICES_VERSION
             relative = f"{name.lower().replace('-', '_')}-{version}.dist-info"
             info = root / "_internal" / relative
             info.mkdir(parents=True)
@@ -310,6 +313,8 @@ def test_build_copies_notices_and_validates_selected_destination():
         assert commands.call_args_list[0].kwargs["cwd"] == root / "frontend"
         assert (output / build.APP_NAME / "LICENSE").read_text(encoding="utf-8") == "license"
         assert (output / build.APP_NAME / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8") == "notices"
+        config = output / build.APP_NAME / build.WINDOWS_EXE_CONFIG.name
+        assert config.read_bytes() == build.WINDOWS_EXE_CONFIG.read_bytes()
 
 
 def test_linux_build_passes_binding_environment_and_validates_bundle():
@@ -412,6 +417,25 @@ def test_linux_bundle_rejects_unpruned_components():
             error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "linux"))
             assert "Components to remove" in str(error)
             path.unlink()
+
+
+def test_windows_net_configuration_allows_assemblies_from_downloaded_zip():
+    # Il file deve essere XML valido e attivare loadFromRemoteSources nel runtime .NET.
+    root_element = ElementTree.parse(build.WINDOWS_EXE_CONFIG).getroot()
+    setting = root_element.find("./runtime/loadFromRemoteSources")
+    assert build.WINDOWS_EXE_CONFIG.name == "PlannerApp.exe.config"
+    assert setting is not None and setting.get("enabled") == "true"
+
+
+def test_windows_bundle_requires_net_configuration():
+    with TemporaryDirectory(prefix="planner-build-netconfig-") as directory:
+        root = make_bundle(Path(directory))
+        config = root / build.WINDOWS_EXE_CONFIG.name
+        config.write_text("<configuration />", encoding="utf-8")
+        expect_error(RuntimeError, lambda: build.validate_bundle(root, "win32"))
+        config.unlink()
+        error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "win32"))
+        assert build.WINDOWS_EXE_CONFIG.name in str(error)
 
 
 def load_tests(loader, tests, pattern):

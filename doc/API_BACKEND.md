@@ -1,65 +1,32 @@
 # API Backend
 
-Il backend espone le API sia alla radice sia sotto `/api`.
+Le API rispondono sia alla radice sia sotto `/api` (`/api/projects/get_all_projects`
+e `/projects/get_all_projects`); il frontend usa `/api`, che in sviluppo Vite
+inoltra al backend togliendo il prefisso. I body sono JSON.
 
-Esempio:
+## Regole comuni
 
-```text
-/projects/get_all_projects
-/api/projects/get_all_projects
-```
+- Errori di validazione: `400` con `{"error": "..."}`. Elemento inesistente in update
+  e delete: `404`. Errori non gestiti (JSON non valido, foreign key): `500`.
+- ID (`id`, `area_id`, `project_id`, `task_id`, `parent_id`): interi da `1` a
+  `9223372036854775807`. REST accetta anche stringhe di sole cifre ASCII (`"7"`),
+  mai booleani, decimali o altri formati. `parent_id` omesso o `null` indica una task
+  principale.
+- `Host` diverso da `127.0.0.1`, `localhost` (o `HOST`, se impostato): `400`
+  `Invalid host header` (protezione DNS rebinding, `ALLOWED_HOSTS` in `config.py`).
+- `POST`, `PUT`, `PATCH` e `DELETE` con `Origin` di un altro sito: `403`
+  `{"error": "Cross-origin request blocked"}`, anche su `/mcp`
+  (`middleware/origin_guard.py`). In sviluppo sono ammesse le origini locali (Vite);
+  le richieste senza `Origin` (client MCP, curl) sono accettate salvo
+  `Sec-Fetch-Site: cross-site`. Le `GET` non sono controllate: senza CORS un altro
+  sito non ne legge la risposta.
+- Durante l'arresto le nuove richieste ricevono `503`; un timeout SQLite prima della
+  risposta restituisce `504`.
 
-In sviluppo Vite inoltra le richieste `/api` al backend togliendo il prefisso. Nell'eseguibile il backend risponde direttamente a `/api`.
-
-Le richieste con body usano JSON. In caso di errore di validazione la risposta ha
-stato `400` e la forma:
-
-```json
-{"error": "project_id must be a valid integer"}
-```
-
-Gli ID (`id`, `area_id`, `project_id`, `task_id` e `parent_id` quando presente)
-devono essere interi positivi tra `1` e `9223372036854775807`, il massimo intero
-SQLite con segno a 64 bit. REST accetta anche stringhe composte solo da cifre
-ASCII, come i parametri degli URL (`"7"`, `"007"`); sono rifiutate stringhe con
-spazi, segni, separatori o cifre di altri alfabeti (`" 7 "`, `"+5"`, `"1_000"`,
-`"٣"`). Booleani, numeri JSON con parte decimale (anche
-`1.0`), valori null per ID obbligatori e interi fuori intervallo vengono rifiutati
-con `400`, prima di interrogare il repository. `parent_id` omesso o null resta
-valido e indica una task principale.
-
-Gli update e i delete restituiscono `404` se l'elemento non esiste. Gli errori non
-gestiti (JSON non valido, foreign key inesistente) restituiscono `500`.
-
-Tutte le richieste con un header `Host` diverso da `127.0.0.1` o `localhost` (piu il
-valore di `HOST`, se cambiato) vengono rifiutate con `400` e il testo
-`Invalid host header`. E la protezione contro il DNS rebinding, applicata da
-`TrustedHostMiddleware` con l'elenco `ALLOWED_HOSTS` di `backend/config.py`.
-
-Le richieste `POST`, `PUT`, `PATCH` e `DELETE` inviate da una pagina di un altro sito
-vengono rifiutate con `403` (`{"error": "Cross-origin request blocked"}`), comprese
-quelle verso `/mcp`. Il controllo e in `backend/middleware/origin_guard.py`:
-
-- l'header `Origin` deve coincidere con l'indirizzo del backend (stessa origine);
-- in sviluppo e accettata anche qualsiasi origine locale (`localhost`, `127.0.0.1`,
-  `[::1]` su qualsiasi porta), per il frontend servito da Vite;
-- le richieste senza `Origin` (client MCP, curl, file `.http`) sono accettate, salvo
-  che il browser le marchi con `Sec-Fetch-Site: cross-site`.
-
-Le richieste `GET` non sono controllate: un altro sito puo inviarle ma, senza CORS,
-non puo leggerne la risposta.
-
-## Health check
+## Health
 
 ```text
-GET /health
-GET /api/health
-```
-
-Risposta:
-
-```json
-{"status": "online"}
+GET /api/health                      -> {"status": "online"}
 ```
 
 ## Areas
@@ -71,11 +38,8 @@ PUT    /api/areas/update_area      {id, name}
 DELETE /api/areas/delete_area      {id}
 ```
 
-Eliminando un'area vengono eliminati anche i suoi progetti e le loro task.
-Se era l'ultima area, il trigger `trg_recreate_last_area` crea automaticamente
-un'area vuota `utente` con un nuovo id, senza recuperare i dati eliminati.
-La risposta del delete resta invariata; per ottenere la nuova area si ricarica
-`get_all_areas`.
+Eliminare un'area elimina i suoi progetti e task. Se era l'ultima, il database crea
+una nuova area vuota `utente` (ricaricare `get_all_areas` per ottenerla).
 
 ## Projects
 
@@ -88,11 +52,9 @@ POST /api/projects/update_project   {project_id, name, description}
 POST /api/projects/delete_project   {project_id}
 ```
 
-`get_projects_by_area` e `get_project` leggono dalla vista `v_projects_status`, quindi
-includono `area_name`, `total_tasks`, `completed_tasks` e `completion_percentage`.
-`get_all_projects` legge invece dalla tabella `projects`.
-
-`get_project` restituisce `null` (con stato `200`) se il progetto non esiste.
+`get_projects_by_area` e `get_project` includono `area_name`, `total_tasks`,
+`completed_tasks` e `completion_percentage` (vista `v_projects_status`).
+`get_project` restituisce `null` con `200` se il progetto non esiste.
 
 ## Tasks
 
@@ -105,17 +67,10 @@ POST /api/tasks/update_status_task   {task_id}
 POST /api/tasks/delete_task          {task_id}
 ```
 
-`parent_id` e facoltativo: se presente, la task e una subtask della task indicata.
-Se omesso o `null`, viene creata una task principale. Prima dell'inserimento,
-`insert_task` verifica che il parent esista, appartenga allo stesso progetto e
-sia una task principale. Una relazione non valida non viene salvata:
-
-- parent inesistente: `404`, `{"error": "Parent task not found"}`;
-- parent di un altro progetto: `400`, `{"error": "Parent task belongs to a different project"}`;
-- parent che e gia una subtask: `400`, `{"error": "A subtask cannot be used as a parent"}`.
-
-`update_status_task` inverte lo stato `completed` della task. Su una task che ha
-subtask risponde `409`: il suo stato e calcolato dalle subtask (vedi `DATABASE.md`).
+Con `parent_id` la task e una subtask. Il parent deve esistere (`404` "Parent task
+not found"), appartenere allo stesso progetto (`400`) ed essere una task principale
+(`400`). `update_status_task` inverte `completed`; su una task con subtask risponde
+`409`, perche il suo stato e calcolato dalle subtask (vedi `DATABASE.md`).
 
 ## Settings
 
@@ -125,16 +80,14 @@ POST /api/settings/update_language   {language}
 POST /api/settings/update_theme      {theme, custom_colors}
 ```
 
-`custom_colors` deve contenere le chiavi `background`, `foreground`, `card`,
-`border`, `hover` e `hoverText`.
+- `language`: codice (es. `it`, `pt-BR`) di un file lingua esterno valido in
+  `LOCALES_DIR`.
+- `theme`: `light`, `dark`, `system` o `custom`.
+- `custom_colors`: sempre obbligatorio, con esattamente le chiavi `background`,
+  `foreground`, `card`, `border`, `hover`, `hoverText` e valori `#RRGGBB`. Non sono
+  previsti aggiornamenti parziali.
 
-Entrambi gli aggiornamenti richiedono un oggetto JSON. JSON non valido, tipi
-errati o valori non ammessi restituiscono `400` con `{"error": "..."}` prima
-di chiamare il repository; i dati salvati restano invariati.
-
-- `language`: codice valido (es. `it` o `pt-BR`) con un file esterno disponibile e leggibile in `LOCALES_DIR`; il JSON deve essere un dizionario piatto non vuoto, con chiavi non vuote e valori stringa. Sono ammesse anche lingue aggiunte dall'utente.
-- `theme`: solo `light`, `dark`, `system` o `custom`.
-- `custom_colors`: oggetto con esattamente le sei chiavi indicate, tutte obbligatorie anche per i temi non custom. Ogni valore deve essere una stringa esadecimale `#RRGGBB`, senza spazi; sono accettate lettere maiuscole e minuscole. Gli aggiornamenti parziali dei colori non sono previsti.
+Payload non validi restituiscono `400` senza modificare i dati.
 
 ## Locales
 
@@ -143,45 +96,21 @@ GET /api/locales/get_available_languages
 GET /api/locales/load_language
 ```
 
-`load_language` restituisce il dizionario della lingua salvata nelle settings. Le
-lingue vengono lette dalla cartella configurata in `LOCALES_DIR` (vedi `I18N.md`).
+`get_available_languages` elenca i dizionari esterni validi. `load_language`
+restituisce quello della lingua salvata; se non e utilizzabile prova la copia
+inclusa, poi italiano e inglese, senza modificare file o DB. Senza dizionari
+utilizzabili restituisce `503`. Dettagli in `I18N.md`.
 
-`get_available_languages` elenca solo i dizionari esterni validi e leggibili.
-Se il file scelto non e piu utilizzabile, `load_language` prova la stessa lingua
-inclusa nell'app, poi italiano e inglese (prima esterni, poi inclusi per ciascuna
-lingua). Non modifica il DB o i file dell'utente e restituisce sempre soltanto
-il dizionario, mantenendo il contratto frontend. Se nessun file e utilizzabile,
-restituisce `503`, `{"error": "No usable language dictionary is available"}`.
-
-## App lifecycle
+## App
 
 ```text
-POST /api/app/shutdown
-GET  /api/app/version
-GET  /api/app/check_update
+POST /api/app/shutdown        arresto esplicito del backend e chiusura della finestra (non usato dal frontend)
+GET  /api/app/version         APP_VERSION di backend/config.py
+GET  /api/app/check_update    confronto con l'ultima GitHub Release
 ```
 
-Il ciclo di vita e gestito dalla finestra PyWebView, senza richieste periodiche
-dal frontend per mantenere attivo il backend.
-
-`shutdown` permette uno spegnimento esplicito del backend e, quando il thread
-termina, la chiusura della finestra PyWebView senza segnalare un crash.
-Attualmente il frontend non lo usa.
-
-La richiesta usa lo stesso stop cooperativo della chiusura della finestra.
-Durante lo stop le nuove richieste ricevono `503`; quelle gia iniziate possono
-terminare entro la tolleranza configurata, oppure essere annullate con rollback.
-Un timeout SQLite intercettato prima dell'inizio della risposta restituisce
-`504` (o `503` durante lo stop). I tool MCP mantengono il proprio protocollo di
-errore; una risposta gia in streaming puo invece essere interrotta.
-
-`version` restituisce `APP_VERSION` definita in `backend/config.py`.
-
-`check_update` confronta la versione corrente con l'ultima GitHub Release pubblicata.
-La richiesta a GitHub viene eseguita in un thread separato, quindi non blocca le
-altre richieste. Se GitHub non e raggiungibile o risponde in un formato inatteso,
-la risposta ha comunque stato `200`, con `update_available: false` ed
-`error: "Unable to check for updates"`.
+`check_update` non blocca le altre richieste; se GitHub non risponde restituisce
+`200` con `update_available: false` ed `error: "Unable to check for updates"`.
 
 ## Backup
 
@@ -189,15 +118,9 @@ la risposta ha comunque stato `200`, con `update_available: false` ed
 GET /api/backup/download
 ```
 
-Scarica una copia consistente del database creata con `Connection.backup()`
-di SQLite, con data e ora nel nome del file. La generazione avviene in un thread
-separato e non invia il file originale in uso. Le connessioni vengono chiuse prima
-del trasferimento; la copia temporanea viene eliminata al termine dell'invio,
-anche in caso di errore. La risposta non viene memorizzata in cache.
-
-Il backup conserva dati, schema e `PRAGMA user_version`. Non include i file lingua
-esterni. Se il DB non esiste, la route restituisce `404` senza crearlo.
-L'importazione di un backup non e ancora disponibile.
+Scarica una copia consistente del database (dati, schema e `user_version`, senza i
+file lingua) con data e ora nel nome. La copia temporanea viene eliminata dopo
+l'invio. `404` se il DB non esiste. L'importazione non e ancora disponibile.
 
 ## Eventi (SSE)
 
@@ -205,103 +128,39 @@ L'importazione di un backup non e ancora disponibile.
 GET /api/events
 ```
 
-Connessione Server-Sent Events usata dal frontend (`DataSyncContext.jsx`) per
-ricaricare i dati quando cambiano. Ogni evento ha la forma:
-
-```json
-{"entity": "task", "action": "created", "ids": [12, 13]}
-```
-
-- `entity`: `area`, `project` o `task`;
-- `action`: `created`, `updated` o `deleted`.
-
-Se non ci sono eventi, il server invia un commento `: heartbeat` ogni 30 secondi.
-
-Attualmente gli eventi vengono pubblicati solo dalle operazioni MCP: le modifiche
-fatte tramite le API REST non generano eventi.
+Stream usato da `DataSyncContext.jsx` per ricaricare i dati. Eventi
+`{"entity": "area|project|task", "action": "created|updated|deleted", "ids": [...]}`
+e un commento `: heartbeat` ogni 30 secondi. Oggi li pubblicano solo le operazioni
+MCP: le modifiche REST non generano eventi.
 
 ## Server MCP
 
-```text
-/mcp/
-```
-
-Server MCP con trasporto Streamable HTTP (stateless, risposte JSON). Si collega a un
-client AI indicando l'URL `http://127.0.0.1:8000/mcp/`, mostrato anche nella pagina
-Impostazioni.
-
-Tool disponibili:
+Trasporto Streamable HTTP (stateless, risposte JSON) su
+`http://127.0.0.1:8000/mcp/`, mostrato anche nelle Impostazioni.
 
 | Tool | Descrizione |
 |---|---|
-| `get_all_areas` | Tutte le aree, anche senza progetti. |
-| `get_all_projects` | Tutti i progetti con stato di avanzamento. |
+| `get_all_areas` | Tutte le aree. |
+| `get_all_projects` | Tutti i progetti con avanzamento. |
 | `get_project_tasks` | Task e subtask di un progetto. |
-| `bulk_insert_area` | Crea piu aree (nomi non duplicati nella richiesta). |
-| `bulk_insert_project` | Crea piu progetti in aree esistenti. |
-| `bulk_insert_task` | Crea piu task o subtask. Il parent deve appartenere allo stesso progetto e non essere a sua volta una subtask. |
-| `bulk_update_project` | Aggiorna nome e descrizione di piu progetti. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
-| `bulk_update_task` | Aggiorna titolo e descrizione di piu task. Se `description` e omessa resta invariata; una stringa vuota la svuota. |
-| `bulk_set_task_completed` | Imposta lo stato di completamento di piu task. Rifiuta le task che hanno subtask, il cui stato e calcolato dalle subtask. |
-| `bulk_delete_task` | Elimina task o subtask. Per eliminare una task con subtask richiede il consenso esplicito `include_subtasks: true`. |
-| `bulk_move_subtask` | Sposta subtask sotto altre task principali dello stesso progetto, senza modificarne contenuto o stato. |
+| `bulk_insert_area` | Crea aree (nomi non duplicati nella richiesta). |
+| `bulk_insert_project` | Crea progetti in aree esistenti. |
+| `bulk_insert_task` | Crea task o subtask (parent dello stesso progetto e principale). |
+| `bulk_update_project` | Aggiorna nome e descrizione; `description` omessa resta invariata, `""` la svuota. |
+| `bulk_update_task` | Aggiorna titolo e descrizione, con la stessa regola. |
+| `bulk_set_task_completed` | Imposta il completamento; rifiuta le task con subtask. |
+| `bulk_delete_task` | Elimina task o subtask; per quelle con subtask serve `include_subtasks: true`. |
+| `bulk_move_subtask` | Sposta subtask senza figli sotto altre task principali dello stesso progetto. |
 
-Le operazioni bulk accettano al massimo 50 elementi per chiamata e falliscono per
-intero se un elemento non e valido o se un id non esiste.
+- Ogni operazione bulk accetta da 1 a 50 elementi e fallisce per intero se un
+  elemento non e valido; l'errore indica il motivo (es. `Tasks not found: 99.`).
+- Gli ID devono essere interi JSON (validazione strict `EntityId`).
+- `bulk_delete_task` (`{"tasks": [{"id": 15}], "include_subtasks": false}`)
+  restituisce `requested`, `deleted` (incluse le subtask), `requested_task_ids`,
+  `task_ids` e `parent_ids`.
+- `bulk_move_subtask` (`{"subtasks": [{"id": 21, "parent_id": 8}]}`) non cambia
+  contenuto o stato delle subtask; restituisce `requested`, `moved`, `task_ids`,
+  `unchanged_ids` e `parent_ids`. Lo stato dei parent viene ricalcolato dal database.
+- Le scritture pubblicano gli eventi SSE dopo il commit.
 
-### Eliminazione task tramite MCP
-
-Argomenti di `bulk_delete_task`:
-
-```json
-{"tasks": [{"id": 15}], "include_subtasks": false}
-```
-
-La lista deve contenere da 1 a 50 ID distinti. `include_subtasks` e un booleano
-strict, facoltativo e falso per default. Se anche una sola task richiesta ha
-subtask, il batch viene rifiutato senza questo consenso, anche quando le subtask
-sono elencate nella stessa richiesta. Con `true` vengono eliminate anche le
-subtask tramite cascata, nella stessa transazione.
-
-La risposta contiene `requested` (numero di ID richiesti), `deleted` (numero di
-righe eliminate, incluse le subtask), `requested_task_ids`, `task_ids` (tutti gli
-ID eliminati, senza duplicati) e `parent_ids` (parent sopravvissuti interessati).
-Elencare insieme parent e subtask e consentito con `include_subtasks: true`;
-gli ID eliminati vengono contati una sola volta.
-
-### Spostamento subtask tramite MCP
-
-Argomenti di `bulk_move_subtask`:
-
-```json
-{"subtasks": [{"id": 21, "parent_id": 8}]}
-```
-
-Ogni sorgente deve essere gia una subtask senza figli; la destinazione deve
-essere una task principale dello stesso progetto. ID duplicati, sorgenti o
-destinazioni mancanti, auto-parent e annidamenti ulteriori vengono rifiutati.
-Non si spostano task tra progetti o aree e non si trasformano task principali
-in subtask. Titolo, descrizione e stato della subtask restano invariati.
-
-La risposta contiene `requested`, `moved`, `task_ids` (subtask spostate),
-`unchanged_ids` (subtask gia sotto il parent richiesto) e `parent_ids` (parent
-interessati). Un batch interamente invariato non scrive e non pubblica eventi.
-Il trigger ricalcola lo stato di entrambi i parent; se quello precedente rimane
-senza subtask, ne conserva lo stato, come per l'eliminazione dell'ultima subtask.
-
-Entrambe le operazioni ricontrollano i vincoli sotto `BEGIN IMMEDIATE` prima
-delle scritture e annullano tutto il batch in caso di errore o cancellazione.
-Gli eventi SSE partono solo dopo il commit: `deleted` con tutti gli ID eliminati
-oppure `updated` con le subtask spostate e i parent interessati. Il frontend
-ricarica gia task e avanzamento dei progetti per gli eventi di entita `task`.
-
-I tool MCP richiedono ID come interi JSON, nello stesso intervallo di REST:
-gli schemi Pydantic usano `EntityId` con validazione strict per evitare che
-booleani, float o stringhe siano convertiti prima del service. Il vincolo vale
-anche per `get_project_tasks` e per il parent facoltativo delle subtask.
-
-Quando una richiesta non e valida, il tool restituisce un errore con il motivo
-(per esempio `Tasks not found: 99.`), cosi il client AI puo correggerla.
-
-La logica dei tool sta in `services/mcp_service.py`, le query in
-`db/repositories/mcp_repo.py`.
+Logica in `services/mcp_service.py`, query in `db/repositories/mcp_repo.py`.

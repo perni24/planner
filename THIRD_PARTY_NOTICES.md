@@ -209,12 +209,24 @@ Source code: [Qt WebEngine 6.11.2 sources](https://download.qt.io/official_relea
 References: [Qt WebEngine third-party licensing](https://doc.qt.io/qt-6.11/qtwebengine-licensing.html)
 and [Qt third-party libraries](https://doc.qt.io/qt-6/qtthirdparty.html).
 
-The other Qt modules included in the Linux build (for example Qt Base and Qt
-Declarative) also contain third-party code, listed in
-[Licenses used in Qt](https://doc.qt.io/qt-6.11/licenses-used-in-qt.html);
-their texts are not yet included in the package. The Linux artifact remains
-excluded from public release assets until this and the native tests are
-complete (see `doc/TODO.md`).
+### Third-Party Components of the Other Qt Modules
+
+The other Qt modules included in the Linux build also contain third-party code
+(for example HarfBuzz, FreeType, libpng, libjpeg-turbo, PCRE2, zlib, SQLite,
+libtiff, libwebp and the Wayland protocols). Their notices are in
+`licenses/qt/QT_NOTICES.txt`, generated from the `qt_attribution.json` files of
+the official Qt 6.11.2 source archives of qtbase, qtdeclarative, qtimageformats,
+qtpositioning, qtserialport, qtsvg, qtwayland and qtwebchannel (SHA-256
+recorded in the file). Components used only by tests, examples or tools are
+omitted; the list may include components not compiled into the distributed
+binaries. See also [Licenses used in Qt](https://doc.qt.io/qt-6.11/licenses-used-in-qt.html).
+
+The ICU 73.2 libraries shipped with Qt (`libicu*.so.73`) are covered by
+`licenses/qt/ICU_LICENSE.txt`, the license file of that ICU release
+([ICU 73.2](https://github.com/unicode-org/icu/releases/tag/release-73-2)).
+
+The Linux artifact remains excluded from public release assets until the
+native tests are complete (see `doc/TODO.md`).
 
 ### System Libraries (Linux only)
 

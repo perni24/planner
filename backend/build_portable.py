@@ -17,6 +17,9 @@ from build_licenses import (
 
 
 APP_NAME = "PlannerApp"
+# Configurazione .NET copiata accanto a PlannerApp.exe: permette a pythonnet di caricare
+# le DLL .NET anche se lo ZIP scaricato ha il segno "proveniente da Internet".
+WINDOWS_EXE_CONFIG = Path(__file__).resolve().parent / "windows" / f"{APP_NAME}.exe.config"
 WINDOWS_EXCLUDED_MODULES = (
     "webview.platforms.qt",
     "webview.platforms.gtk",
@@ -240,6 +243,11 @@ def validate_bundle(portable_dir, platform=None):
     if not any((internal / "db" / "migrations").glob("[0-9][0-9][0-9]_*.sql")):
         missing.append("db/migrations/*.sql")
     if platform == "win32":
+        config = portable_dir / WINDOWS_EXE_CONFIG.name
+        if not config.is_file():
+            missing.append(WINDOWS_EXE_CONFIG.name)
+        elif 'loadFromRemoteSources enabled="true"' not in config.read_text(encoding="utf-8"):
+            raise RuntimeError(f"Invalid .NET configuration: {config}")
         for relative in (
             "webview/lib/Microsoft.Web.WebView2.Core.dll",
             "webview/lib/Microsoft.Web.WebView2.WinForms.dll",
@@ -293,6 +301,9 @@ def build_app(backend_dir, dist_dir):
             f"File THIRD_PARTY_NOTICES.md non trovato: {third_party_notices_path}"
         )
 
+    if sys.platform == "win32" and not WINDOWS_EXE_CONFIG.is_file():
+        raise FileNotFoundError(f"File di configurazione .NET non trovato: {WINDOWS_EXE_CONFIG}")
+
     run([get_npm_command(), "run", "build"], cwd=frontend_dir)
     run(
         [*get_pyinstaller_command(backend_dir), *get_pyinstaller_arguments(backend_dir, dist_dir)],
@@ -309,6 +320,8 @@ def build_app(backend_dir, dist_dir):
         third_party_notices_path,
         portable_dir / "THIRD_PARTY_NOTICES.md",
     )
+    if sys.platform == "win32":
+        shutil.copy2(WINDOWS_EXE_CONFIG, portable_dir / WINDOWS_EXE_CONFIG.name)
     if sys.platform == "linux":
         removed = prune_linux_bundle(portable_dir)
         print(f"Removed {len(removed)} libraries used only by unused Qt components")

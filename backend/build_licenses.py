@@ -2,6 +2,7 @@ import hashlib
 from importlib import metadata
 import json
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import subprocess
 import sys
@@ -29,10 +30,31 @@ THIRD_PARTY_LICENSES_DIR = Path(__file__).resolve().parent / "third_party_licens
 # third_party_licenses/microsoft-webview2 (LICENSE.txt e NOTICE.txt del pacchetto NuGet).
 WEBVIEW2_SDK_VERSION = "1.0.3856.49"
 WEBVIEW2_SDK_DLL = PurePosixPath("webview/lib/Microsoft.Web.WebView2.Core.dll")
-# Avvisi Chromium generati con qtwebengine_notices.py dai sorgenti di questa versione:
-# PyQt6-WebEngine-Qt6 nel bundle deve corrispondere.
-QTWEBENGINE_NOTICES_VERSION = "6.11.2"
+# Avvisi generati dai sorgenti di questa versione di Qt: Chromium con
+# qtwebengine_notices.py, gli altri moduli con qt_notices.py. PyQt6-Qt6 e
+# PyQt6-WebEngine-Qt6 nel bundle devono corrispondere.
+QT_NOTICES_VERSION = "6.11.2"
 QTWEBENGINE_NOTICES = THIRD_PARTY_LICENSES_DIR / "qtwebengine" / "CHROMIUM_NOTICES.txt"
+QT_NOTICES = THIRD_PARTY_LICENSES_DIR / "qt" / "QT_NOTICES.txt"
+# ICU compilata da Qt e inclusa nelle wheel (libicu*.so.73), licenza della release 73.2.
+QT_ICU_LICENSE = THIRD_PARTY_LICENSES_DIR / "qt" / "ICU_LICENSE.txt"
+QT_ICU_MAJOR = "73"
+QT_LIB_DIR = PurePosixPath("PyQt6/Qt6/lib")
+# Modulo sorgente di ogni libreria Qt del bundle Linux: se ne compare una nuova, va
+# aggiunto il modulo agli avvisi (qt_notices.py) prima di distribuirla.
+QT_LIBRARY_MODULES = {
+    **dict.fromkeys((
+        "Core", "DBus", "EglFSDeviceIntegration", "Gui", "Network", "OpenGL",
+        "OpenGLWidgets", "PrintSupport", "Widgets", "XcbQpa",
+    ), "qtbase"),
+    **dict.fromkeys(("Qml", "QmlMeta", "QmlModels", "QmlWorkerScript", "Quick", "QuickWidgets"), "qtdeclarative"),
+    **dict.fromkeys(("WebEngineCore", "WebEngineWidgets", "Pdf"), "qtwebengine"),
+    **dict.fromkeys(("WaylandClient", "WlShellIntegration"), "qtwayland"),
+    "Positioning": "qtpositioning",
+    "SerialPort": "qtserialport",
+    "Svg": "qtsvg",
+    "WebChannel": "qtwebchannel",
+}
 # libpython e coperta dalla licenza di Python in licenses/python/python.
 NON_SYSTEM_LIBRARY_PREFIXES = ("libpython",)
 
@@ -96,25 +118,51 @@ def collect_linux_licenses(portable_dir):
             "source": f"https://pypi.org/project/{name}/{distribution.version}/",
             "files": files,
         })
-    webengine_version = next(
-        component["version"] for component in components if component["name"] == "PyQt6-WebEngine-Qt6"
-    )
-    if webengine_version != QTWEBENGINE_NOTICES_VERSION:
-        raise RuntimeError(
-            f"Bundled Qt WebEngine {webengine_version} does not match the Chromium notices for "
-            f"{QTWEBENGINE_NOTICES_VERSION}: regenerate them with qtwebengine_notices.py"
-        )
-    major_minor = ".".join(webengine_version.split(".")[:2])
+    for component in components:
+        if component["name"] in ("PyQt6-Qt6", "PyQt6-WebEngine-Qt6") and component["version"] != QT_NOTICES_VERSION:
+            raise RuntimeError(
+                f"Bundled {component['name']} {component['version']} does not match the Qt and Chromium "
+                f"notices for {QT_NOTICES_VERSION}: regenerate them with qt_notices.py and qtwebengine_notices.py"
+            )
+    check_qt_notices_coverage(internal)
+    major_minor = ".".join(QT_NOTICES_VERSION.split(".")[:2])
     manifest = {
-        "scope": "Linux Qt packages and Qt WebEngine (Chromium) notices",
-        "qt_sources": f"https://download.qt.io/official_releases/qt/{major_minor}/{webengine_version}/",
+        "scope": "Linux Qt packages, Qt module, ICU and Qt WebEngine (Chromium) notices",
+        "qt_sources": f"https://download.qt.io/official_releases/qt/{major_minor}/{QT_NOTICES_VERSION}/",
         "chromium_notices": copy_license_file(
             QTWEBENGINE_NOTICES, portable_dir / "licenses" / "qtwebengine" / QTWEBENGINE_NOTICES.name, portable_dir
         ),
+        "qt_notices": [
+            copy_license_file(source, portable_dir / "licenses" / "qt" / source.name, portable_dir)
+            for source in (QT_NOTICES, QT_ICU_LICENSE)
+        ],
         "components": components,
     }
     manifest_path = portable_dir / "licenses" / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def get_noticed_qt_modules():
+    # I moduli coperti sono quelli degli archivi elencati in testa a QT_NOTICES.txt.
+    header = QT_NOTICES.read_text(encoding="utf-8").split("=" * 80, 1)[0]
+    modules = set(re.findall(r"^- [0-9a-f]{64}\s+(qt[a-z0-9]+)-everywhere-src-", header, re.MULTILINE))
+    return modules | {"qtwebengine"}
+
+
+def check_qt_notices_coverage(internal):
+    noticed = get_noticed_qt_modules()
+    problems = []
+    for path in sorted((internal / QT_LIB_DIR).glob("*.so*")):
+        name = path.name.split(".so")[0]
+        if name.startswith("libicu"):
+            if not path.name.split(".so.")[-1].startswith(QT_ICU_MAJOR):
+                problems.append(f"{path.name} (ICU license is for {QT_ICU_MAJOR})")
+            continue
+        module = QT_LIBRARY_MODULES.get(name.removeprefix("libQt6"))
+        if module not in noticed:
+            problems.append(f"{path.name} ({module or 'unknown module'})")
+    if problems:
+        raise RuntimeError("Qt libraries not covered by the Qt notices: " + ", ".join(problems))
 
 
 def validate_inventory_files(portable_dir, files):
@@ -138,7 +186,9 @@ def validate_linux_licenses(portable_dir):
             if not component["files"] or not component["version"]:
                 raise ValueError("Empty Qt license inventory")
             validate_inventory_files(portable_dir, component["files"])
-        validate_inventory_files(portable_dir, [manifest["chromium_notices"]])
+        validate_inventory_files(portable_dir, [manifest["chromium_notices"], *manifest["qt_notices"]])
+        if len(manifest["qt_notices"]) != 2:
+            raise ValueError("Qt notices missing")
         if not manifest["qt_sources"].startswith("https://download.qt.io/"):
             raise ValueError("Qt source location missing")
     except (OSError, ValueError, KeyError, TypeError) as error:

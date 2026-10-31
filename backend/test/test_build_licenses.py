@@ -7,12 +7,15 @@ import unittest
 from build_licenses import (
     LINUX_QT_DISTRIBUTIONS,
     QTWEBENGINE_NOTICES,
-    QTWEBENGINE_NOTICES_VERSION,
+    QT_ICU_LICENSE,
+    QT_NOTICES,
+    QT_NOTICES_VERSION,
     THIRD_PARTY_LICENSES_DIR,
     WEBVIEW2_SDK_DLL,
     WEBVIEW2_SDK_VERSION,
     collect_linux_licenses,
     collect_runtime_licenses,
+    check_qt_notices_coverage,
     collect_system_licenses,
     get_runtime_distributions,
     read_file_version,
@@ -23,7 +26,7 @@ from build_licenses import (
 import webview
 
 
-def make_metadata(root, version=QTWEBENGINE_NOTICES_VERSION):
+def make_metadata(root, version=QT_NOTICES_VERSION):
     for name in LINUX_QT_DISTRIBUTIONS:
         relative = f"{name.lower().replace('-', '_')}-{version}.dist-info"
         info = root / "_internal" / relative
@@ -53,13 +56,16 @@ def test_collection_preserves_exact_materials_and_records_bundled_versions():
         collect_linux_licenses(root)
         validate_linux_licenses(root)
         manifest = json.loads((root / "licenses" / "manifest.json").read_text(encoding="utf-8"))
-        assert manifest["qt_sources"].endswith(f"/{QTWEBENGINE_NOTICES_VERSION}/")
+        assert manifest["qt_sources"].endswith(f"/{QT_NOTICES_VERSION}/")
         notices = root / manifest["chromium_notices"]["path"]
         assert notices.read_bytes() == QTWEBENGINE_NOTICES.read_bytes()
+        copied = {Path(entry["path"]).name: root / entry["path"] for entry in manifest["qt_notices"]}
+        assert copied["QT_NOTICES.txt"].read_bytes() == QT_NOTICES.read_bytes()
+        assert copied["ICU_LICENSE.txt"].read_bytes() == QT_ICU_LICENSE.read_bytes()
         assert len(manifest["components"]) == len(LINUX_QT_DISTRIBUTIONS)
         for component in manifest["components"]:
-            assert component["version"] == QTWEBENGINE_NOTICES_VERSION
-            assert component["source"].endswith(f"/{QTWEBENGINE_NOTICES_VERSION}/")
+            assert component["version"] == QT_NOTICES_VERSION
+            assert component["source"].endswith(f"/{QT_NOTICES_VERSION}/")
             assert len(component["files"]) == 2
             for entry in component["files"]:
                 copied = root / entry["path"]
@@ -185,9 +191,9 @@ def test_runtime_validation_rejects_missing_or_modified_license():
 
 def test_chromium_notices_match_the_configured_qt_webengine_version():
     header = QTWEBENGINE_NOTICES.read_text(encoding="utf-8").splitlines()[0]
-    assert header == f"Third-party notices for Qt WebEngine {QTWEBENGINE_NOTICES_VERSION} (Chromium)"
+    assert header == f"Third-party notices for Qt WebEngine {QT_NOTICES_VERSION} (Chromium)"
     requirements = (Path(__file__).resolve().parents[1] / "requirements.txt").read_text(encoding="utf-8")
-    assert f"PyQt6-WebEngine-Qt6=={QTWEBENGINE_NOTICES_VERSION};" in requirements
+    assert f"PyQt6-WebEngine-Qt6=={QT_NOTICES_VERSION};" in requirements
 
 
 def test_different_qt_webengine_version_requires_new_chromium_notices():
@@ -292,6 +298,38 @@ def test_system_inventory_rejects_libraries_without_package_or_license():
         (root / "_internal" / "libcustom.so.1").unlink()
         (docs / "libgtk-3-0" / "copyright").unlink()
         expect_error(lambda: collect_system_licenses(root, query, docs, release), "libgtk-3-0")
+
+
+def test_qt_notices_match_the_configured_qt_version():
+    header = QT_NOTICES.read_text(encoding="utf-8").splitlines()[0]
+    assert header == f"Third-party notices for Qt {QT_NOTICES_VERSION} modules"
+    assert QT_ICU_LICENSE.read_text(encoding="utf-8").startswith("UNICODE, INC. LICENSE AGREEMENT")
+    requirements = (Path(__file__).resolve().parents[1] / "requirements.txt").read_text(encoding="utf-8")
+    assert f"PyQt6-Qt6=={QT_NOTICES_VERSION};" in requirements
+
+
+def make_qt_libraries(root, names):
+    lib = root / "_internal" / "PyQt6" / "Qt6" / "lib"
+    lib.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (lib / name).write_bytes(b"\x7fELF")
+    return root / "_internal"
+
+
+def test_qt_libraries_must_be_covered_by_the_notices():
+    with TemporaryDirectory(prefix="planner-qt-coverage-") as directory:
+        internal = make_qt_libraries(Path(directory), (
+            "libQt6Core.so.6", "libQt6WebEngineCore.so.6", "libQt6Svg.so.6", "libicuuc.so.73",
+        ))
+        check_qt_notices_coverage(internal)
+        (internal / "PyQt6" / "Qt6" / "lib" / "libQt6Quick3D.so.6").write_bytes(b"\x7fELF")
+        expect_error(lambda: check_qt_notices_coverage(internal), "libQt6Quick3D.so.6")
+
+
+def test_different_icu_version_requires_updated_license():
+    with TemporaryDirectory(prefix="planner-qt-icu-") as directory:
+        internal = make_qt_libraries(Path(directory), ("libicuuc.so.74",))
+        expect_error(lambda: check_qt_notices_coverage(internal), "ICU license")
 
 
 def load_tests(loader, tests, pattern):

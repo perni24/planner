@@ -1,127 +1,48 @@
 # Planner App
 
-Planner App e un'applicazione locale per organizzare aree di lavoro, progetti e attivita.
+Planner App e un'applicazione locale per organizzare aree di lavoro, progetti e
+attivita. E in fase beta: prima di usarla per dati importanti scarica regolarmente un
+backup dalle Impostazioni.
 
-Il progetto e attualmente in fase beta: alcune funzionalita sono ancora in evoluzione e la struttura potrebbe cambiare nelle prossime versioni.
+## Funzioni
 
-## Funzioni principali
+- Aree di lavoro, progetti, task e subtask, con avanzamento calcolato automaticamente.
+- Server MCP integrato per leggere e modificare i dati da un client AI.
+- Lingue tramite file JSON modificabili, tema e colori personalizzati.
+- Dati in un database SQLite locale, con backup scaricabile.
 
-- Gestione di aree di lavoro.
-- Creazione, modifica ed eliminazione di progetti.
-- Gestione delle task e delle subtask collegate ai progetti, con avanzamento calcolato automaticamente.
-- Integrazione con client AI tramite server MCP integrato.
-- Cambio lingua tramite file JSON esterni.
-- Impostazioni tema e colori personalizzati.
-- Database locale SQLite.
-- Versione portable generabile con PyInstaller.
+## Uso
 
-## Struttura tecnica
+Scarica lo ZIP dalla pagina delle release, estrailo e avvia `PlannerApp.exe`: va
+tenuta l'intera cartella, che contiene anche i dati in `data/`. Al primo avvio
+Windows puo mostrare SmartScreen: "Ulteriori informazioni" -> "Esegui comunque".
 
-Il progetto e diviso in due parti principali:
+- **Windows**: serve WebView2 Runtime, preinstallato in Windows 11. Se manca, vedi
+  `doc/TROUBLESHOOTING.md`.
+- **Linux**: il pacchetto (circa 510 MB, glibc 2.34 o successiva) e per ora
+  disponibile solo come artifact di prova del workflow.
 
-- `backend/`: API Python con Starlette, server MCP, database SQLite e build portable.
-- `frontend/`: interfaccia React con Vite.
+Aggiornamenti e struttura della cartella sono descritti in
+`doc/ARCHITETTURA_PORTABLE.md`.
 
-La documentazione tecnica si trova nella cartella `doc/`. Il punto di partenza e
-`doc/STRUTTURA_PROGETTO.md`.
+## Sviluppo
 
-## Requisiti Windows
+- `backend/`: Python (Starlette, Uvicorn, SQLite, MCP) e build portable.
+- `frontend/`: React con Vite e Tailwind.
 
-Planner usa Microsoft Edge WebView2 Runtime Evergreen, preinstallato in Windows 11:
-su una normale installazione non occorre installare componenti aggiuntivi.
-Il runtime non e incluso nella cartella portable. Se risulta mancante o danneggiato,
-usa il [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
-e consulta `doc/TROUBLESHOOTING.md`. Il solo browser Edge non sostituisce il runtime.
-
-## Requisiti Linux
-
-Il pacchetto Linux include il proprio motore web (Qt WebEngine) e occupa circa
-510 MB; richiede glibc 2.34 o successiva e una sessione desktop. Per ora e
-disponibile solo come artifact di prova del workflow, non nelle release (vedi
-`doc/TODO.md`).
-
-## Avvio in sviluppo
-
-Riepilogo rapido. I passaggi completi, compresa la creazione dell'ambiente virtuale
-e le release, sono in `doc/GUIDA_SVILUPPO.md`.
-
-Prima prepara il frontend, dalla cartella principale del progetto:
+Avvio rapido (dettagli in `doc/GUIDA_SVILUPPO.md`):
 
 ```bash
-cd frontend
-npm ci
-npm run build
-```
-
-`frontend/dist/` non e nel repository: dopo ogni aggiornamento del frontend
-ripeti `npm run build` (e `npm ci` se cambiano le dipendenze).
-
-Backend (da un altro terminale nella cartella principale):
-
-```bash
-cd backend
-```
-
-Crea e attiva l'ambiente virtuale Python in `backend/.venv` (vedi
-`doc/GUIDA_SVILUPPO.md`): `build_portable.py` cerca PyInstaller in quella
-cartella. I comandi seguenti vanno eseguiti da `backend/`.
-
-Windows (PowerShell):
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-Poi installa le dipendenze e avvia il backend:
-
-```bash
+cd frontend && npm ci && npm run build
+cd ../backend
+python -m venv .venv && source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-dev.txt
 python main.py
 ```
 
-`requirements-dev.txt` include le dipendenze dell'app e gli strumenti di sviluppo
-e build. Per il solo backend basta `requirements.txt`.
+Documentazione tecnica in `doc/` (parti da `doc/STRUTTURA_PROGETTO.md`); istruzioni
+per gli agenti AI in `AGENTS.md`.
 
-`python main.py` apre Planner in una finestra PyWebView e avvia il backend senza
-reload. Su Windows usa WebView2, come indicato nei requisiti. Chiudendo la finestra si richiede l'arresto
-del backend; minimizzandola resta attivo.
+## Licenza
 
-Per sviluppare il frontend con Vite, in un terminale separato:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Apri l'indirizzo di Vite nel browser mantenendo la finestra Planner aperta.
-La finestra desktop usa invece la build: per aggiornarla esegui `npm run build`
-e riavvia l'app.
-
-## Build portable
-
-Per creare la versione portable:
-
-```bash
-cd backend
-python build_portable.py
-```
-
-L'output viene generato in:
-
-```text
-backend/dist/PlannerApp
-```
-
-Con la modalita `--onedir` va distribuita tutta la cartella `PlannerApp`, non solo l'eseguibile,
-comprese `licenses/`, `LICENSE` e `THIRD_PARTY_NOTICES.md`.
-
-## Stato del progetto
-
-Planner App e in beta. Prima di usarla per dati importanti e consigliato fare backup del database SQLite.
+GNU GPL v3 (`LICENSE`). Componenti di terze parti in `THIRD_PARTY_NOTICES.md`.
