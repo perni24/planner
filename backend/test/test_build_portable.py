@@ -329,6 +329,8 @@ def test_linux_build_passes_binding_environment_and_validates_bundle():
         with patch.object(build, "run", side_effect=run) as commands, patch.object(
             build, "get_pyinstaller_command", return_value=["pyinstaller"]
         ), patch.object(build, "collect_runtime_licenses"), patch.object(
+            build, "read_needed_libraries", return_value=[]
+        ), patch.object(
             build.sys, "platform", "linux"
         ), patch.object(build.os, "access", return_value=True), redirect_stdout(StringIO()):
             build.build_app(backend, output)
@@ -348,6 +350,68 @@ def test_frontend_build_error_prevents_pyinstaller_and_copying():
             )) is failure
         run.assert_called_once()
         assert not (root / "output").exists()
+
+
+def make_pruning_bundle(root):
+    internal = root / "_internal"
+    files = {
+        # radice: estensione Python che usa WebEngine
+        "PyQt6/QtWebEngineWidgets.abi3.so": ["libQt6WebEngineCore.so.6"],
+        "PyQt6/Qt6/libexec/QtWebEngineProcess": ["libQt6WebEngineCore.so.6"],
+        "PyQt6/Qt6/lib/libQt6WebEngineCore.so.6": ["libQt6Quick.so.6", "libnss3.so"],
+        "PyQt6/Qt6/lib/libQt6Quick.so.6": [],
+        "PyQt6/Qt6/lib/libQt6Quick3D.so.6": ["libQt6Quick.so.6"],
+        "PyQt6/Qt6/qml/QtQuick3D/libqquick3dplugin.so": ["libQt6Quick3D.so.6", "libpulse.so.0"],
+        "PyQt6/Qt6/plugins/platformthemes/libqgtk3.so": ["libgtk-3.so.0"],
+        "PyQt6/Qt6/plugins/platformthemes/libqxdgdesktopportal.so": [],
+        "PyQt6/Qt6/plugins/printsupport/libcupsprintersupport.so": ["libcups.so.2"],
+        "libgtk-3.so.0": ["libpulse.so.0"],
+        "libpulse.so.0": [],
+        "libcups.so.2": [],
+        "libnss3.so": [],
+        "libfreebl3.so": [],
+        "libpython3.14.so.1.0": ["libstdc++.so.6"],
+        "libstdc++.so.6": ["libgcc_s.so.1"],
+        "libgcc_s.so.1": [],
+    }
+    for relative in files:
+        path = internal / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture", encoding="utf-8")
+    return lambda path: files[path.relative_to(internal).as_posix()]
+
+
+def test_linux_pruning_removes_only_libraries_of_unused_qt_components():
+    with TemporaryDirectory(prefix="planner-build-prune-") as directory:
+        root = Path(directory)
+        removed = build.prune_linux_bundle(root, make_pruning_bundle(root))
+        internal = root / "_internal"
+        assert removed == [
+            "libQt6Quick3D.so.6", "libcups.so.2", "libgcc_s.so.1", "libgtk-3.so.0",
+            "libpulse.so.0", "libstdc++.so.6",
+        ]
+        for relative in build.LINUX_PRUNED_QT_PATHS:
+            assert not (internal / relative).exists()
+        # Restano le dipendenze di WebEngine, il portale dei dialoghi e le librerie
+        # mai referenziate, che possono essere caricate con dlopen.
+        for relative in (
+            "PyQt6/Qt6/lib/libQt6Quick.so.6", "libnss3.so", "libfreebl3.so", "libpython3.14.so.1.0",
+            "PyQt6/Qt6/plugins/platformthemes/libqxdgdesktopportal.so",
+        ):
+            assert (internal / relative).exists(), relative
+
+
+def test_linux_bundle_rejects_unpruned_components():
+    with TemporaryDirectory(prefix="planner-build-unpruned-") as directory:
+        root = make_bundle(Path(directory), "linux")
+        build.validate_bundle(root, "linux")
+        for relative in ("PyQt6/Qt6/qml/QtQuick/plugin.so", "libstdc++.so.6"):
+            path = root / "_internal" / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture", encoding="utf-8")
+            error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "linux"))
+            assert "Components to remove" in str(error)
+            path.unlink()
 
 
 def load_tests(loader, tests, pattern):

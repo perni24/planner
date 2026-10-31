@@ -3,7 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from build_licenses import (
     LINUX_QT_DISTRIBUTIONS,
@@ -61,10 +61,90 @@ LINUX_QT_REQUIRED_FILES = (
     "PyQt6/Qt6/resources/icudtl.dat",
     "PyQt6/Qt6/translations/qtwebengine_locales/en-US.pak",
 )
+# Gli hook PyInstaller includono tutti i plugin QML e Qt, ma Planner usa QtWebEngine
+# Widgets: QML, tema GTK3 e stampa CUPS portano solo librerie Qt e di sistema inutili.
+# Il plugin xdgdesktopportal resta per i dialoghi nativi senza GTK.
+LINUX_PRUNED_QT_PATHS = (
+    "PyQt6/Qt6/qml",
+    "PyQt6/Qt6/plugins/platformthemes/libqgtk3.so",
+    "PyQt6/Qt6/plugins/printsupport",
+)
+LINUX_QT_LIB_DIR = PurePosixPath("PyQt6/Qt6/lib")
+# Runtime C++ del sistema di build (Ubuntu 22.04): se incluso, i driver grafici di
+# distribuzioni piu recenti (Mesa) non trovano i simboli che richiedono e l'app si
+# chiude. Il bundle richiede al massimo GLIBCXX_3.4.29, presente con glibc >= 2.34.
+LINUX_SYSTEM_RUNTIME_LIBRARIES = ("libstdc++.so.6", "libgcc_s.so.1")
 
 
 def run(command, cwd, env=None):
     subprocess.run(command, cwd=cwd, check=True, env=env)
+
+
+def read_needed_libraries(path):
+    # Legge le dipendenze dichiarate (DT_NEEDED) senza eseguire o caricare il file.
+    try:
+        result = subprocess.run(
+            ["readelf", "-d", str(path)], capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("Pruning the Linux bundle requires readelf (binutils)") from error
+    return [
+        line.split("[", 1)[1].split("]", 1)[0]
+        for line in result.stdout.splitlines()
+        if "(NEEDED)" in line
+    ]
+
+
+def is_extension_module(name):
+    return ".cpython-" in name or name.endswith(".abi3.so")
+
+
+def prune_linux_bundle(portable_dir, read_needed=None):
+    read_needed = read_needed_libraries if read_needed is None else read_needed
+    internal = portable_dir / "_internal"
+    libraries = {}
+    for path in (*internal.glob("*.so*"), *(internal / LINUX_QT_LIB_DIR).glob("*.so*")):
+        if not is_extension_module(path.name):
+            libraries.setdefault(path.name, []).append(path)
+    library_paths = {path for paths in libraries.values() for path in paths}
+    pruned = [internal / relative for relative in LINUX_PRUNED_QT_PATHS]
+    cache = {}
+
+    def reachable(excluded):
+        # libpython e caricata dal bootloader con dlopen, quindi parte sempre dalle radici.
+        roots = [
+            path for path in internal.rglob("*")
+            if path.is_file()
+            and (".so" in path.name or path.name == "QtWebEngineProcess")
+            and (path not in library_paths or path.name.startswith("libpython"))
+            and not any(path == item or item in path.parents for item in excluded)
+        ]
+        seen = set()
+        pending = list(roots)
+        while pending:
+            path = pending.pop()
+            if path not in cache:
+                cache[path] = read_needed(path)
+            for name in cache[path]:
+                if name in libraries and name not in seen:
+                    seen.add(name)
+                    pending.extend(libraries[name])
+        return seen
+
+    before = reachable(())
+    after = reachable(pruned)
+    for item in pruned:
+        if item.is_dir():
+            shutil.rmtree(item)
+        elif item.exists():
+            item.unlink()
+    # Si rimuovono solo le librerie usate esclusivamente dai file tolti: quelle mai
+    # referenziate possono essere caricate con dlopen (es. moduli NSS) e restano.
+    removed = sorted((before - after) | (set(LINUX_SYSTEM_RUNTIME_LIBRARIES) & set(libraries)))
+    for name in removed:
+        for path in libraries[name]:
+            path.unlink()
+    return removed
 
 
 def get_build_environment(platform=None):
@@ -185,6 +265,12 @@ def validate_bundle(portable_dir, platform=None):
     if missing:
         raise RuntimeError("Incomplete portable bundle: " + ", ".join(missing))
     if platform == "linux":
+        leftovers = [
+            relative for relative in (*LINUX_PRUNED_QT_PATHS, *LINUX_SYSTEM_RUNTIME_LIBRARIES)
+            if (internal / relative).exists()
+        ]
+        if leftovers:
+            raise RuntimeError("Components to remove left in the bundle: " + ", ".join(leftovers))
         validate_linux_licenses(portable_dir)
         validate_system_licenses(portable_dir)
     validate_runtime_licenses(portable_dir, platform)
@@ -224,6 +310,8 @@ def build_app(backend_dir, dist_dir):
         portable_dir / "THIRD_PARTY_NOTICES.md",
     )
     if sys.platform == "linux":
+        removed = prune_linux_bundle(portable_dir)
+        print(f"Removed {len(removed)} libraries used only by unused Qt components")
         collect_linux_licenses(portable_dir)
         collect_system_licenses(portable_dir)
     collect_runtime_licenses(portable_dir, backend_dir / "requirements.txt", frontend_dir)

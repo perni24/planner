@@ -25,7 +25,7 @@ macOS non e distribuito per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS");
 avviando il codice su un Mac pywebview usa il WebKit di sistema.
 
 Su Linux il pacchetto non richiede WebKitGTK o altri motori installati, ma e piu
-grande: circa 600 MB estratto, quasi tutti per QtWebEngine/Chromium e le librerie
+grande: circa 510 MB estratto, quasi tutti per QtWebEngine/Chromium e le librerie
 Qt; la portable Windows non include il motore web. Il Chromium incluso carica solo l'interfaccia locale: i link esterni si
 aprono nel browser di sistema.
 Build e avvio Linux selezionano il binding PyQt6 tramite `QT_API=pyqt6`.

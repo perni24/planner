@@ -326,6 +326,24 @@ renderer Qt, QtPy, QtWebEngine e QtWebChannel; anche `config.py` seleziona PyQt6
 all'avvio Linux. Vengono esclusi GTK, gli altri binding Qt e i renderer di altri
 sistemi, senza escludere moduli QtQuick/QML che QtWebEngine potrebbe richiedere.
 Gli hook PyInstaller raccolgono librerie, plugin, processo Chromium e risorse.
+
+Dopo PyInstaller, `prune_linux_bundle()` rimuove i componenti Qt inutili per
+Planner, che usa QtWebEngine Widgets e non QML: la cartella `qml/`, il tema GTK3
+(`platformthemes/libqgtk3.so`) e la stampa CUPS (`printsupport/`). Con `readelf`
+(binutils) confronta le dipendenze dichiarate prima e dopo e cancella solo le
+librerie usate esclusivamente da quei file: nella build CI 57 librerie Qt
+(Quick3D, Quick Controls, Multimedia...) e decine di librerie di sistema (GTK,
+cairo, CUPS, PulseAudio...), circa 90 MB. Le librerie non referenziate da nessun
+file restano, perche possono essere caricate con `dlopen` (es. moduli NSS). Il
+plugin `xdgdesktopportal` resta per i dialoghi nativi.
+
+La stessa funzione toglie `libstdc++.so.6` e `libgcc_s.so.1`: copiati da Ubuntu
+22.04, sono piu vecchi di quelli richiesti dai driver grafici di distribuzioni
+recenti (Mesa), e l'app si chiudeva con `GLIBCXX_3.4.31 not found` (provato su
+Debian 13). Il bundle richiede al massimo `GLIBCXX_3.4.29`, presente in ogni
+sistema con glibc 2.34 o successiva. La verifica finale fallisce se uno di questi
+componenti resta nel pacchetto.
+
 La verifica finale richiede `QtWebEngineProcess`, `libQt6WebEngineCore.so.6`,
 plugin XCB, risorse Chromium, ICU, dizionario en-US e JavaScript PyWebView; su
 Linux controlla inoltre i permessi di esecuzione dell'app e del processo helper.
@@ -445,10 +463,10 @@ backup, copia dell'indirizzo MCP, link esterni, chiusura completa del processo,
 X11 (`QT_QPA_PLATFORM=xcb`) e il contenuto di `licenses/`. Al termine elimina
 `build/`, `dist/`, l'archivio e la cartella di prova.
 
-La cartella Linux occupa circa 600 MB (circa 200 MB solo per
+La cartella Linux occupa circa 510 MB (circa 200 MB solo per
 `libQt6WebEngineCore.so.6`, cioe Chromium): e normale, perche il motore web e
 incluso nel pacchetto. PyInstaller copia anche librerie di sistema della
-macchina di build (GTK, CUPS, codec audio...): una build locale contiene quelle
+macchina di build (circa 80 dopo la riduzione): una build locale contiene quelle
 della propria distribuzione, quindi per la distribuzione si usa la build CI su
 Ubuntu 22.04.
 

@@ -198,6 +198,15 @@ correggere il relativo JSON. Se mancano tutte le copie utilizzabili, il
 caricamento restituisce `503`; conserva una copia dei file personalizzati prima
 di ripristinare quelli di default. Per dettagli vedi `I18N.md`.
 
+## Linux: l'app si chiude subito con `GLIBCXX_... not found`
+
+Se il terminale mostra errori EGL/OpenGL seguiti da `libstdc++.so.6: version
+GLIBCXX_3.4.31 not found` e l'app si chiude, il pacchetto contiene il runtime C++
+del sistema di build, piu vecchio di quello richiesto dai driver grafici. Le build
+attuali lo rimuovono; per una build precedente usa la versione nuova, oppure
+elimina `_internal/libstdc++.so.6` e `_internal/libgcc_s.so.1` dalla cartella
+estratta per usare quelli del sistema.
+
 ## Linux: impossibile caricare il plugin Qt `xcb`
 
 Se compare `Could not load the Qt platform plugin "xcb"`, il plugin puo essere

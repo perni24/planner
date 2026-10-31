@@ -36,7 +36,7 @@ e consulta `doc/TROUBLESHOOTING.md`. Il solo browser Edge non sostituisce il run
 ## Requisiti Linux
 
 Il pacchetto Linux include il proprio motore web (Qt WebEngine) e occupa circa
-600 MB; richiede glibc 2.34 o successiva e una sessione desktop. Per ora e
+510 MB; richiede glibc 2.34 o successiva e una sessione desktop. Per ora e
 disponibile solo come artifact di prova del workflow, non nelle release (vedi
 `doc/TODO.md`).
 

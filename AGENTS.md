@@ -46,7 +46,10 @@ alternativo; se la destinazione contiene dati runtime, lo script si ferma senza
 cancellarli. Non aggirare questa protezione per ricompilare una portable gia usata.
 
 Su Linux build e runtime selezionano `QT_API=pyqt6`. La build include QtWebEngine
-e controlla risorse, plugin XCB e permessi del processo helper. La CI usa
+e controlla risorse, plugin XCB e permessi del processo helper. Dopo PyInstaller
+`prune_linux_bundle()` toglie QML, tema GTK3, stampa CUPS e le librerie usate solo
+da questi, oltre a `libstdc++`/`libgcc_s` di Ubuntu 22.04 (bloccano i driver Mesa
+recenti): non reintrodurli senza provare la build su una distribuzione recente. La CI usa
 `ubuntu-22.04` x64 con le dipendenze di sistema Qt e produce TAR.GZ; Windows resta
 in ZIP. Linux resta un artifact di prova: il job release scarica solo
 `PlannerApp-windows` finche build reale, licenze e prove native non sono completate.
