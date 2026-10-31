@@ -145,7 +145,9 @@ supporti quello schema. Non e disponibile un downgrade automatico.
 
 La finestra avviata da `python main.py` usa `frontend/dist`, non i file JSX e
 non il server Vite. Dopo una modifica esegui `npm run build` dalla cartella
-`frontend/`, poi riavvia Planner. Una portable gia compilata continua a usare
+`frontend/`, poi riavvia Planner. `frontend/dist/` non e versionato: anche dopo
+un `git pull` va ricompilato su ogni PC. Se `npm run build` fallisce perche manca
+`tsc` o TypeScript, esegui prima `npm ci`. Una portable gia compilata continua a usare
 il frontend incluso nel suo `_internal/`: per aggiornarlo occorre una nuova build.
 Non sovrascrivere una portable in uso o cancellarne `data/`.
 
@@ -153,6 +155,26 @@ L'avvio usa un parametro `frontend` legato alla build e le risposte HTML hanno
 `Cache-Control: no-store`, per evitare che il profilo persistente carichi una
 vecchia interfaccia. Non e necessario cancellare `webview/` o il `localStorage`.
 Un processo Python gia attivo deve essere riavviato per applicare queste regole.
+
+## Finestra bianca in sviluppo
+
+Con `DEBUG` attivo (default con `python main.py`) l'app non apre piu da sola gli
+strumenti per sviluppatori. Se una finestra bianca intitolata
+`Web Inspector - Planner` compare comunque, per esempio dal menu `Inspect` del
+tasto destro su Linux, e l'inspector Qt e non Planner: chiudila. La finestra
+dell'app resta funzionante.
+
+Su Linux l'inspector integrato di Qt rimane bianco. Per il debug apri
+`http://127.0.0.1:8228` da un browser basato su Chromium mentre l'app e avviata;
+se la porta e occupata pywebview ne sceglie un'altra, indicata nel terminale
+(`Remote debugging server started`).
+La porta e aperta solo con `DEBUG` attivo: in questo caso pywebview aggiunge
+anche `--remote-allow-origins=*`, quindi non usare `DEBUG=1` nelle build
+distribuite. Su Windows i DevTools di WebView2 si aprono con il tasto destro e
+`Ispeziona`. Per avviare senza debug usa `DEBUG=0 python main.py`.
+
+Se invece e bianca la finestra `Planner`, controlla che `frontend/dist` esista e
+che il terminale non mostri errori del backend.
 
 ## Le lingue non cambiano
 

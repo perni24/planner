@@ -157,6 +157,7 @@ def test_desktop_runs_backend_in_thread_and_stops_it_after_window_closes():
         }
         assert mocks["webview"].settings["ALLOW_DOWNLOADS"] is True
         assert mocks["webview"].settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] is True
+        assert mocks["webview"].settings["OPEN_DEVTOOLS_IN_DEBUG"] is False
         mocks["report"].assert_not_called()
         mocks["closed"].__iadd__.assert_called_once()
         assert mocks["server"].should_exit is True

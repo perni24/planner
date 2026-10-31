@@ -52,14 +52,32 @@ in ZIP. Linux resta un artifact di prova: il job release scarica solo
 `PlannerApp-windows` finche build reale, licenze e prove native non sono completate.
 Non rimuovere questo filtro prima delle verifiche in `doc/TODO.md`.
 
-La build Linux conserva i metadati dei pacchetti Qt e usa `build_licenses.py`
-per copiarne i testi upstream in `licenses/`, con versioni e hash in
-`manifest.json`. Non considerare il manifest una raccolta completa di avvisi
-Chromium o sorgenti corrispondenti: la revisione per la release resta nella TODO.
-Non rimuovere i testi di licenza dai pacchetti distribuiti.
+Su Windows e Linux `build_licenses.py` copia in `licenses/` i testi di licenza
+dei pacchetti Python di runtime (dipendenze di `requirements.txt` lette dai
+metadati dell'ambiente di build), di Python e delle librerie frontend
+(`dist/.vite/license.md` generato da Vite con `build.license` e la licenza di
+Tailwind), con versioni e hash in `runtime-manifest.json`. La build fallisce se
+manca un testo; i pacchetti senza file di licenza vanno aggiunti a
+`DISTRIBUTIONS_WITHOUT_LICENSE_FILES` e descritti in `THIRD_PARTY_NOTICES.md`.
+Se aggiungi una dipendenza, aggiorna anche le tabelle di quel file.
+Su Windows aggiunge `LICENSE.txt` e `NOTICE.txt` del WebView2 SDK
+(`backend/third_party_licenses/microsoft-webview2/`), verificando che la DLL
+inclusa da pywebview sia `WEBVIEW2_SDK_VERSION`.
+La build Linux conserva inoltre i metadati dei pacchetti Qt e ne copia i testi
+upstream in `licenses/` con `manifest.json`, che registra anche il link ai sorgenti
+Qt e gli avvisi Chromium (`backend/third_party_licenses/qtwebengine/CHROMIUM_NOTICES.txt`,
+generato con `qtwebengine_notices.py` per `QTWEBENGINE_NOTICES_VERSION`). Le
+librerie di sistema copiate da PyInstaller vengono associate ai pacchetti
+Debian/Ubuntu con `dpkg-query`: `system-manifest.json` e `licenses/system/`.
+La build si ferma se WebView2 SDK o Qt WebEngine non corrispondono ai testi
+salvati, o se una libreria non appartiene a un pacchetto: aggiorna i materiali,
+non disattivare il controllo. Mancano ancora gli avvisi dei moduli Qt diversi da
+WebEngine (vedi TODO). Non rimuovere i testi di licenza dai pacchetti distribuiti.
 
 `backend/requirements.txt` contiene solo le dipendenze di runtime;
-`backend/requirements-dev.txt` lo include e aggiunge PyInstaller e Ruff.
+`backend/requirements-dev.txt` lo include e aggiunge packaging, PyInstaller e Ruff.
+Le versioni sono fissate, tranne Ruff (decisione aperta in `doc/TODO.md`) e le
+dipendenze indirette non elencate: aggiornale volutamente, eseguendo test e app.
 Per sviluppo e build (anche in CI) installa il secondo file.
 
 Esistono test automatici di migrazioni, download backup e repository in
@@ -150,8 +168,10 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Renderer della finestra (`WEBVIEW_GUI` in `config.py`): WebView2 su Windows,
   Qt (PyQt6 + QtWebEngine, basato su Chromium) su Linux, WebKit di sistema su
   macOS. Su Linux `qt` e forzato, altrimenti pywebview proverebbe prima GTK. I
-  pacchetti Qt sono in `requirements.txt` con il marcatore `sys_platform == "linux"`:
-  aggiornali insieme, mantenendo le versioni fissate.
+  pacchetti Qt sono in `requirements.txt` con il marcatore `sys_platform == "linux"`,
+  comprese le librerie `PyQt6-Qt6`, `PyQt6-WebEngine-Qt6` e `PyQt6-sip`:
+  aggiornali insieme, mantenendo le versioni fissate e la stessa serie di
+  PyQt6-WebEngine (che puo uscire dopo PyQt6).
 - Su Windows si usa WebView2 Runtime Evergreen, preinstallato in Windows 11:
   normalmente non serve un'installazione aggiuntiva. Non includere il motore
   completo o un installer nella portable. Il download Microsoft per runtime

@@ -5,7 +5,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from build_licenses import LINUX_QT_DISTRIBUTIONS, collect_linux_licenses, validate_linux_licenses
+from build_licenses import (
+    LINUX_QT_DISTRIBUTIONS,
+    collect_linux_licenses,
+    collect_runtime_licenses,
+    collect_system_licenses,
+    validate_linux_licenses,
+    validate_runtime_licenses,
+    validate_system_licenses,
+)
 
 
 APP_NAME = "PlannerApp"
@@ -178,6 +186,8 @@ def validate_bundle(portable_dir, platform=None):
         raise RuntimeError("Incomplete portable bundle: " + ", ".join(missing))
     if platform == "linux":
         validate_linux_licenses(portable_dir)
+        validate_system_licenses(portable_dir)
+    validate_runtime_licenses(portable_dir, platform)
     validate_destination(portable_dir)
 
 
@@ -215,6 +225,8 @@ def build_app(backend_dir, dist_dir):
     )
     if sys.platform == "linux":
         collect_linux_licenses(portable_dir)
+        collect_system_licenses(portable_dir)
+    collect_runtime_licenses(portable_dir, backend_dir / "requirements.txt", frontend_dir)
     validate_bundle(portable_dir)
     print(f"Portable build ready: {portable_dir}")
 

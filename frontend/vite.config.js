@@ -5,6 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(),tailwindcss()],
+  build: {
+    // Genera dist/.vite/license.md con le licenze delle librerie incluse nel bundle,
+    // copiato nella build portable da build_licenses.py
+    license: true,
+  },
   server: {
     proxy: {
       // Reindirizza le chiamate che iniziano con /api al backend Python

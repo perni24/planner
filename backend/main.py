@@ -130,6 +130,9 @@ def start_server():
 
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
+    # In debug pywebview aprirebbe da solo l'inspector, che con Qt resta bianco
+    # e copre la finestra dell'app: si apre solo se richiesto.
+    webview.settings["OPEN_DEVTOOLS_IN_DEBUG"] = False
 
     config = uvicorn.Config(
         app,

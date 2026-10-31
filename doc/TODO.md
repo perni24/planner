@@ -6,24 +6,29 @@
 
 **1. Renderer Linux: Qt**
 
+Prova locale del 31/10/2026 su Debian 13 (KDE): `build_portable.py` completa la build e il TAR.GZ estratto si avvia. Le voci seguenti restano aperte perche riguardano la build CI su Ubuntu 22.04, le licenze e le prove complete.
+
 - [ ] Eseguire il workflow Linux configurato su `ubuntu-22.04` x64: confermare build reale, rilevamento PyQt6, risorse QtWebEngine e controlli del pacchetto; i test locali simulano la build
 - [ ] Estrarre il `.tar.gz` prodotto dalla CI su Linux e verificare avvio, collegamenti simbolici e permessi dell'app e di `QtWebEngineProcess`
-- [ ] Verificare nella build Linux reale `licenses/manifest.json` e i testi copiati dalle wheel QtPy/PyQt6/PyQt6-sip/Qt6/QtWebEngine; controllare che le versioni corrispondano alle librerie nel TAR.GZ
-- [ ] Completare gli avvisi di terze parti Qt/Chromium per la versione QtWebEngine effettivamente inclusa: le licenze principali delle wheel non contengono tutti gli avvisi Chromium
-- [ ] Prima della release Linux, predisporre e verificare l'accesso ai sorgenti corrispondenti delle componenti GPL/LGPL distribuite; il manifest e i collegamenti agli upstream non sostituiscono questa verifica
+- [ ] Verificare nella build Linux reale `licenses/manifest.json` (testi delle wheel Qt, `CHROMIUM_NOTICES.txt`, `qt_sources`) e `licenses/system-manifest.json` (librerie di sistema di Ubuntu 22.04 con copyright e link ai sorgenti); controllare che le versioni corrispondano alle librerie nel TAR.GZ
+- [ ] Avvisi dei moduli Qt diversi da WebEngine inclusi nel bundle (Qt Base, Qt Declarative/Quick, Svg, Wayland, eventuali Multimedia/FFmpeg, Pdf, Quick3D...): individuarli nella build CI, valutare prima l'esclusione dei moduli e plugin non usati, poi generare gli avvisi dai `qt_attribution.json` dei sorgenti Qt 6.11.2 come per Chromium
+- [ ] Prima della release Linux decidere se i link ai sorgenti esatti (Qt su download.qt.io, librerie di sistema su Launchpad, PyQt6 su PyPI) bastano o se allegare gli archivi alla release o aggiungere un'offerta scritta
 - [ ] Prove con la finestra reale: download del backup, link esterni, copia indirizzo MCP, chiusura, Wayland e X11; pacchetto estratto su Ubuntu 22.04 e su una distribuzione diversa (es. Fedora o KDE)
 - [ ] Definire il fallback grafico degli errori prima dell'apertura della finestra su Linux, per esempio con Qt: oggi restano log e console
 - [ ] Dopo build reale, licenze e prove native, abilitare l'allegato Linux nelle release: il filtro `pattern: PlannerApp-windows` lo esclude finche non e verificato
 
 **2. Verifica dei pacchetti e documentazione**
 
+- [ ] Verificare nelle build reali Windows e Linux `licenses/runtime-manifest.json`: elenco dei pacchetti (su Windows anche `pythonnet` e `clr_loader`), testi copiati e corrispondenza con le tabelle di `THIRD_PARTY_NOTICES.md`
+- [ ] Verificare nella build Windows reale `licenses/python/python/LICENSE.txt` (deve contenere le licenze di OpenSSL, libffi, bzip2 e le condizioni del runtime Visual C++, come nel pacchetto python.org) e `licenses/microsoft-webview2/`
 - [ ] Provare i pacchetti estratti su macchine pulite Windows e Linux, senza Python, Node o Vite installati: avvio, salvataggi, backup, MCP, persistenza e chiusura completa
 - [ ] Allineare guide, istruzioni per gli agenti e documentazione portable ai renderer, ai prerequisiti e ai pacchetti effettivamente verificati
 
 ## 2. Alta
 
 ### Dipendenze e build
-- [ ] Fissare la versione di `mcp` (il codice usa `mcp.server.mcpserver.MCPServer` e `ToolError` dell'SDK 2.x)
+- [ ] Fissare anche le dipendenze indirette (pydantic, anyio, cryptography...) con un file di lock generato da `requirements.txt` per Windows e Linux (per esempio `uv pip compile --universal` o `pip-compile`) e usarlo in CI
+- [ ] Decidere se fissare la versione di `ruff` in `requirements-dev.txt` o tenere sempre l'ultima. Senza configurazione valgono le regole predefinite della versione installata: con ruff 0.17.3 sono comparse 74 segnalazioni senza modifiche al codice (`I001`, `B023` nei test, `RUF059`, `BLE001`, `SIM117`, `S110`). Fissarla rende il lint riproducibile e va aggiornata volutamente; l'ultima versione porta subito le regole nuove ma puo far fallire il lint da un giorno all'altro, anche in CI. In entrambi i casi valutare un `ruff.toml` con le regole scelte e correggere le segnalazioni
 
 ### Database e migrazioni
 - [ ] `migration_runner.py`: le migrazioni girano con `foreign_keys = ON` dentro la transazione, dove `PRAGMA foreign_keys = OFF` viene ignorato. Una migrazione che ricostruisce una tabella cancellerebbe a cascata le righe collegate. Disattivare le foreign key prima di `BEGIN IMMEDIATE`, eseguire `PRAGMA foreign_key_check` prima del commit e documentarlo in `DATABASE.md`. Da fare prima di qualsiasi migrazione che ricostruisce tabelle

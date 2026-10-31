@@ -33,6 +33,13 @@ Il runtime non e incluso nella cartella portable. Se risulta mancante o danneggi
 usa il [download ufficiale Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
 e consulta `doc/TROUBLESHOOTING.md`. Il solo browser Edge non sostituisce il runtime.
 
+## Requisiti Linux
+
+Il pacchetto Linux include il proprio motore web (Qt WebEngine) e occupa circa
+600 MB; richiede glibc 2.34 o successiva e una sessione desktop. Per ora e
+disponibile solo come artifact di prova del workflow, non nelle release (vedi
+`doc/TODO.md`).
+
 ## Avvio in sviluppo
 
 Riepilogo rapido. I passaggi completi, compresa la creazione dell'ambiente virtuale
@@ -42,9 +49,12 @@ Prima prepara il frontend, dalla cartella principale del progetto:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run build
 ```
+
+`frontend/dist/` non e nel repository: dopo ogni aggiornamento del frontend
+ripeti `npm run build` (e `npm ci` se cambiano le dipendenze).
 
 Backend (da un altro terminale nella cartella principale):
 
@@ -52,20 +62,20 @@ Backend (da un altro terminale nella cartella principale):
 cd backend
 ```
 
-Se usi un ambiente virtuale Python nella cartella `backend/venv`, attivalo prima
-di installare le dipendenze. I comandi seguenti vanno eseguiti da `backend/`;
-se il tuo ambiente ha un nome diverso, adatta il percorso.
+Crea e attiva l'ambiente virtuale Python in `backend/.venv` (vedi
+`doc/GUIDA_SVILUPPO.md`): `build_portable.py` cerca PyInstaller in quella
+cartella. I comandi seguenti vanno eseguiti da `backend/`.
 
 Windows (PowerShell):
 
 ```powershell
-.\venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
 Linux/macOS:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 Poi installa le dipendenze e avvia il backend:
@@ -86,7 +96,7 @@ Per sviluppare il frontend con Vite, in un terminale separato:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -109,7 +119,8 @@ L'output viene generato in:
 backend/dist/PlannerApp
 ```
 
-Con la modalita `--onedir` va distribuita tutta la cartella `PlannerApp`, non solo l'eseguibile.
+Con la modalita `--onedir` va distribuita tutta la cartella `PlannerApp`, non solo l'eseguibile,
+comprese `licenses/`, `LICENSE` e `THIRD_PARTY_NOTICES.md`.
 
 ## Stato del progetto
 

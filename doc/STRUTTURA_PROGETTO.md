@@ -10,7 +10,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `doc/`: documentazione tecnica e note di progetto.
 - `.github/workflows/release-build.yml`: build Windows e Linux e creazione della GitHub Release quando viene pubblicato un tag `v*`.
 - `AGENTS.md`: istruzioni per gli agenti AI che lavorano sul progetto.
-- `THIRD_PARTY_NOTICES.md`: avvisi per icone e componenti Qt/PyQt6 Linux, con riferimenti agli upstream e limiti dell'inventario raccolto. Viene copiato nella build portable.
+- `THIRD_PARTY_NOTICES.md`: avvisi e collegamenti alle licenze di icone, Python, PyInstaller, pacchetti Python, WebView2 SDK, librerie frontend e componenti Qt/PyQt6 Linux, con i limiti dell'inventario raccolto. Viene copiato nella build portable.
 - `LICENSE`: licenza GNU GPL v3.
 
 ## Documentazione
@@ -38,7 +38,9 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `config.py`: ambiente (sviluppo/produzione), percorsi incluso il profilo persistente WebView, host, porta, versione app, URL e renderer della finestra e timeout di avvio/arresto. Il reload di Uvicorn e disattivato.
 - `schema.sql`: schema SQLite, trigger, vista `v_projects_status` e dati iniziali.
 - `build_portable.py`: build frontend e PyInstaller, opzioni Windows/WebView2 e Linux/PyQt6, verifica dei contenuti e protezione dei dati nelle cartelle portable gia usate; `--dist-dir` seleziona un output alternativo.
-- `build_licenses.py`: copia i testi di licenza dai metadati Qt effettivamente inclusi nel bundle Linux e genera/verifica `licenses/manifest.json` con versioni e hash.
+- `build_licenses.py`: copia i testi di licenza di pacchetti Python di runtime, Python, librerie frontend e (su Windows) WebView2 SDK in `licenses/` con `runtime-manifest.json`; su Linux copia anche quelli dei metadati Qt e gli avvisi Chromium (`manifest.json`) e i copyright delle librerie di sistema trovate con `dpkg-query` (`system-manifest.json`). Registra versioni e hash e li verifica a fine build.
+- `qtwebengine_notices.py`: genera gli avvisi Chromium dai sorgenti ufficiali di QtWebEngine, leggendo `README.chromium` e testi di licenza senza eseguire codice dei sorgenti.
+- `third_party_licenses/`: testi di licenza salvati nel repository e copiati nella build: `microsoft-webview2/` (WebView2 SDK) e `qtwebengine/CHROMIUM_NOTICES.txt`.
 - `requirements.txt`: dipendenze Python di runtime (Starlette, Uvicorn, MCP e PyWebView).
 - `requirements-dev.txt`: include le dipendenze di runtime e aggiunge PyInstaller e Ruff per sviluppo e build.
 - `db/db.py`: connessione SQLite, creazione del DB, migrazioni all'avvio e copie consistenti per il download backup.
@@ -72,7 +74,7 @@ Elenca i file chiave, non tutti i file: per i dettagli fa fede il codice.
 - `test/test_events.py`: test di chiusura delle code SSE e pubblicazione concorrente allo spegnimento.
 - `test/test_app_routes.py`: test di shutdown, versione e controllo aggiornamenti e rimozione del vecchio endpoint heartbeat.
 - `test/test_build_portable.py`: test degli argomenti PyInstaller Windows/Linux, della selezione PyQt6, dei file richiesti nel pacchetto e della protezione dei dati runtime.
-- `test/test_build_licenses.py`: test di raccolta e integrita dei materiali upstream Linux e del rifiuto di licenze mancanti o vuote.
+- `test/test_build_licenses.py`: test di raccolta e integrita dei materiali upstream (pacchetti Python, frontend, WebView2 SDK, Qt e Chromium, librerie di sistema con `dpkg-query` simulato), della corrispondenza delle versioni salvate e del rifiuto di licenze mancanti o vuote.
 - `test/test_release_workflow.py`: test dei controlli Python del workflow su versione release e permessi TAR.GZ e del filtro che esclude gli artifact Linux non verificati dalle release.
 - `test/test_desktop_errors.py`: test di rotazione log, errori di scrittura, dizionari e dialoghi simulati.
 - `test/test_operation_control.py`: test di scadenze, cancellazione SQLite e bulk, timeout dei lock, pulizia dei backup e rollback delle migrazioni.

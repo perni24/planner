@@ -49,20 +49,28 @@ python -m pip install -r requirements-dev.txt
 ```
 
 `requirements.txt` contiene solo le dipendenze di runtime (Starlette, Uvicorn,
-MCP e PyWebView). Su Linux installa anche Qt (QtPy, PyQt6 e PyQt6-WebEngine), il
+MCP e PyWebView, con versioni fissate). Su Windows aggiunge Python.NET per WebView2.
+Su Linux installa anche Qt (QtPy, PyQt6, PyQt6-WebEngine e le librerie Qt), il
 motore della finestra desktop: il download e di alcune centinaia di MB e la cartella
 `PyQt6` occupa circa 500 MB nell'ambiente virtuale. Su Windows e macOS queste righe
 vengono ignorate.
 `requirements-dev.txt` lo include tramite `-r requirements.txt` e aggiunge
-PyInstaller e Ruff. Per avviare l'app senza gli strumenti di lint o build, usa
+packaging, PyInstaller e Ruff. Dopo un aggiornamento del repository rilancia
+l'installazione: le versioni fissate possono essere cambiate. Per avviare l'app senza gli strumenti di lint o build, usa
 `python -m pip install -r requirements.txt`.
 
 Prima dell'avvio desktop prepara il frontend, dalla cartella `frontend/`:
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
+
+`npm ci` installa le versioni esatte di `package-lock.json`, incluso TypeScript
+usato dal typecheck della build. `frontend/dist/` non e versionato: dopo ogni
+`git pull` che modifica il frontend esegui di nuovo `npm run build` (e `npm ci`
+se e cambiato `package-lock.json`), altrimenti `python main.py` continua a
+mostrare l'interfaccia compilata in precedenza su quel PC.
 
 Poi, da `backend/` con il venv attivo, avvia l'app:
 
@@ -124,7 +132,7 @@ continua a usare il frontend compilato, non il server Vite.
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -234,7 +242,8 @@ dati runtime. Questi test simulano la compilazione e non avviano l'eseguibile.
 `test/test_release_workflow.py` esegue il codice Python del controllo versione e
 dei permessi nell'archivio TAR.GZ su file temporanei; non esegue GitHub Actions.
 `test/test_build_licenses.py` verifica copia byte per byte dei testi upstream,
-versioni registrate e rifiuto di materiali mancanti, vuoti o modificati.
+versioni registrate, dipendenze di runtime raccolte con marcatori ed extra e
+rifiuto di materiali mancanti, vuoti o modificati.
 Non vengono aperte finestre native: la prova manuale di PyWebView resta necessaria.
 I linter e i test backend restano manuali. GitHub Actions esegue il controllo
 TypeScript come parte della build frontend.
@@ -321,6 +330,39 @@ La verifica finale richiede `QtWebEngineProcess`, `libQt6WebEngineCore.so.6`,
 plugin XCB, risorse Chromium, ICU, dizionario en-US e JavaScript PyWebView; su
 Linux controlla inoltre i permessi di esecuzione dell'app e del processo helper.
 
+### Materiali di licenza
+
+Su Windows e Linux, dopo PyInstaller, `build_licenses.py` raccoglie in
+`licenses/`:
+
+- `python/<pacchetto>/`: i file LICENSE, COPYING, NOTICE, COPYRIGHT e AUTHORS
+  di ogni pacchetto di runtime. L'elenco parte da `requirements.txt` e segue le
+  dipendenze dichiarate, con marcatori di piattaforma ed extra valutati sul
+  sistema di build; i metadati sono quelli dell'ambiente che esegue PyInstaller.
+  `requirements-dev.txt` resta escluso;
+- `python/python/LICENSE.txt`: la licenza dell'interprete usato per la build;
+- `frontend/license.md`: le licenze delle librerie JavaScript incluse nel
+  bundle, generato da Vite (`build.license` in `vite.config.js`), e
+  `frontend/tailwindcss-LICENSE` per il CSS generato da Tailwind;
+- `runtime-manifest.json`: versione, licenza dichiarata, collegamento e hash
+  SHA-256 di ogni file copiato.
+
+La build fallisce se un pacchetto non e installato, se non ha un testo di
+licenza o se i file del frontend mancano. Fanno eccezione i pacchetti in
+`DISTRIBUTIONS_WITHOUT_LICENSE_FILES` (oggi `proxy_tools`), descritti a mano in
+`THIRD_PARTY_NOTICES.md`. Dopo aver aggiunto o rimosso una dipendenza aggiorna
+le tabelle di quel file.
+
+Su Windows il `LICENSE.txt` di Python di python.org comprende gia le licenze
+delle librerie native dell'interprete (OpenSSL, libffi, bzip2, Zstandard,
+Tcl/Tk) e le condizioni del runtime Visual C++. La build aggiunge
+`microsoft-webview2/LICENSE.txt` e `NOTICE.txt`, presi dal pacchetto NuGet del
+WebView2 SDK e salvati in `backend/third_party_licenses/microsoft-webview2/`.
+La versione della DLL inclusa da pywebview deve essere `WEBVIEW2_SDK_VERSION`
+in `build_licenses.py`: se un aggiornamento di pywebview la cambia, la build e
+`test_build_licenses.py` falliscono finche non si salvano i file della nuova
+versione (`https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/<versione>`).
+
 ### Materiali di licenza Linux
 
 `THIRD_PARTY_NOTICES.md` distingue le icone, QtPy (MIT), i binding
@@ -341,13 +383,39 @@ La build fallisce se manca un componente, un testo principale di licenza o se
 il controllo finale trova file mancanti o alterati. Windows non raccoglie Qt
 e non richiede questa cartella. Il TAR.GZ include automaticamente `licenses/`.
 
-Il manifest non e un inventario completo di tutte le dipendenze e non e una
-distribuzione dei sorgenti. In particolare, i LICENSE delle wheel non
-comprendono tutti gli avvisi delle componenti Chromium. Prima della pubblicazione
-Linux occorre ancora raccogliere e verificare gli avvisi Qt/Chromium e l'accesso
-ai sorgenti corrispondenti per le versioni effettive. Queste verifiche restano
-in `TODO.md`, insieme al controllo dei materiali nel pacchetto Linux reale.
-Non abilitare l'allegato Linux alla release sulla sola base del manifest.
+I LICENSE delle wheel Qt contengono solo la LGPLv3. Gli avvisi di Chromium sono
+in `backend/third_party_licenses/qtwebengine/CHROMIUM_NOTICES.txt`, copiato in
+`licenses/qtwebengine/`; `manifest.json` registra anche `qt_sources`, il link agli
+archivi sorgente della versione Qt inclusa. La build fallisce se
+`PyQt6-WebEngine-Qt6` nel bundle non e `QTWEBENGINE_NOTICES_VERSION`. Dopo un
+aggiornamento di Qt rigenera gli avvisi dai sorgenti ufficiali (circa 600 MB),
+senza eseguire script contenuti nei sorgenti:
+
+```bash
+curl -LO https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtwebengine-everywhere-src-6.11.2.tar.xz
+curl -LO https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtwebengine-everywhere-src-6.11.2.tar.xz.sha256
+sha256sum -c qtwebengine-everywhere-src-6.11.2.tar.xz.sha256
+tar -xJf qtwebengine-everywhere-src-6.11.2.tar.xz
+python qtwebengine_notices.py qtwebengine-everywhere-src-6.11.2 \
+  third_party_licenses/qtwebengine/CHROMIUM_NOTICES.txt --sha256 <hash del file .sha256>
+```
+
+Poi aggiorna `QTWEBENGINE_NOTICES_VERSION` e le versioni in
+`THIRD_PARTY_NOTICES.md`. Lo script legge solo i file `README.chromium` e i testi
+di licenza indicati; elenca i componenti non marcati `Shipped: no`, quindi puo
+includerne alcuni non compilati da Qt.
+
+PyInstaller copia anche librerie del sistema di build (GLib, GTK, OpenSSL,
+libstdc++...). `build_licenses.py` le associa ai pacchetti con `dpkg-query`,
+copia `/usr/share/doc/<pacchetto>/copyright` in `licenses/system/` e scrive
+`system-manifest.json` con versione, librerie, pacchetto sorgente e link al
+sorgente esatto (Launchpad su Ubuntu, snapshot.debian.org su Debian). Per questo
+la build Linux richiede Debian o Ubuntu e fallisce se una libreria non appartiene
+a nessun pacchetto. Restano esclusi `libpython`, i moduli di estensione Python e
+le librerie gia presenti nelle cartelle dei pacchetti (es. ICU di Qt).
+
+Mancano ancora gli avvisi dei moduli Qt diversi da WebEngine (vedi `TODO.md`):
+non abilitare l'allegato Linux alla release prima di averli completati.
 
 ### Archivio e verifica Linux
 
@@ -360,8 +428,32 @@ tar -xzf PlannerApp-linux.tar.gz
 ./PlannerApp/PlannerApp
 ```
 
-Le wheel x64 di [PyQt6-Qt6](https://pypi.org/project/PyQt6-Qt6/6.11.0/) e
-[QtWebEngine](https://pypi.org/project/PyQt6-WebEngine-Qt6/6.11.0/) della serie
+Per provare una build locale nello stesso modo, da `backend/`:
+
+```bash
+python build_portable.py
+tar -czf PlannerApp-linux.tar.gz -C dist PlannerApp
+mkdir -p ~/prova-planner
+tar -xzf PlannerApp-linux.tar.gz -C ~/prova-planner
+~/prova-planner/PlannerApp/PlannerApp
+```
+
+Avvia la copia estratta, non `backend/dist/PlannerApp`: al primo avvio la
+portable crea `data/` accanto all'eseguibile e la build successiva si fermerebbe
+per non sovrascrivere i dati. Controlla interfaccia, salvataggi e persistenza,
+backup, copia dell'indirizzo MCP, link esterni, chiusura completa del processo,
+X11 (`QT_QPA_PLATFORM=xcb`) e il contenuto di `licenses/`. Al termine elimina
+`build/`, `dist/`, l'archivio e la cartella di prova.
+
+La cartella Linux occupa circa 600 MB (circa 200 MB solo per
+`libQt6WebEngineCore.so.6`, cioe Chromium): e normale, perche il motore web e
+incluso nel pacchetto. PyInstaller copia anche librerie di sistema della
+macchina di build (GTK, CUPS, codec audio...): una build locale contiene quelle
+della propria distribuzione, quindi per la distribuzione si usa la build CI su
+Ubuntu 22.04.
+
+Le wheel x64 di [PyQt6-Qt6](https://pypi.org/project/PyQt6-Qt6/6.11.2/) e
+[QtWebEngine](https://pypi.org/project/PyQt6-WebEngine-Qt6/6.11.2/) della serie
 impostata richiedono glibc 2.34 o successiva. La base Ubuntu 22.04 non garantisce
 da sola la compatibilita con tutte le distribuzioni: build reale e prove su
 desktop puliti, Wayland e X11 restano in `TODO.md`. Vedi anche

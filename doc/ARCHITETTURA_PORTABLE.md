@@ -25,16 +25,17 @@ macOS non e distribuito per ora (vedi `SVILUPPI_FUTURI.md`, "Supporto macOS");
 avviando il codice su un Mac pywebview usa il WebKit di sistema.
 
 Su Linux il pacchetto non richiede WebKitGTK o altri motori installati, ma e piu
-grande. Il Chromium incluso carica solo l'interfaccia locale: i link esterni si
+grande: circa 600 MB estratto, quasi tutti per QtWebEngine/Chromium e le librerie
+Qt; la portable Windows non include il motore web. Il Chromium incluso carica solo l'interfaccia locale: i link esterni si
 aprono nel browser di sistema.
 Build e avvio Linux selezionano il binding PyQt6 tramite `QT_API=pyqt6`.
 Il workflow usa Ubuntu 22.04 x64 e crea un TAR.GZ con permessi e collegamenti
 simbolici preservati. Restano necessarie librerie di sistema e una sessione
 desktop: vedi `GUIDA_SVILUPPO.md` e `TROUBLESHOOTING.md`.
-Nel pacchetto Linux `licenses/` contiene copie dei testi di licenza disponibili
-nelle wheel Qt e un manifest con versioni e hash; questi materiali non
-sostituiscono la revisione degli avvisi Qt/Chromium e dei sorgenti corrispondenti.
-Finche le verifiche e le licenze Linux sono aperte, il pacchetto e disponibile
+Nel pacchetto Linux `licenses/` contiene anche i testi delle wheel Qt, gli avvisi
+Chromium, i copyright delle librerie di sistema incluse e i manifest con versioni,
+hash e link ai sorgenti. Mancano ancora gli avvisi degli altri moduli Qt:
+finche questa e le altre verifiche Linux sono aperte, il pacchetto e disponibile
 solo come artifact di prova del workflow e non come allegato della release.
 
 ## Struttura dell'output
@@ -45,6 +46,9 @@ Dopo la build locale o GitHub Actions, l'output principale e:
 backend/dist/PlannerApp/
   PlannerApp.exe
   _internal/
+  licenses/
+  LICENSE
+  THIRD_PARTY_NOTICES.md
 ```
 
 Al primo avvio vengono aggiunte le cartelle modificabili:
@@ -68,7 +72,7 @@ Su Linux il file eseguibile non avra estensione `.exe`, ma la logica resta la st
 - `data/logs/`: log degli errori desktop e di Uvicorn. `planner.log` arriva a circa 1 MB, con al massimo tre copie ruotate; se la cartella non e scrivibile resta la console.
 - `data/webview/`: profilo della finestra (cookie, dati web e cache gestiti dal renderer), separato dal profilo del browser dell'utente.
 - `locales/`: contiene i file lingua esterni copiati al primo avvio e modificabili dall'utente.
-- `licenses/`: solo nel pacchetto Linux, testi upstream dei pacchetti Qt e `manifest.json` generato durante la build; va conservata nella distribuzione, non e una cartella di dati utente.
+- `licenses/`: testi di licenza di Python, dei pacchetti Python e delle librerie frontend con `runtime-manifest.json`; su Windows anche il WebView2 SDK; nel pacchetto Linux anche i testi upstream dei pacchetti Qt, gli avvisi Chromium (`qtwebengine/`, `manifest.json`) e i copyright delle librerie di sistema (`system/`, `system-manifest.json`). Generata durante la build, va conservata nella distribuzione e non e una cartella di dati utente.
 
 ## Percorsi principali
 
@@ -192,6 +196,12 @@ backup scaricato contiene soltanto SQLite, non il profilo WebView o i file lingu
 nel browser esterno; la pagina GitHub non deve sostituire Planner nella finestra.
 La copia dell'indirizzo MCP resta basata su `navigator.clipboard.writeText()` e
 sui toast esistenti, senza un bridge Python-JavaScript.
+
+`OPEN_DEVTOOLS_IN_DEBUG=False` evita che, con `DEBUG` attivo (default in
+sviluppo), pywebview apra da solo gli strumenti per sviluppatori: con Qt
+l'inspector e una seconda finestra bianca che copre Planner. Il debug resta
+attivo e gli strumenti si aprono solo su richiesta (vedi `TROUBLESHOOTING.md`).
+La portable ha `DEBUG` disattivato.
 
 I test automatici verificano le opzioni e i percorsi, non il renderer: salvataggio
 e annullamento download, link, clipboard, persistenza effettiva e ripresa dalla

@@ -9,6 +9,32 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import build_portable as build
+from build_licenses import (
+    QTWEBENGINE_NOTICES_VERSION,
+    WEBVIEW2_SDK_VERSION,
+    collect_runtime_licenses,
+    collect_system_licenses,
+)
+
+
+def version_resource(version):
+    # Frammento minimo della risorsa di versione letta da read_file_version.
+    return b"".join(
+        text.encode("utf-16-le") + b"\x00\x00" for text in ("StringFileInfo", "FileVersion", version)
+    )
+
+
+def make_runtime_licenses(root, platform):
+    # Pacchetto reale dell'ambiente di test e file frontend fittizi.
+    fixture = root / "_fixture"
+    requirements = fixture / "requirements.txt"
+    requirements.parent.mkdir(parents=True, exist_ok=True)
+    requirements.write_text("starlette\n", encoding="utf-8")
+    for relative in ("dist/.vite/license.md", "node_modules/tailwindcss/LICENSE"):
+        path = fixture / "frontend" / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("frontend license fixture", encoding="utf-8")
+    collect_runtime_licenses(root, requirements, fixture / "frontend", platform)
 
 
 def expect_error(exception, operation):
@@ -43,18 +69,25 @@ def make_bundle(root, platform="win32"):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("fixture", encoding="utf-8")
+    if platform == "win32":
+        (root / "_internal/webview/lib/Microsoft.Web.WebView2.Core.dll").write_bytes(
+            version_resource(WEBVIEW2_SDK_VERSION)
+        )
     if platform == "linux" and os.name != "nt":
         (root / "PlannerApp").chmod(0o755)
         (root / "_internal" / build.LINUX_QT_REQUIRED_FILES[0]).chmod(0o755)
     if platform == "linux":
         for name in build.LINUX_QT_DISTRIBUTIONS:
-            relative = f"{name.lower().replace('-', '_')}-1.0.dist-info"
+            version = QTWEBENGINE_NOTICES_VERSION
+            relative = f"{name.lower().replace('-', '_')}-{version}.dist-info"
             info = root / "_internal" / relative
             info.mkdir(parents=True)
-            (info / "METADATA").write_text(f"Name: {name}\nVersion: 1.0\n", encoding="utf-8")
+            (info / "METADATA").write_text(f"Name: {name}\nVersion: {version}\n", encoding="utf-8")
             (info / "LICENSE").write_text("upstream license fixture", encoding="utf-8")
             (info / "RECORD").write_text(f"{relative}/LICENSE,,\n", encoding="utf-8")
         build.collect_linux_licenses(root)
+        collect_system_licenses(root, query=lambda arguments: "")
+    make_runtime_licenses(root, platform)
     return root
 
 
@@ -195,6 +228,30 @@ def test_bundle_validation_checks_resources_licenses_and_migrations():
             path.write_text("fixture", encoding="utf-8")
 
 
+def test_bundle_validation_requires_runtime_license_inventory():
+    with TemporaryDirectory(prefix="planner-build-runtime-licenses-") as directory:
+        root = make_bundle(Path(directory))
+        manifest = root / "licenses" / "runtime-manifest.json"
+        manifest.unlink()
+        error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "win32"))
+        assert "runtime license" in str(error)
+
+
+def test_windows_bundle_requires_webview2_sdk_licenses():
+    with TemporaryDirectory(prefix="planner-build-webview2-") as directory:
+        root = make_bundle(Path(directory))
+        (root / "licenses" / "microsoft-webview2" / "LICENSE.txt").unlink()
+        expect_error(RuntimeError, lambda: build.validate_bundle(root, "win32"))
+
+
+def test_linux_bundle_requires_system_library_inventory():
+    with TemporaryDirectory(prefix="planner-build-system-") as directory:
+        root = make_bundle(Path(directory), "linux")
+        (root / "_internal" / "libexample.so.1").write_text("fixture", encoding="utf-8")
+        error = expect_error(RuntimeError, lambda: build.validate_bundle(root, "linux"))
+        assert "system license" in str(error)
+
+
 def test_missing_license_stops_before_any_build_command():
     with TemporaryDirectory(prefix="planner-build-license-") as directory, patch.object(build, "run") as run:
         root = Path(directory)
@@ -242,9 +299,14 @@ def test_build_copies_notices_and_validates_selected_destination():
 
         with patch.object(build, "run", side_effect=run) as commands, patch.object(
             build, "get_pyinstaller_command", return_value=["pyinstaller"]
-        ), patch.object(build.sys, "platform", "win32"), redirect_stdout(StringIO()):
+        ), patch.object(build, "collect_runtime_licenses") as collect, patch.object(
+            build.sys, "platform", "win32"
+        ), redirect_stdout(StringIO()):
             build.build_app(backend, output)
         assert commands.call_count == 2
+        collect.assert_called_once_with(
+            output / build.APP_NAME, backend / "requirements.txt", root / "frontend"
+        )
         assert commands.call_args_list[0].kwargs["cwd"] == root / "frontend"
         assert (output / build.APP_NAME / "LICENSE").read_text(encoding="utf-8") == "license"
         assert (output / build.APP_NAME / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8") == "notices"
@@ -266,7 +328,9 @@ def test_linux_build_passes_binding_environment_and_validates_bundle():
 
         with patch.object(build, "run", side_effect=run) as commands, patch.object(
             build, "get_pyinstaller_command", return_value=["pyinstaller"]
-        ), patch.object(build.sys, "platform", "linux"), patch.object(build.os, "access", return_value=True), redirect_stdout(StringIO()):
+        ), patch.object(build, "collect_runtime_licenses"), patch.object(
+            build.sys, "platform", "linux"
+        ), patch.object(build.os, "access", return_value=True), redirect_stdout(StringIO()):
             build.build_app(backend, output)
         assert commands.call_count == 2
         assert (output / build.APP_NAME / "PlannerApp").is_file()

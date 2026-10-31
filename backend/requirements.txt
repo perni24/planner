@@ -1,9 +1,18 @@
-starlette==1.0.0
-uvicorn==0.43.0
-mcp
+starlette==1.10.0
+uvicorn==0.54.0
+# Il codice usa MCPServer e ToolError dell'SDK 2.x.
+mcp==2.3.0
 pywebview==6.2.1
+# pywebview usa Python.NET per WebView2 su Windows.
+pythonnet==3.2.1; sys_platform == "win32"
+clr_loader==0.3.1; sys_platform == "win32"
 # Su Linux pywebview non include un motore web: si usa Qt (QtWebEngine), incluso
 # nel pacchetto portable. Sono le dipendenze dell'extra pywebview[qt].
+# Binding e librerie Qt devono restare della stessa serie di PyQt6-WebEngine.
 QtPy==2.4.3; sys_platform == "linux"
 PyQt6==6.11.0; sys_platform == "linux"
 PyQt6-WebEngine==6.11.0; sys_platform == "linux"
+PyQt6-sip==13.13.0; sys_platform == "linux"
+# Librerie Qt/Chromium distribuite: sorgenti e avvisi devono corrispondere a queste versioni.
+PyQt6-Qt6==6.11.2; sys_platform == "linux"
+PyQt6-WebEngine-Qt6==6.11.2; sys_platform == "linux"
