@@ -144,6 +144,10 @@ Manutenzione:
 
 - **Nuova dipendenza Python o npm**: aggiorna le tabelle di `THIRD_PARTY_NOTICES.md`.
   Un pacchetto senza file di licenza va in `DISTRIBUTIONS_WITHOUT_LICENSE_FILES`.
+- **Aggiornamento di cryptography, pydantic-core o rpds-py** (o nuovo pacchetto con
+  estensioni in Rust): controlla su crates.io le licenze dei crate nel `Cargo.lock`
+  del loro sorgente su PyPI e aggiorna "Rust Libraries in Compiled Extensions" in
+  `THIRD_PARTY_NOTICES.md` se compare una licenza non elencata.
 - **Aggiornamento di pywebview** con un WebView2 SDK diverso: la build fallisce;
   scarica `LICENSE.txt` e `NOTICE.txt` da
   `https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/<versione>` e

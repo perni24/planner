@@ -45,13 +45,8 @@ avvia su Debian 13 e i materiali di licenza risultano completi e verificati.
 - [ ] DB migrati da `v0.0.1`: possibili progetti e task orfani (foreign key non
   attive in quella versione); pulirli in una migrazione. In quei DB `parent_id` e
   l'ultima colonna: le migrazioni devono elencare le colonne, mai `SELECT *`
-- [ ] L'inizializzazione ha di fatto 30 secondi (`DATABASE_OPERATION_TIMEOUT_SECONDS`)
-  invece dei 120 di `RUNTIME_INITIALIZATION_TIMEOUT_SECONDS`
-- [ ] `DATABASE_PROGRESS_STEPS = 1000` rallenta molto le query quando un altro thread
-  esegue Python (da 0,06 a 17,8 s): portarlo a 50.000-100.000
 
 ### Validazione ed errori
-- [ ] MCP: `completed` non e strict (Pydantic converte `"yes"` e `1` in `True`)
 - [ ] Gestore globale degli errori (JSON non valido, `IntegrityError`)
 - [ ] `get_project`: `404` se il progetto non esiste e gestione in `Tasks.jsx`
 
@@ -82,12 +77,6 @@ avvia su Debian 13 e i materiali di licenza risultano completi e verificati.
   `update_status_task`, i controlli sul parent di `insert_task` e `delete_area` con
   il trigger (`test_app_routes.py` monta le route senza middleware)
 - [ ] Test di migrazione con gli schemi reali dei tag (`git show v0.0.1:backend/schema.sql`)
-
-### Frontend
-- [ ] Risposte fuori ordine in `Project.jsx` e `Tasks.jsx` con cambi rapidi di area
-  o task: ignorare le risposte superate e svuotare i dati al cambio di area
-- [ ] Se il ricaricamento delle aree fallisce dopo una scrittura, `AreaSwitcher`
-  scompare senza mostrare l'errore
 
 ### Varie
 - [ ] Importazione sicura di un backup

@@ -106,6 +106,15 @@ def test_windows_arguments_collect_bridge_and_exclude_other_renderers():
     assert arguments[-1] == str(root / "main.py")
 
 
+def test_build_only_modules_are_excluded_on_every_platform():
+    # setuptools e packaging non sono nell'inventario delle licenze: non vanno nel bundle.
+    root = Path(__file__).resolve().parents[1]
+    for platform in ("win32", "linux"):
+        arguments = build.get_pyinstaller_arguments(root, root / "dist", platform)
+        excluded = {arguments[index + 1] for index, value in enumerate(arguments) if value == "--exclude-module"}
+        assert {"setuptools", "_distutils_hack", "pkg_resources"} <= excluded
+
+
 def test_windows_resources_do_not_include_database_or_profile_directory():
     root = Path(__file__).resolve().parents[1]
     arguments = build.get_pyinstaller_arguments(root, root / "dist", "win32")

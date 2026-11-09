@@ -85,7 +85,7 @@ Included in both the Windows and Linux builds unless noted otherwise.
 | mcp 2.3.0 | [MIT](https://spdx.org/licenses/MIT.html) | [PyPI](https://pypi.org/project/mcp/2.3.0/) |
 | mcp-types | [MIT](https://spdx.org/licenses/MIT.html) | [PyPI](https://pypi.org/project/mcp-types/) |
 | opentelemetry-api | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) | [PyPI](https://pypi.org/project/opentelemetry-api/) |
-| packaging | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) OR [BSD-2-Clause](https://spdx.org/licenses/BSD-2-Clause.html) | [PyPI](https://pypi.org/project/packaging/) |
+| packaging (Linux only, required by QtPy) | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) OR [BSD-2-Clause](https://spdx.org/licenses/BSD-2-Clause.html) | [PyPI](https://pypi.org/project/packaging/) |
 | proxy_tools (see note) | [MIT](https://spdx.org/licenses/MIT.html) | [PyPI](https://pypi.org/project/proxy_tools/) |
 | pycparser | [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html) | [PyPI](https://pypi.org/project/pycparser/) |
 | pydantic | [MIT](https://spdx.org/licenses/MIT.html) | [PyPI](https://pypi.org/project/pydantic/) |
@@ -109,6 +109,25 @@ libraries) are described in [Linux Desktop Components](#linux-desktop-components
 Note on proxy_tools: author Jonathan Tushman. The package declares the MIT
 license in its metadata but does not distribute a license file; source:
 [proxy_tools on GitHub](https://github.com/jtushman/proxy_tools).
+
+### Rust Libraries in Compiled Extensions
+
+The compiled extensions of cryptography (`cryptography/hazmat/bindings/_rust`),
+pydantic-core (`pydantic_core/_pydantic_core`) and rpds-py (`rpds/rpds`)
+statically link Rust libraries (crates) whose license texts are not shipped in
+the wheels. The exact crates and versions are listed in the `Cargo.lock` file of
+the source distribution of each package on PyPI
+([cryptography](https://pypi.org/project/cryptography/),
+[pydantic-core](https://pypi.org/project/pydantic-core/),
+[rpds-py](https://pypi.org/project/rpds-py/)), for the version recorded in
+`licenses/runtime-manifest.json`. At the configured versions these crates are
+under permissive licenses: mostly MIT and/or Apache-2.0, plus BSD-3-Clause,
+Unicode-3.0, Zlib and Unlicense. Crates that also offer GPL-2.0 or LGPL-2.1 as
+an alternative are used under their permissive option.
+
+The cryptography extension also statically links
+[OpenSSL](https://github.com/openssl/openssl), licensed under Apache-2.0; the
+license text is in the cryptography license files (`LICENSE.APACHE`).
 
 ## Microsoft WebView2 SDK (Windows only)
 

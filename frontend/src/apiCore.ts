@@ -7,6 +7,7 @@ interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 /**
@@ -15,7 +16,7 @@ interface ApiOptions {
  */
 export async function apiCore<T>(
   endpoint: string, 
-  { method = 'GET', body, headers }: ApiOptions = {}
+  { method = 'GET', body, headers, signal }: ApiOptions = {}
 ): Promise<T> {
   
   // Costruiamo l'URL completo (es. /api/projects)
@@ -24,6 +25,7 @@ export async function apiCore<T>(
   // Configuriamo gli header base (sempre JSON)
   const config: RequestInit = {
     method,
+    signal,
     headers: {
       'Content-Type': 'application/json',
       ...headers, // Permette di sovrascrivere o aggiungere header specifici
@@ -56,7 +58,9 @@ export async function apiCore<T>(
 
   } catch (error) {
     // Logghiamo l'errore in console per il debug
-    console.error(`[API Error] ${method} ${url}:`, error);
+    if (!signal?.aborted) {
+      console.error(`[API Error] ${method} ${url}:`, error);
+    }
     
     // Rilanciamo l'errore in modo che il componente React possa gestirlo (es. mostrare un alert)
     throw error;

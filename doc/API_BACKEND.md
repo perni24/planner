@@ -155,6 +155,10 @@ Trasporto Streamable HTTP (stateless, risposte JSON) su
 - Ogni operazione bulk accetta da 1 a 50 elementi e fallisce per intero se un
   elemento non e valido; l'errore indica il motivo (es. `Tasks not found: 99.`).
 - Gli ID devono essere interi JSON (validazione strict `EntityId`).
+- `bulk_set_task_completed` richiede `completed` come booleano JSON `true` o
+  `false` (modello `StrictBool`); stringhe come `"yes"` o `"false"`, numeri come
+  `0` o `1`, `null` e campi omessi vengono rifiutati prima del service. Un
+  elemento non valido fa rifiutare l'intero batch senza scritture o eventi SSE.
 - `bulk_delete_task` (`{"tasks": [{"id": 15}], "include_subtasks": false}`)
   restituisce `requested`, `deleted` (incluse le subtask), `requested_task_ids`,
   `task_ids` e `parent_ids`.

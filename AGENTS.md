@@ -68,6 +68,11 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
 - Le scritture che il frontend deve vedere in tempo reale pubblicano un evento SSE
   con `services/event_service.publish()`.
 - Percorsi e impostazioni solo da `config.py` (cambiano tra sviluppo e `IS_FROZEN`).
+- SQLite: controlli cooperativi ogni 50.000 istruzioni interne; le connessioni
+  normali hanno 30 secondi. `init_db()` condivide il budget di avvio di 120 secondi
+  con connessione e backup di migrazione (`operation_timeout_seconds` esplicito),
+  rispettando sempre eventuali scadenze esterne piu brevi. Non rimuovere i
+  controlli di annullamento o allungare il limite delle richieste normali.
 - `main.py` avvia Uvicorn in un thread e PyWebView nel thread principale; chiudere
   la finestra ferma il backend. Arresto e timeout passano da
   `services/operation_control.py`: non sostituirli con `os._exit()` o thread daemon.

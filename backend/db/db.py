@@ -5,9 +5,11 @@ from contextlib import closing
 from config import (
     DATA_DIR, DB_PATH, MIGRATION_BACKUPS_DIR, MIGRATIONS_DIR, SCHEMA_PATH,
     DATABASE_OPERATION_TIMEOUT_SECONDS, DATABASE_PROGRESS_STEPS, SQLITE_BUSY_TIMEOUT_SECONDS,
+    RUNTIME_INITIALIZATION_TIMEOUT_SECONDS,
 )
 from services.operation_control import (
     cancellation_requested, check_operation, is_stopping, operation_deadline,
+    operation_scope,
 )
 from db.migration_runner import (
     apply_migrations,
@@ -19,11 +21,13 @@ from db.migration_runner import (
 )
 
 
-def get_db_connection():
+def get_db_connection(*, operation_timeout_seconds=None):
     """Ritorna una connessione al database pronta all'uso."""
     if is_stopping():
         raise InterruptedError("Application is shutting down; no new database operations allowed")
-    deadline = operation_deadline(DATABASE_OPERATION_TIMEOUT_SECONDS)
+    if operation_timeout_seconds is None:
+        operation_timeout_seconds = DATABASE_OPERATION_TIMEOUT_SECONDS
+    deadline = operation_deadline(operation_timeout_seconds)
     check_operation(deadline)
     conn = sqlite3.connect(DB_PATH, timeout=SQLITE_BUSY_TIMEOUT_SECONDS)
     try:
@@ -50,6 +54,11 @@ def backup_database(destination_path):
 
 
 def init_db():
+    with operation_scope(RUNTIME_INITIALIZATION_TIMEOUT_SECONDS):
+        _initialize_database()
+
+
+def _initialize_database():
     check_operation()
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
@@ -58,7 +67,9 @@ def init_db():
     migrations = load_migrations(MIGRATIONS_DIR)
     latest_version = len(migrations)
 
-    with closing(get_db_connection()) as conn:
+    with closing(get_db_connection(
+        operation_timeout_seconds=RUNTIME_INITIALIZATION_TIMEOUT_SECONDS
+    )) as conn:
         try:
             conn.execute("BEGIN IMMEDIATE")
             version = get_schema_version(conn)
@@ -87,7 +98,10 @@ def init_db():
             raise
 
         if version < latest_version:
-            create_migration_backup(conn, MIGRATION_BACKUPS_DIR, version)
+            create_migration_backup(
+                conn, MIGRATION_BACKUPS_DIR, version,
+                operation_timeout_seconds=RUNTIME_INITIALIZATION_TIMEOUT_SECONDS,
+            )
         apply_migrations(conn, migrations, MIGRATIONS_DIR)
         print(f"Database pronto in: {DB_PATH} (schema {get_schema_version(conn)}).")
 

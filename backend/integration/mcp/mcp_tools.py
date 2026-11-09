@@ -74,6 +74,7 @@ def register_mcp_tools(mcp):
     def bulk_set_task_completed(tasks: list[SetTaskCompleted]) -> dict:
         """Set the completion status of multiple tasks in one operation.
 
+        completed must be a JSON boolean (true or false), never a string or number.
         Tasks that have subtasks cannot be set directly: their status is derived
         from their subtasks and is completed only when all of them are completed.
         """

@@ -79,3 +79,30 @@ contenere `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` o assegnazioni a
 copia consistente in una cartella temporanea dentro `DATA_DIR`, la invia e la
 elimina. Contiene dati, schema e `user_version`, non i file lingua. I backup delle
 migrazioni restano separati. L'importazione non e ancora disponibile.
+
+## Timeout e annullamento
+
+`get_db_connection()` assegna normalmente una scadenza di 30 secondi dall'apertura
+della connessione (`DATABASE_OPERATION_TIMEOUT_SECONDS`). Non e un'attesa minima
+e non si rinnova a ogni query. Se esiste uno scope con una scadenza piu breve,
+prevale sempre quella.
+
+`init_db()` usa invece un unico budget di 120 secondi
+(`RUNTIME_INITIALIZATION_TIMEOUT_SECONDS`), anche se chiamata direttamente. La
+connessione di inizializzazione e il backup preventivo ricevono esplicitamente
+questo budget con `operation_timeout_seconds`; lo scope condiviso impedisce di
+ripartire da 120 a ogni migrazione o backup. Il budget comprende il tempo gia
+trascorso nella preparazione del runtime eseguita da `main.py`. I backup richiesti
+dall'interfaccia conservano il normale limite di 30 secondi.
+
+SQLite richiama il controllo Python di timeout e spegnimento ogni 50.000
+istruzioni della propria macchina virtuale (`DATABASE_PROGRESS_STEPS`), non ogni
+50.000 righe. Questo riduce i passaggi SQLite/Python rispetto alle precedenti
+1.000 istruzioni, senza disabilitare l'annullamento. Restano anche i controlli
+tra gli elementi bulk, tra le istruzioni delle migrazioni e prima del commit.
+
+L'attesa di un lock SQLite resta limitata a 1 secondo. Durante la chiusura resta
+la tolleranza di 3 secondi prima dell'annullamento cooperativo; il controllo
+successivo interrompe il lavoro e la transazione corrente viene annullata.
+Questi limiti non possono interrompere I/O bloccato internamente dal sistema
+operativo e non garantiscono un tempo massimo assoluto di arresto.

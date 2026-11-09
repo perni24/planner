@@ -70,8 +70,10 @@ def execute_script(conn, script):
         conn.set_authorizer(None)
 
 
-def create_migration_backup(conn, directory, version):
-    deadline = operation_deadline(DATABASE_OPERATION_TIMEOUT_SECONDS)
+def create_migration_backup(conn, directory, version, *, operation_timeout_seconds=None):
+    if operation_timeout_seconds is None:
+        operation_timeout_seconds = DATABASE_OPERATION_TIMEOUT_SECONDS
+    deadline = operation_deadline(operation_timeout_seconds)
     check_operation(deadline)
     os.makedirs(directory, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")

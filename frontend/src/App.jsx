@@ -1,19 +1,19 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
-import Project from './pages/Project';
+import ProjectRoute from './routes/ProjectRoute';
 import Setting from './pages/Setting';
 import Calendar from './pages/Calendar';
-import Tasks from './pages/Tasks';
+import TasksRoute from './routes/TasksRoute';
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Dashboard />,
     children:[
-      {index: true, element: <Project/>},
+      {index: true, element: <ProjectRoute/>},
       {path: "settings", element: <Setting/>},
       {path: "calendar", element: <Calendar/>},
-      {path: "tasks/:projectId", element: <Tasks/>}
+      {path: "tasks/:projectId", element: <TasksRoute/>}
     ]
   },
 ]);

@@ -53,6 +53,12 @@ stanno in `backend/db/`, le lingue in `backend/locales/` e il frontend in
    no-store` sull'HTML evita di mostrare una build precedente dalla cache.
 4. Serve frontend, API (`/api`) e MCP (`/mcp/`) finche la finestra e aperta.
 
+La preparazione del runtime ha un budget cooperativo complessivo di 120 secondi,
+condiviso dalla connessione SQLite di inizializzazione, dal backup preventivo e
+dalle migrazioni. Le normali operazioni e i download backup mantengono 30 secondi.
+I controlli SQLite avvengono ogni 50.000 istruzioni interne; i dettagli sono in
+`DATABASE.md`.
+
 Se qualcosa fallisce (frontend mancante, porta occupata, migrazione, renderer),
 l'errore va nel log e compare un messaggio con il percorso del log: un dialogo
 nella finestra se e gia aperta, altrimenti su Windows un dialogo nativo; su Linux

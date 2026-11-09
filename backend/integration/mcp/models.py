@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool
 
 from validators.request_validator import SQLITE_MAX_INTEGER
 
@@ -39,7 +39,7 @@ class UpdateTask(BaseModel):
 
 class SetTaskCompleted(BaseModel):
     id: EntityId
-    completed: bool
+    completed: StrictBool
 
 
 class DeleteTask(BaseModel):

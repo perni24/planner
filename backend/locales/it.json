@@ -79,6 +79,10 @@
 
   "areaSwitcher.actions.create": "Nuova area",
   "areaSwitcher.actions.settings": "Impostazioni area",
+  "areaSwitcher.actions.retry": "Riprova",
+  "areaSwitcher.errors.load": "Impossibile caricare le aree.",
+  "areaSwitcher.errors.refresh": "Impossibile aggiornare le aree. L'elenco mostrato potrebbe non essere aggiornato.",
+  "areaSwitcher.errors.afterWrite": "Modifica salvata, ma non è stato possibile aggiornare l'elenco delle aree.",
 
   "sideBar.title": "Menu",
   "sideBar.project": "Progetti",

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   getTasksByProject,
   getProject,
@@ -16,15 +16,23 @@ import ProjectModal from '../components/ProjectModal';
 import { useLanguage } from '../context/useLanguage';
 import { useDataSync } from '../context/useDataSync';
 import { useToast } from '../context/useToast';
+import { useLatestRead } from '../hooks/useLatestRead';
 
-function Tasks() {
-  const { projectId } = useParams();
+function Tasks({ projectId }) {
   const navigate = useNavigate();
   const { jsonLanguage } = useLanguage();
   const { lastEvent } = useDataSync();
   const { showToast } = useToast();
-  const [project, setProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
+  const [project, loadProject] = useLatestRead(
+    (signal) => getProject(projectId, signal),
+    null,
+    'Error loading project:',
+  );
+  const [tasks, loadTasks] = useLatestRead(
+    (signal) => getTasksByProject(projectId, signal),
+    [],
+    'Error loading tasks:',
+  );
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskEditMode, setIsTaskEditMode] = useState(false);
@@ -46,26 +54,8 @@ function Tasks() {
   const completedCount = topLevelTasks.filter((task) => task.completed === 1).length;
   const completionPercentage = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
 
-  async function loadProject() {
-    try {
-      const response = await getProject(Number(projectId));
-      setProject(response);
-    } catch (error) {
-      console.error('Error loading project:', error);
-    }
-  }
-
-  async function loadTasks() {
-    try {
-      const response = await getTasksByProject(Number(projectId));
-      setTasks(response);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    }
-  }
-
   async function handleSaveTask({ title, description, parentId }) {
-    if ((!isTaskEditMode && !Number(projectId)) || (isTaskEditMode && !selectedTask?.id)) {
+    if ((!isTaskEditMode && !projectId) || (isTaskEditMode && !selectedTask?.id)) {
       showToast(jsonLanguage['taskModal.toast.invalidData'], 'error');
       throw new Error('Missing project or task id');
     }
@@ -74,7 +64,7 @@ function Tasks() {
       if (isTaskEditMode) {
         await updateTask(selectedTask.id, title, description);
       } else {
-        await insertTask(Number(projectId), title, description, parentId);
+        await insertTask(projectId, title, description, parentId);
       }
       await loadTasks();
       showToast(jsonLanguage[isTaskEditMode ? 'taskModal.toast.updated' : 'taskModal.toast.created'], 'success');
@@ -153,11 +143,11 @@ function Tasks() {
   }
 
   const reloadTaskPageFromEvent = useEffectEvent((entity) => {
-    if (entity === 'task') {
+    if (entity === undefined || entity === 'task') {
       loadTasks();
     }
 
-    if (entity === 'project') {
+    if (entity === undefined || entity === 'project') {
       loadProject();
     }
   });
@@ -183,26 +173,8 @@ function Tasks() {
   }
 
   useEffect(() => {
-    async function loadInitialData() {
-      const id = Number(projectId);
-
-      try {
-        const projectResponse = await getProject(id);
-        setProject(projectResponse);
-      } catch (error) {
-        console.error('Error loading project:', error);
-      }
-
-      try {
-        const tasksResponse = await getTasksByProject(id);
-        setTasks(tasksResponse);
-      } catch (error) {
-        console.error('Error loading tasks:', error);
-      }
-    }
-
-    loadInitialData();
-  }, [projectId]);
+    reloadTaskPageFromEvent();
+  }, []);
 
   useEffect(() => {
     if (lastEvent) {
@@ -300,7 +272,7 @@ function Tasks() {
           task={selectedTask}
           onSave={handleSaveTask}
           onDelete={handleDeleteTask}
-          project_id={Number(projectId)}
+          project_id={projectId}
           parentOptions={topLevelTasks}
           initialParentId={initialParentId}
         />

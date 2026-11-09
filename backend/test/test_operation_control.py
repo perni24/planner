@@ -4,6 +4,7 @@ import threading
 import time
 import unittest
 from contextlib import closing
+from pathlib import Path
 from queue import ShutDown
 from unittest.mock import Mock, patch
 
@@ -49,6 +50,126 @@ def test_nested_deadlines_keep_the_shorter_outer_limit():
             time.sleep(0.01)
             expect_error(TimeoutError, operation_control.check_operation)
     operation_control.check_operation()
+
+
+def test_connections_keep_normal_limit_and_accept_initialization_budget():
+    clock = {"now": 0}
+    connections = [Mock(), Mock()]
+    with patch.object(operation_control.time, "monotonic", side_effect=lambda: clock["now"]), patch.object(
+        database.sqlite3, "connect", side_effect=connections
+    ):
+        with operation_control.operation_scope(120):
+            with closing(database.get_db_connection()), closing(database.get_db_connection(
+                operation_timeout_seconds=120
+            )):
+                normal_progress, normal_steps = connections[0].set_progress_handler.call_args.args
+                startup_progress, startup_steps = connections[1].set_progress_handler.call_args.args
+                assert normal_steps == startup_steps == 50_000
+                clock["now"] = 31
+                assert normal_progress() == 1
+                assert startup_progress() == 0
+                clock["now"] = 120
+                assert startup_progress() == 1
+    for conn in connections:
+        conn.close.assert_called_once_with()
+
+
+def test_longer_connection_budget_never_extends_outer_deadline():
+    clock = {"now": 0}
+    with patch.object(operation_control.time, "monotonic", side_effect=lambda: clock["now"]), patch.object(
+        database.sqlite3, "connect", return_value=Mock()
+    ):
+        with operation_control.operation_scope(5):
+            with closing(database.get_db_connection(operation_timeout_seconds=120)) as conn:
+                progress, _ = conn.set_progress_handler.call_args.args
+                clock["now"] = 5
+                assert progress() == 1
+
+
+def test_initialization_can_create_schema_after_thirty_seconds():
+    with isolated_database():
+        Path(database.DB_PATH).unlink()
+        clock = {"now": 0}
+        execute_script = database.execute_script
+
+        def delayed_schema(conn, script):
+            clock["now"] = 40
+            conn.execute(
+                "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<10000) "
+                "SELECT sum(x) FROM n"
+            ).fetchone()
+            execute_script(conn, script)
+
+        with patch.object(operation_control.time, "monotonic", side_effect=lambda: clock["now"]), patch.object(
+            database, "execute_script", side_effect=delayed_schema
+        ):
+            database.init_db()
+        with closing(database.get_db_connection()) as conn:
+            assert conn.execute("SELECT count(*) FROM areas").fetchone()[0] == 1
+            assert migration_runner.get_schema_version(conn) == len(migration_runner.MIGRATION_FILES)
+
+
+def test_migration_backup_and_queries_share_remaining_initialization_budget():
+    with isolated_database() as root:
+        with closing(database.get_db_connection()) as conn, conn:
+            conn.execute("DROP TRIGGER trg_subtask_after_move")
+            conn.execute("PRAGMA user_version = 2")
+        clock = {"now": 0}
+        backup = database.create_migration_backup
+        execute_script = migration_runner.execute_script
+        check = operation_control.check_operation
+        checkpoints = []
+
+        def backup_check(deadline=None):
+            checkpoints.append(deadline)
+            if len(checkpoints) > 1:
+                clock["now"] = 40
+            check(deadline)
+
+        def delayed_backup(*args, **kwargs):
+            with patch.object(migration_runner, "check_operation", side_effect=backup_check):
+                return backup(*args, **kwargs)
+
+        def delayed_migration(conn, script):
+            clock["now"] = 110
+            conn.execute(
+                "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<10000) "
+                "SELECT sum(x) FROM n"
+            ).fetchone()
+            execute_script(conn, script)
+
+        with patch.object(operation_control.time, "monotonic", side_effect=lambda: clock["now"]), patch.object(
+            database, "create_migration_backup", side_effect=delayed_backup
+        ), patch.object(migration_runner, "execute_script", side_effect=delayed_migration):
+            database.init_db()
+        assert len(checkpoints) >= 2 and all(deadline == 120 for deadline in checkpoints)
+        backups = list((root / "migration_backups").glob("*.db"))
+        assert len(backups) == 1
+        with closing(sqlite3.connect(backups[0])) as conn:
+            assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        with closing(database.get_db_connection()) as conn:
+            assert migration_runner.get_schema_version(conn) == 3
+            assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+
+def test_initialization_timeout_still_rolls_back_uncommitted_schema():
+    with isolated_database():
+        Path(database.DB_PATH).unlink()
+        clock = {"now": 0}
+        execute_script = database.execute_script
+
+        def expire_after_schema(conn, script):
+            execute_script(conn, script)
+            clock["now"] = 121
+
+        with patch.object(operation_control.time, "monotonic", side_effect=lambda: clock["now"]), patch.object(
+            database, "execute_script", side_effect=expire_after_schema
+        ):
+            expect_error(TimeoutError, database.init_db)
+        with closing(database.get_db_connection()) as conn:
+            assert migration_runner.get_schema_version(conn) == 0
+            assert conn.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0] == 0
+        database.init_db()
 
 
 def test_shutdown_rejects_new_connections_but_allows_existing_short_transaction():

@@ -7,7 +7,7 @@ import { useToast } from '../context/useToast';
 import settingsIcon from '../assets/icons/settings.svg?no-inline';
 
 function AreaSwitcher() {
-  const { areas, currentArea, setCurrentArea, createArea, editArea, removeArea, error } = useArea();
+  const { areas, currentArea, setCurrentArea, reloadAreas, createArea, editArea, removeArea, error } = useArea();
   const { jsonLanguage } = useLanguage(); 
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ function AreaSwitcher() {
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const switcherRef = useRef(null);
 
   const currentInitial = currentArea?.name?.charAt(0).toUpperCase() ?? '?';
@@ -79,32 +80,62 @@ function AreaSwitcher() {
     }
   }
 
-  if (error) {
+  async function retryAreas() {
+    setIsRetrying(true);
+    try {
+      await reloadAreas();
+    } finally {
+      setIsRetrying(false);
+    }
+  }
+
+  const hasAreas = Boolean(areas?.length && currentArea);
+  if (!hasAreas && !error && !isAreaModalOpen) {
     return null;
   }
 
-  if (!areas?.length || !currentArea) {
-    return null;
-  }
+  const errorKey = error === 'afterWrite'
+    ? 'areaSwitcher.errors.afterWrite'
+    : hasAreas ? 'areaSwitcher.errors.refresh' : 'areaSwitcher.errors.load';
+  const loadNotice = error && (
+    <div className="max-w-48 space-y-2 rounded-lg border border-main-border bg-main-card p-2 sm:max-w-none">
+      <p role="status" className="text-xs leading-5 text-main-text/80">
+        {jsonLanguage[errorKey]}
+      </p>
+      <button
+        type="button"
+        onClick={retryAreas}
+        disabled={isRetrying}
+        aria-busy={isRetrying}
+        className="rounded-md border border-main-border px-2 py-1 text-xs font-medium text-main-text hover:bg-main-hover hover:text-main-hover-text disabled:opacity-60"
+      >
+        {jsonLanguage['areaSwitcher.actions.retry']}
+      </button>
+    </div>
+  );
 
   return (
     <div ref={switcherRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className="flex items-center gap-3 rounded-lg border border-main-border bg-main-card px-3 py-2 text-main-text shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
-          {currentInitial}
-        </span>
-        <span className="text-sm font-medium">{currentArea.name}</span>
-        <span className="text-xs">v</span>
-      </button>
+      {hasAreas ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          className="flex items-center gap-3 rounded-lg border border-main-border bg-main-card px-3 py-2 text-main-text shadow-sm transition-colors hover:bg-main-hover hover:text-main-hover-text"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
+            {currentInitial}
+          </span>
+          <span className="text-sm font-medium">{currentArea.name}</span>
+          <span className="text-xs">v</span>
+        </button>
+      ) : loadNotice}
 
-      {isOpen && (
+      {hasAreas && (isOpen || error) && (
         <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-main-border bg-main-card p-2 shadow-lg">
+          {loadNotice}
 
-          {areas.map((area) => (
+          {isOpen && areas.map((area) => (
             <div
               key={area.id}
               className="flex items-center rounded-md text-main-text transition-colors hover:bg-main-hover hover:text-main-hover-text"
@@ -144,7 +175,7 @@ function AreaSwitcher() {
             </div>
           ))}
 
-          <div className="mt-2 border-t border-main-border pt-2">
+          {isOpen && <div className="mt-2 border-t border-main-border pt-2">
             <button
               type="button"
               onClick={() => {
@@ -160,7 +191,7 @@ function AreaSwitcher() {
               </span>
               <span>{jsonLanguage['areaSwitcher.actions.create']}</span>
             </button>
-          </div>
+          </div>}
         </div>
       )}
 

@@ -79,6 +79,10 @@
 
   "areaSwitcher.actions.create": "New area",
   "areaSwitcher.actions.settings": "Area settings",
+  "areaSwitcher.actions.retry": "Retry",
+  "areaSwitcher.errors.load": "Could not load areas.",
+  "areaSwitcher.errors.refresh": "Could not refresh areas. The displayed list may be out of date.",
+  "areaSwitcher.errors.afterWrite": "Changes saved, but the area list could not be refreshed.",
 
   "sideBar.title": "Menu",
   "sideBar.project": "Projects",

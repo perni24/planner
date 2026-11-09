@@ -17,6 +17,10 @@ from validators.request_validator import SQLITE_MAX_INTEGER, validate_int, valid
 
 
 INVALID_IDS = (True, False, 1.0, 1.9, float("inf"), float("nan"), None, [], {}, b"7", 0, -1, SQLITE_MAX_INTEGER + 1, 10**30)
+INVALID_COMPLETION_VALUES = (
+    "yes", "no", "true", "false", "True", "False", "on", "off", "1", "0", "",
+    1, 0, 1.0, 0.0, 2, None, [], {},
+)
 
 
 def expect_error(exception, operation):
@@ -148,6 +152,52 @@ def test_mcp_read_tool_preserves_strict_id_validation_in_sdk_arguments():
     for value in (*INVALID_IDS, "7"):
         expect_error(ValidationError, lambda: metadata.validate_arguments({"project_id": value}))
     assert metadata.validate_arguments({"project_id": SQLITE_MAX_INTEGER}) == {"project_id": SQLITE_MAX_INTEGER}
+
+
+def test_mcp_completion_model_accepts_only_actual_booleans():
+    for value in (True, False):
+        payload = {"id": 7, "completed": value}
+        assert SetTaskCompleted.model_validate(payload).completed is value
+        assert SetTaskCompleted.model_validate_json(json.dumps(payload)).completed is value
+    for value in INVALID_COMPLETION_VALUES:
+        payload = {"id": 7, "completed": value}
+        expect_error(ValidationError, lambda: SetTaskCompleted.model_validate(payload))
+        expect_error(ValidationError, lambda: SetTaskCompleted.model_validate_json(json.dumps(payload)))
+    expect_error(ValidationError, lambda: SetTaskCompleted(id=7, completed=b"true"))
+    expect_error(ValidationError, lambda: SetTaskCompleted(id=7))
+    assert SetTaskCompleted.model_json_schema()["properties"]["completed"]["type"] == "boolean"
+
+
+def test_mcp_sdk_rejects_invalid_completion_before_entering_service():
+    functions = {}
+
+    def capture(function):
+        functions[function.__name__] = function
+        return function
+
+    registry = Mock()
+    registry.tool.return_value = capture
+    register_mcp_tools(registry)
+    tool = functions["bulk_set_task_completed"]
+    metadata = func_metadata(tool)
+    with patch.object(mcp_service, "bulk_set_task_completed", return_value={"updated": 1}) as service:
+        for value in INVALID_COMPLETION_VALUES:
+            payload = {"tasks": [{"id": 7, "completed": True}, {"id": 8, "completed": value}]}
+            expect_error(ValidationError, lambda: tool(**metadata.validate_arguments(payload)))
+        expect_error(ValidationError, lambda: tool(**metadata.validate_arguments({"tasks": [{"id": 7}]})))
+        service.assert_not_called()
+        for value in (True, False):
+            assert tool(**metadata.validate_arguments({"tasks": [{"id": 7, "completed": value}]})) == {"updated": 1}
+            service.assert_called_with([{"id": 7, "completed": value}])
+            assert service.call_args.args[0][0]["completed"] is value
+
+
+def test_mcp_completion_service_keeps_boolean_guard_before_queries_and_events():
+    with patch.object(mcp_service, "mcp_repo") as repository, patch.object(mcp_service.event_service, "publish") as publish:
+        for value in INVALID_COMPLETION_VALUES:
+            expect_error(ToolError, lambda: mcp_service.bulk_set_task_completed([{"id": 7, "completed": value}]))
+        assert repository.mock_calls == []
+        publish.assert_not_called()
 
 
 def test_mcp_services_reject_invalid_ids_before_queries_or_events():

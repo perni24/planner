@@ -47,6 +47,9 @@ Le cartelle e i file principali. Per i dettagli fa fede il codice.
 | `main.jsx`, `App.jsx` | avvio e router (`/`, `/tasks/:projectId`, `/settings`, `/calendar`) |
 | `api.ts`, `apiCore.ts`, `types/` | tutte le chiamate HTTP e i tipi delle risposte |
 | `pages/` | `Project.jsx`, `Tasks.jsx`, `Setting.jsx`, `Calendar.jsx` (segnaposto) |
+| `routes/` | le route di progetti e task usano una `key` per azzerare dati e modali al cambio di area o progetto |
+| `hooks/useLatestRead.js`, `utils/latestRead.js` | letture annullabili: applicano solo la risposta dell'ultima richiesta per pagina o risorsa |
+| `utils/areaState.js` | stato dell'elenco delle aree, selezione ed errori di ricaricamento |
 | `components/` | layout, card, modali, toast, impostazioni MCP |
 | `context/` | provider globali (aree, impostazioni, tema, lingua, toast, eventi SSE) composti in `AppProviders.jsx` |
 | `index.css` | Tailwind e colori dei temi |
@@ -54,6 +57,18 @@ Le cartelle e i file principali. Per i dettagli fa fede il codice.
 
 Le scritture sono nelle pagine (`Project.jsx`, `Tasks.jsx`) e in `AreaProvider`;
 modali e card ricevono callback (vedi `AGENTS.md`).
+
+Caricamento iniziale, ricaricamento dopo un salvataggio ed eventi SSE condividono
+lo stesso controllo delle letture. I dati del progetto e la lista delle task si
+caricano indipendentemente; una risposta superata non sostituisce quella piu
+recente. `npm test` da `frontend/` verifica i casi di risposta fuori ordine e
+abbandono della pagina con il runner integrato di Node, senza dipendenze nuove.
+
+`AreaSwitcher` conserva l'ultimo elenco se una lettura delle aree fallisce e
+mostra un avviso localizzato con `Riprova`, anche se manca il primo elenco. Dopo
+una scrittura riuscita, un errore di lettura non viene trattato come salvataggio
+fallito. Un'area gia eliminata viene tolta subito dall'elenco locale; il prossimo
+caricamento riuscito riallinea elenco e selezione e rimuove l'avviso.
 
 ## Cartelle generate (non tracciate)
 

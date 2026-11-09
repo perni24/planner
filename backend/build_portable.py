@@ -20,7 +20,12 @@ APP_NAME = "PlannerApp"
 # Configurazione .NET copiata accanto a PlannerApp.exe: permette a pythonnet di caricare
 # le DLL .NET anche se lo ZIP scaricato ha il segno "proveniente da Internet".
 WINDOWS_EXE_CONFIG = Path(__file__).resolve().parent / "windows" / f"{APP_NAME}.exe.config"
+# setuptools arriva solo da cffi._shimmed_dist_utils (compilazione di estensioni, mai
+# usata a runtime) e porterebbe nel bundle i suoi pacchetti vendorizzati e packaging,
+# assenti dall'inventario delle licenze che parte da requirements.txt.
+BUILD_ONLY_MODULES = ("setuptools", "_distutils_hack", "pkg_resources")
 WINDOWS_EXCLUDED_MODULES = (
+    *BUILD_ONLY_MODULES,
     "webview.platforms.qt",
     "webview.platforms.gtk",
     "webview.platforms.cocoa",
@@ -35,6 +40,7 @@ WINDOWS_EXCLUDED_MODULES = (
     "cefpython3",
 )
 LINUX_EXCLUDED_MODULES = (
+    *BUILD_ONLY_MODULES,
     "webview.platforms.gtk",
     "webview.platforms.winforms",
     "webview.platforms.edgechromium",

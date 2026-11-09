@@ -2,43 +2,32 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { getProjectsByArea, insertProject } from '../api';
 import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
-import { useArea } from "../context/useArea";
 import { Link } from 'react-router-dom';
 import { useDataSync } from '../context/useDataSync';
 import { useLanguage } from '../context/useLanguage';
 import { useToast } from '../context/useToast';
+import { useLatestRead } from '../hooks/useLatestRead';
 
-function Project() {
-
-  const {currentArea} = useArea(); 
+function Project({ areaId }) {
   const { lastEvent } = useDataSync();
   const { jsonLanguage } = useLanguage();
   const { showToast } = useToast();
 
-  const [projects, setProjects] = useState([]);
+  const [projects, loadProjects] = useLatestRead(
+    (signal) => areaId ? getProjectsByArea(areaId, signal) : [],
+    [],
+    'Error loading projects:',
+  );
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  
-  async function loadProjects() {
-    if (!currentArea?.id) {
-      return;
-    }
-
-    try{
-      const response = await getProjectsByArea(currentArea.id);
-      setProjects(response);
-    }catch (error) {
-      console.error('Error loading projects:', error);
-    }
-  }
 
   async function handleSaveProject({ name, description }) {
-    if (!currentArea?.id) {
+    if (!areaId) {
       showToast(jsonLanguage['projectModal.toast.invalidData'], 'error');
       throw new Error('No area selected');
     }
 
     try {
-      await insertProject(currentArea.id, name, description);
+      await insertProject(areaId, name, description);
       await loadProjects();
       showToast(jsonLanguage['projectModal.toast.created'], 'success');
     } catch (error) {
@@ -48,26 +37,11 @@ function Project() {
     }
   }
 
-  const reloadProjectsFromEvent = useEffectEvent(() => {
-    loadProjects();
-  });
+  const reloadProjectsFromEvent = useEffectEvent(loadProjects);
 
   useEffect(() => {
-    async function loadInitialProjects() {
-      if (!currentArea?.id) {
-        return;
-      }
-
-      try {
-        const response = await getProjectsByArea(currentArea.id);
-        setProjects(response);
-      } catch (error) {
-        console.error('Error loading projects:', error);
-      }
-    }
-
-    loadInitialProjects();
-  }, [currentArea?.id]);
+    reloadProjectsFromEvent();
+  }, []);
 
   useEffect(() => {
     if (
@@ -95,7 +69,7 @@ function Project() {
       <ProjectModal
         onClose={() => setIsProjectModalOpen(false)}
         onSave={handleSaveProject}
-        areaId={currentArea?.id}
+        areaId={areaId}
       />
     )}
     </>

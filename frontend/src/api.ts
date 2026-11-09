@@ -8,7 +8,7 @@ import type { Task } from './types/tasks';
 import type { AppUpdateStatus, AppVersion } from './types/app';
 
 // areas
-export const getAllAreas = () => apiCore<Area[]>('/areas/get_all_areas');
+export const getAllAreas = (signal?: AbortSignal) => apiCore<Area[]>('/areas/get_all_areas', { signal });
 
 export const insertArea = (name: string) => apiCore<ApiMessage>('/areas/insert_area', {method: 'POST', body:{name}});
 
@@ -17,9 +17,9 @@ export const updateArea = (id: number, name: string) => apiCore<ApiMessage>('/ar
 export const deleteArea = (id: number) => apiCore<ApiMessage>('/areas/delete_area', {method:'DELETE', body:{id}})
 
 // projects 
-export const getProjectsByArea = (area_id: number) => apiCore<Project[]>(`/projects/get_projects_by_area?area_id=${area_id}`);
+export const getProjectsByArea = (area_id: number, signal?: AbortSignal) => apiCore<Project[]>(`/projects/get_projects_by_area?area_id=${area_id}`, { signal });
 
-export const getProject = (project_id: number) => apiCore<Project>(`/projects/get_project?project_id=${project_id}`);
+export const getProject = (project_id: number, signal?: AbortSignal) => apiCore<Project | null>(`/projects/get_project?project_id=${project_id}`, { signal });
 
 export const insertProject = (area_id: number, name: string, description: string ) => apiCore<ApiMessage>('/projects/insert_project', {method: 'POST', body:{area_id, name, description}})
 
@@ -28,7 +28,7 @@ export const updateProject = (project_id: number, name: string, description: str
 export const deleteProject = (project_id: number) => apiCore<ApiMessage>('/projects/delete_project', {method: 'POST', body:{project_id}})
 
 // tasks
-export const getTasksByProject = (project_id: number) => apiCore<Task[]>(`/tasks/get_tasks_by_project?project_id=${project_id}`);
+export const getTasksByProject = (project_id: number, signal?: AbortSignal) => apiCore<Task[]>(`/tasks/get_tasks_by_project?project_id=${project_id}`, { signal });
 
 export const insertTask = (project_id: number, title: string, description: string, parent_id: number | null = null) => apiCore<ApiMessage>('/tasks/insert_task', {method: 'POST', body:{project_id, title, description, parent_id}}); 
 
