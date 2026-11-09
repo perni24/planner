@@ -4,17 +4,22 @@
 
 ### Linux
 
-Stato al 31/10/2026: la build CI su Ubuntu 22.04 (ridotta, senza `libstdc++`) si
-avvia su Debian 13 e i materiali di licenza risultano completi e verificati.
+La build CI su Ubuntu 22.04 (ridotta, senza `libstdc++`) e completata e i materiali
+di licenza sono stati verificati. Sul pacchetto estratto in Debian 13 sono stati
+confermati l'avvio e il funzionamento generale, in linea con Windows. Le singole
+prove e il tipo di sessione grafica non sono ancora elencati nel resoconto.
 
-- [ ] Prove funzionali sul pacchetto estratto: salvataggi e persistenza, backup,
-  link esterni, copia indirizzo MCP, chiusura, Wayland e X11, e una seconda
-  distribuzione (es. Fedora)
-- [ ] Decidere se per i sorgenti GPL/LGPL bastano i link alle versioni esatte (Qt,
-  Launchpad, PyPI) o se allegare gli archivi alla release o un'offerta scritta
+- [ ] Annotare l'esito delle prove gia svolte e completare solo quelle mancanti:
+  salvataggi e persistenza, backup, link esterni, copia indirizzo MCP e chiusura.
+  Confermare la copertura di Wayland, X11 e di una seconda distribuzione (es. Fedora)
+- [ ] Definire e predisporre la disponibilita dei sorgenti corrispondenti alle
+  versioni GPL/LGPL incluse nel pacchetto, separatamente dai testi di licenza
+  gia verificati
 - [ ] Finestra di errore grafica prima dell'apertura della finestra (oggi solo
   console e log)
-- [ ] Poi abilitare l'allegato Linux nel job release (filtro `pattern: PlannerApp-windows`)
+- [ ] Completate le verifiche Linux, abilitare l'allegato nel job release:
+  scaricare anche `PlannerApp-linux` e pubblicare il `.tar.gz` accanto allo `.zip`
+  Windows. Allineare README e guida di distribuzione ai pacchetti pubblicati
 
 ### Windows
 
