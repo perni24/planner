@@ -251,8 +251,9 @@ native tests are complete (see `doc/TODO.md`).
 
 PyInstaller copies into `_internal/` some shared libraries of the build system
 that the bundle needs (for example GLib, GTK, OpenSSL, libffi and libstdc++).
-During the build they are mapped to their Debian/Ubuntu packages with
-`dpkg-query`: `licenses/system-manifest.json` lists for each package the
+During the build they are mapped to their Debian/Ubuntu packages by comparing
+their SHA-256 hashes with the files reported by `dpkg-query`.
+`licenses/system-manifest.json` lists for each package the
 version, the libraries it provides, the source package and a link to its exact
 source (Launchpad for Ubuntu, snapshot.debian.org for Debian), and
 `licenses/system/<package>/copyright` contains the package copyright file with

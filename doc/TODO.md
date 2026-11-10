@@ -12,9 +12,11 @@ prove e il tipo di sessione grafica non sono ancora elencati nel resoconto.
 - [ ] Annotare l'esito delle prove gia svolte e completare solo quelle mancanti:
   salvataggi e persistenza, backup, link esterni, copia indirizzo MCP e chiusura.
   Confermare la copertura di Wayland, X11 e di una seconda distribuzione (es. Fedora)
-- [ ] Definire e predisporre la disponibilita dei sorgenti corrispondenti alle
-  versioni GPL/LGPL incluse nel pacchetto, separatamente dai testi di licenza
-  gia verificati
+- [ ] Rigenerare il `.tar.gz` in CI e verificare nel manifest l'attribuzione di
+  NSS/NSPR a `libnss3` e `libnspr4`, non a Firefox
+- [ ] Predisporre e indicare dalla release l'accesso ai sorgenti corrispondenti
+  alla build finale, incluse eventuali patch Qt. Confermare il download dei
+  sorgenti della versione PCRE2 inclusa
 - [ ] Finestra di errore grafica prima dell'apertura della finestra (oggi solo
   console e log)
 - [ ] Completate le verifiche Linux, abilitare l'allegato nel job release:

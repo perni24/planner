@@ -244,7 +244,7 @@ def fake_dpkg(owners, details):
     def query(arguments):
         if arguments[0] == "-S":
             return "".join(
-                f"{owners[pattern[2:]]}:amd64: /usr/lib/x86_64-linux-gnu/{pattern[2:]}\n"
+                f"{owners[pattern[2:]]}: /usr/lib/x86_64-linux-gnu/{pattern[2:]}\n"
                 for pattern in arguments[1:] if pattern[2:] in owners
             )
         return "".join(f"{package}\t{details[package]}\n" for package in arguments[3:])
@@ -261,6 +261,10 @@ def make_system_bundle(root, libraries):
         *libraries, "libpython3.14.so.1.0", "_cffi_backend.cpython-314-x86_64-linux-gnu.so", "libicudata.so.73",
     ):
         (internal / name).write_bytes(b"\x7fELF")
+    system_libs = root / "usr" / "lib" / "x86_64-linux-gnu"
+    system_libs.mkdir(parents=True)
+    for name in libraries:
+        (system_libs / name).write_bytes((internal / name).read_bytes())
     docs = root / "doc"
     for package in ("libgtk-3-0", "libssl3"):
         (docs / package).mkdir(parents=True)
@@ -278,7 +282,7 @@ def test_system_inventory_maps_bundled_libraries_to_packages_and_sources():
             {"libgtk-3.so.0": "libgtk-3-0", "libgdk-3.so.0": "libgtk-3-0", "libssl.so.3": "libssl3"},
             {"libgtk-3-0": "3.24.33-1\tgtk+3.0\t3.24.33-1", "libssl3": "3.0.2-0ubuntu1\topenssl\t3.0.2-0ubuntu1"},
         )
-        collect_system_licenses(root, query, docs, release)
+        collect_system_licenses(root, query, docs, release, system_root=root)
         validate_system_licenses(root)
         manifest = json.loads((root / "licenses" / "system-manifest.json").read_text(encoding="utf-8"))
         assert manifest["distribution"] == "Ubuntu 22.04"
@@ -289,15 +293,61 @@ def test_system_inventory_maps_bundled_libraries_to_packages_and_sources():
         expect_error(lambda: validate_system_licenses(root), "invalid system license")
 
 
+def test_system_inventory_uses_binary_content_to_disambiguate_package_owners():
+    with TemporaryDirectory(prefix="planner-system-duplicate-name-") as directory:
+        root = Path(directory)
+        name = "libnss3.so"
+        docs, release = make_system_bundle(root, (name,))
+        bundle = root / "_internal" / name
+        original = bundle.read_bytes()
+        firefox = root / "usr" / "lib" / "firefox" / name
+        firefox.parent.mkdir()
+        firefox.write_bytes(b"\x7fELF different build")
+        (docs / "libnss3").mkdir()
+        (docs / "libnss3" / "copyright").write_bytes(b"Ubuntu NSS copyright")
+        query_system = fake_dpkg({name: "libnss3:amd64"}, {
+            "libnss3:amd64": "2:3.98-0ubuntu0.22.04.5\tnss\t2:3.98-0ubuntu0.22.04.5",
+        })
+
+        def query(arguments):
+            if arguments[0] == "-S":
+                return f"firefox: /usr/lib/firefox/{name}\n" + query_system(arguments)
+            assert arguments[3:] == ["libnss3:amd64"]
+            return query_system(arguments)
+
+        def collect():
+            collect_system_licenses(root, query, docs, release, system_root=root)
+
+        collect()
+        manifest = json.loads((root / "licenses" / "system-manifest.json").read_text(encoding="utf-8"))
+        component, = manifest["components"]
+        assert component["package"] == "libnss3"
+        assert component["source_package"] == "nss"
+        assert component["libraries"] == [name]
+        assert bundle.read_bytes() == original
+        assert (root / component["files"][0]["path"]).read_bytes() == b"Ubuntu NSS copyright"
+
+        firefox.write_bytes(original)
+        expect_error(collect, f"Ambiguous system package for {name}")
+
+
 def test_system_inventory_rejects_libraries_without_package_or_license():
     with TemporaryDirectory(prefix="planner-system-missing-") as directory:
         root = Path(directory)
         docs, release = make_system_bundle(root, ("libgtk-3.so.0", "libcustom.so.1"))
         query = fake_dpkg({"libgtk-3.so.0": "libgtk-3-0"}, {"libgtk-3-0": "1\tgtk+3.0\t1"})
-        expect_error(lambda: collect_system_licenses(root, query, docs, release), "libcustom.so.1")
+        def collect():
+            collect_system_licenses(root, query, docs, release, system_root=root)
+
+        expect_error(collect, "libcustom.so.1")
         (root / "_internal" / "libcustom.so.1").unlink()
+        system_library = root / "usr" / "lib" / "x86_64-linux-gnu" / "libgtk-3.so.0"
+        original = system_library.read_bytes()
+        system_library.write_bytes(b"\x7fELF different build")
+        expect_error(collect, "No matching system package for bundled libraries: libgtk-3.so.0")
+        system_library.write_bytes(original)
         (docs / "libgtk-3-0" / "copyright").unlink()
-        expect_error(lambda: collect_system_licenses(root, query, docs, release), "libgtk-3-0")
+        expect_error(collect, "libgtk-3-0")
 
 
 def test_qt_notices_match_the_configured_qt_version():

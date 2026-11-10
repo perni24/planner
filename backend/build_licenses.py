@@ -416,22 +416,42 @@ def run_dpkg_query(arguments):
     return result.stdout
 
 
-def find_library_packages(libraries, query):
+def file_sha256(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").digest()
+
+
+def find_library_packages(libraries, internal_dir, query, system_root):
     # "dpkg-query -S" restituisce righe "pacchetto:arch: /percorso"; un nome non
     # trovato produce solo un messaggio su stderr.
     output = query(["-S", *(f"*/{name}" for name in libraries)])
-    owners = {}
+    candidates = {name: [] for name in libraries}
     for line in output.splitlines():
         if line.startswith("diversion ") or ": " not in line:
             continue
         packages, path = line.rsplit(": ", 1)
-        name = PurePosixPath(path).name
-        if name in libraries and name not in owners and path.startswith(("/lib", "/usr/lib")):
-            owners[name] = packages.split(", ")[0].split(":")[0]
+        source = PurePosixPath(path)
+        if source.name in candidates and path.startswith(("/lib", "/usr/lib")):
+            candidates[source.name].append((system_root / source.relative_to("/"), packages.split(", ")))
+
+    owners = {}
+    for name, paths in candidates.items():
+        # Pacchetti diversi possono distribuire lo stesso nome con binari diversi.
+        bundled_hash = file_sha256(internal_dir / name)
+        matches = {
+            package
+            for path, packages in paths
+            if path.is_file() and file_sha256(path) == bundled_hash
+            for package in packages
+        }
+        if len(matches) > 1:
+            raise RuntimeError(f"Ambiguous system package for {name}: {', '.join(sorted(matches))}")
+        if matches:
+            owners[name] = matches.pop()
     missing = sorted(set(libraries) - set(owners))
     if missing:
         raise RuntimeError(
-            "Bundled libraries not provided by a system package: " + ", ".join(missing)
+            "No matching system package for bundled libraries: " + ", ".join(missing)
         )
     return owners
 
@@ -456,25 +476,27 @@ def get_source_url(distribution_id, source_package, source_version):
 
 
 def collect_system_licenses(
-    portable_dir, query=run_dpkg_query, doc_dir=Path("/usr/share/doc"), os_release="/etc/os-release"
+    portable_dir, query=run_dpkg_query, doc_dir=Path("/usr/share/doc"), os_release="/etc/os-release",
+    *, system_root=Path("/"),
 ):
     libraries = list_system_libraries(portable_dir)
-    owners = find_library_packages(libraries, query) if libraries else {}
+    owners = find_library_packages(libraries, portable_dir / "_internal", query, system_root) if libraries else {}
     release = read_os_release(os_release)
     packages = sorted(set(owners.values()))
     details = {}
     if packages:
         output = query([
-            "-W", "-f", "${Package}\\t${Version}\\t${source:Package}\\t${source:Version}\\n", *packages,
+            "-W", "-f", "${binary:Package}\\t${Version}\\t${source:Package}\\t${source:Version}\\n", *packages,
         ])
         for line in output.splitlines():
             package, version, source_package, source_version = line.split("\t")
             details.setdefault(package, (version, source_package, source_version))
     components = []
-    for package in packages:
-        if package not in details:
-            raise RuntimeError(f"System package metadata missing: {package}")
-        version, source_package, source_version = details[package]
+    for owner in packages:
+        if owner not in details:
+            raise RuntimeError(f"System package metadata missing: {owner}")
+        version, source_package, source_version = details[owner]
+        package = owner.split(":", 1)[0]
         copyright_path = doc_dir / package / "copyright"
         if not copyright_path.is_file() or copyright_path.stat().st_size == 0:
             raise RuntimeError(f"License file missing or empty for system package {package}")
@@ -484,7 +506,7 @@ def collect_system_licenses(
             "source_package": source_package,
             "source_version": source_version,
             "source": get_source_url(release.get("ID"), source_package, source_version),
-            "libraries": sorted(name for name, owner in owners.items() if owner == package),
+            "libraries": sorted(name for name, library_owner in owners.items() if library_owner == owner),
             "files": [copy_license_file(
                 copyright_path, portable_dir / "licenses" / "system" / package / "copyright", portable_dir
             )],
