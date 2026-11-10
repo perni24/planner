@@ -107,7 +107,8 @@ sbloccato pythonnet non carica le sue DLL.
 Si compila su Linux (Debian o Ubuntu, per l'inventario `dpkg-query` delle licenze).
 La CI usa Ubuntu 22.04 con le librerie elencate nello step `Install Linux desktop
 dependencies`; per la distribuzione si usa quella build, perche PyInstaller copia
-le librerie del sistema su cui compila.
+le librerie del sistema su cui compila. La CI installa `libpcre2-8-0` senza fissare
+la versione e si ferma se quella installata e inferiore a `10.39-3ubuntu0.2`.
 
 Dopo PyInstaller, `prune_linux_bundle()` rimuove `qml/`, il tema GTK3 e la stampa
 CUPS (Planner usa QtWebEngine Widgets) e, confrontando con `readelf` le
