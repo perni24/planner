@@ -14,9 +14,6 @@ prove e il tipo di sessione grafica non sono ancora elencati nel resoconto.
   Confermare la copertura di Wayland, X11 e di una seconda distribuzione (es. Fedora)
 - [ ] Predisporre e indicare dalla release l'accesso ai sorgenti corrispondenti
   alla build finale, incluse eventuali patch Qt
-- [ ] Rigenerare il pacchetto Linux prima della release e verificare che il
-  manifest riporti `libpcre2-8-0` almeno alla versione `10.39-3ubuntu0.2`
-  ([USN-8974-1](https://ubuntu.com/security/notices/USN-8974-1))
 - [ ] Finestra di errore grafica prima dell'apertura della finestra (oggi solo
   console e log)
 - [ ] Completate le verifiche Linux, abilitare l'allegato nel job release:
