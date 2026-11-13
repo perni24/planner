@@ -177,7 +177,10 @@ Il workflow `.github/workflows/release-build.yml` compila Windows (ZIP) e Linux
 (TAR.GZ) a ogni tag `v*` o con l'avvio manuale, che produce solo artifact.
 
 1. Aggiorna `APP_VERSION` in `backend/config.py` (la versione in
-   `frontend/package.json` non e usata) e pubblica le modifiche su `main`.
+   `frontend/package.json` non e usata). Verifica che i manifest del pacchetto
+   Linux di prova coincidano con le versioni in `SOURCES.md` e che le note della
+   release contengano il link al documento fissato al tag. Pubblica le modifiche
+   su `main`.
 2. Crea e pubblica il tag corrispondente, senza la `v` in `APP_VERSION`:
 
    ```bash
@@ -185,9 +188,10 @@ Il workflow `.github/workflows/release-build.yml` compila Windows (ZIP) e Linux
    git push origin v0.2.0
    ```
 
-Il workflow verifica che tag e `APP_VERSION` coincidano, poi crea la GitHub Release
-con lo ZIP Windows. Il TAR.GZ Linux resta un artifact di prova (filtro
-`pattern: PlannerApp-windows`) finche le verifiche in `TODO.md` non sono completate.
+Il workflow verifica che tag e `APP_VERSION` coincidano. Il job di release
+allega `PlannerApp-windows.zip` e `PlannerApp-linux.tar.gz` alla GitHub Release e
+fallisce se manca uno dei due file. Se esiste una bozza per lo stesso tag, il
+workflow ne conserva le note. L'avvio manuale da `main` non pubblica la release.
 
 Un tag sbagliato e mai distribuito si puo eliminare e ricreare
 (`git tag -d v0.2.0 && git push origin --delete v0.2.0`); se e gia stato

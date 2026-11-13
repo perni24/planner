@@ -89,11 +89,16 @@ def test_linux_archive_check_rejects_non_executable_helper_and_directory():
             assert "Executable permission missing" in result.stderr
 
 
-def test_unverified_linux_artifact_is_not_downloaded_for_public_release():
+def test_public_release_requires_both_platform_archives_and_a_tag():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     release = workflow.split("  release:\n", 1)[1]
-    assert "pattern: PlannerApp-windows" in release
-    assert "files: release-assets/*.zip" in release
+    assert "needs: build" in release
+    assert "if: startsWith(github.ref, 'refs/tags/')" in release
+    for platform, extension in (("windows", "zip"), ("linux", "tar.gz")):
+        artifact = f"PlannerApp-{platform}"
+        assert f"name: {artifact}\n          path: release-assets" in release
+        assert f"release-assets/{artifact}.{extension}" in release
+    assert "fail_on_unmatched_files: true" in release
 
 
 def load_tests(loader, tests, pattern):

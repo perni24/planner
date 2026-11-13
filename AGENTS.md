@@ -90,8 +90,8 @@ tool MCP (integration/mcp/mcp_tools.py) -> services/mcp_service.py -> db/reposit
   le librerie usate solo da questi e `libstdc++`/`libgcc_s` (incompatibili con i
   driver grafici recenti). Non reintrodurli senza provare su una distribuzione recente.
 - La build si ferma se la destinazione contiene dati runtime: non aggirarlo.
-- Il job release allega solo `PlannerApp-windows` finche le verifiche Linux in
-  `doc/TODO.md` non sono complete: non togliere il filtro prima.
+- Il job release richiede sia `PlannerApp-windows.zip` sia
+  `PlannerApp-linux.tar.gz`. L'avvio manuale da un branch produce solo artifact.
 - `build_licenses.py` copia nella build i testi di licenza di tutto cio che viene
   distribuito e si ferma se qualcosa non corrisponde (versioni di WebView2 SDK, Qt,
   ICU, librerie non coperte). Aggiorna i materiali seguendo `doc/GUIDA_SVILUPPO.md`,

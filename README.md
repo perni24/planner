@@ -13,14 +13,17 @@ backup dalle Impostazioni.
 
 ## Uso
 
-Scarica lo ZIP dalla pagina delle release, estrailo e avvia `PlannerApp.exe`: va
-tenuta l'intera cartella, che contiene anche i dati in `data/`. Al primo avvio
-Windows puo mostrare SmartScreen: "Ulteriori informazioni" -> "Esegui comunque".
+Scarica l'archivio per il tuo sistema dalla [pagina delle release](https://github.com/perni24/planner/releases).
+Estrailo e conserva l'intera cartella: i dati sono salvati in `data/` accanto
+all'eseguibile.
 
-- **Windows**: serve WebView2 Runtime, preinstallato in Windows 11. Se manca, vedi
-  `doc/TROUBLESHOOTING.md`.
-- **Linux**: il pacchetto (circa 510 MB, glibc 2.34 o successiva) e per ora
-  disponibile solo come artifact di prova del workflow.
+- **Windows**: estrai `PlannerApp-windows.zip` e avvia `PlannerApp.exe`. Serve
+  WebView2 Runtime, preinstallato in Windows 11. Se manca, vedi
+  [Risoluzione dei problemi](doc/TROUBLESHOOTING.md). Al primo avvio puo comparire
+  SmartScreen: "Ulteriori informazioni" -> "Esegui comunque".
+- **Linux x86-64** (dalla `0.2.0`): estrai `PlannerApp-linux.tar.gz` con
+  `tar -xzf PlannerApp-linux.tar.gz`, poi avvia `./PlannerApp/PlannerApp` dal
+  terminale. Serve una sessione desktop e glibc 2.34 o successiva.
 
 Aggiornamenti e struttura della cartella sono descritti in
 `doc/ARCHITETTURA_PORTABLE.md`.

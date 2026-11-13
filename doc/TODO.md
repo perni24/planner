@@ -5,20 +5,18 @@
 ### Linux
 
 La build CI su Ubuntu 22.04 (ridotta, senza `libstdc++`) e completata e i materiali
-di licenza sono stati verificati. Sul pacchetto estratto in Debian 13 sono stati
-confermati l'avvio e il funzionamento generale, in linea con Windows. Le singole
-prove e il tipo di sessione grafica non sono ancora elencati nel resoconto.
+di licenza sono stati verificati. Le prove manuali del pacchetto Linux sono
+passate: avvio, salvataggi e persistenza, backup, link esterni, copia indirizzo
+MCP e chiusura, con copertura di Wayland, X11 e di una seconda distribuzione
+oltre a Debian 13.
 
-- [ ] Annotare l'esito delle prove gia svolte e completare solo quelle mancanti:
-  salvataggi e persistenza, backup, link esterni, copia indirizzo MCP e chiusura.
-  Confermare la copertura di Wayland, X11 e di una seconda distribuzione (es. Fedora)
-- [ ] Predisporre e indicare dalla release l'accesso ai sorgenti corrispondenti
-  alla build finale, incluse eventuali patch Qt
 - [ ] Finestra di errore grafica prima dell'apertura della finestra (oggi solo
   console e log)
-- [ ] Completate le verifiche Linux, abilitare l'allegato nel job release:
-  scaricare anche `PlannerApp-linux` e pubblicare il `.tar.gz` accanto allo `.zip`
-  Windows. Allineare README e guida di distribuzione ai pacchetti pubblicati
+
+### Pubblicazione 0.2.0
+
+- [ ] Dopo la pubblicazione della `v0.2.0`, verificare entrambi gli allegati e il
+  link a `SOURCES.md` nelle note
 
 ### Windows
 

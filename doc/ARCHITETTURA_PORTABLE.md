@@ -15,9 +15,9 @@ L'app viene distribuita come cartella generata da PyInstaller in modalita
   .NET Framework: senza, da uno ZIP scaricato e non sbloccato pythonnet non carica
   le sue DLL (`Failed to resolve Python.Runtime.Loader.Initialize`). Non toglie
   l'avviso di SmartScreen per un eseguibile non firmato.
-- **Linux**: il pacchetto (circa 510 MB) contiene Qt WebEngine e le librerie di
-  sistema necessarie, richiede glibc 2.34 o successiva e una sessione desktop. Per
-  ora e solo un artifact di prova del workflow, non un allegato della release.
+- **Linux x86-64**: dalla `0.2.0` la release include `PlannerApp-linux.tar.gz`.
+  Il pacchetto contiene Qt WebEngine e le librerie di sistema necessarie;
+  richiede glibc 2.34 o successiva e una sessione desktop.
 - **macOS**: non distribuito (vedi `SVILUPPI_FUTURI.md`).
 
 ## Struttura

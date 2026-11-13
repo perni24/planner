@@ -244,8 +244,9 @@ The ICU 73.2 libraries shipped with Qt (`libicu*.so.73`) are covered by
 `licenses/qt/ICU_LICENSE.txt`, the license file of that ICU release
 ([ICU 73.2](https://github.com/unicode-org/icu/releases/tag/release-73-2)).
 
-The Linux artifact remains excluded from public release assets until the
-native tests are complete (see `doc/TODO.md`).
+For the Linux release, see `SOURCES.md` linked from the
+[release notes](https://github.com/perni24/planner/releases) for source archives
+matching the packaged versions.
 
 ### System Libraries (Linux only)
 

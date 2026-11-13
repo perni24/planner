@@ -142,15 +142,22 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Download release artifacts
+      - name: Download Windows release artifact
         uses: actions/download-artifact@v8
         with:
+          name: PlannerApp-windows
           path: release-assets
-          # Linux resta un artifact di prova finche build e verifiche native sono aperte.
-          pattern: PlannerApp-windows
-          merge-multiple: true
+
+      - name: Download Linux release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: PlannerApp-linux
+          path: release-assets
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: release-assets/*.zip
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/PlannerApp-windows.zip
+            release-assets/PlannerApp-linux.tar.gz
